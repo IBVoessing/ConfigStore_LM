@@ -10,6 +10,7 @@ public class CrawlerReqHandler {
 		new VrhSimpleRouter<>()
 			.addRoute("/test", Test.class)
 			.addRoute("/trello/webhook", TrelloWebhook.class)
+			.addRoute("/runVCDEAdapter", RunVCDEAdapter.class)
 			.handleRequest();
 	}
 }
