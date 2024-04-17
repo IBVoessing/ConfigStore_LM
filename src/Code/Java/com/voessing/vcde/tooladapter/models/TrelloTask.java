@@ -5,7 +5,7 @@ public class TrelloTask {
 
 	public Card card;
 
-	static class Card {
+	public static class Card {
 		public String name;
 		public String desc;
 		public String due;
@@ -14,12 +14,12 @@ public class TrelloTask {
 		
 		public List<Checklist> checklists;
 		
-		static class Checklist {
+		public static class Checklist {
 			public String name;
 			public List<CheckItem> checkItems;
 		}
 
-		static class CheckItem {
+		public static class CheckItem {
 			public String name;
 			public String due;
 			public String idMember;
