@@ -4,8 +4,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
@@ -28,11 +26,13 @@ public class Test extends VrhHttpHandler {
 		}
 		
 		System.out.println("Hallo Test");
+		
 		String blah = "{'msg':'hallu'}";
+		
 		if(!blah.isEmpty()){
 			throw new VrhException(400, "hallo");
 		}
-		Gson gson = new Gson();
+		
 		JsonObject jo = new JsonObject();
 		jo.addProperty("test", "test");
 

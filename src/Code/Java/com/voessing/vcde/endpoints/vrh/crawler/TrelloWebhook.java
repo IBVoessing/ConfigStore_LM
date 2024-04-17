@@ -13,7 +13,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
-import com.voessing.common.TNotesUtil;
 import com.voessing.common.TVAppCredStore2;
 import com.voessing.xapps.utils.vrh.configs.VrhAttributeConfigFactory;
 import com.voessing.xapps.utils.vrh.configs.VrhAttributeConfigValueType;
