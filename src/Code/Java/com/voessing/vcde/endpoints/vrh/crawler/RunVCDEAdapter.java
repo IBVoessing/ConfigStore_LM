@@ -1,7 +1,10 @@
 package com.voessing.vcde.endpoints.vrh.crawler;
 
+import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
 
+import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.handler.VrhHttpHandler;
 
 public class RunVCDEAdapter extends VrhHttpHandler {
@@ -9,8 +12,13 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 	private static final String CREDSTORE_KEY = "trello_lm";
 
 	@Override
+	protected VrhResourceHandlerConfig provideConfig(VrhResourceHandlerConfig initialConfig, Map<String, String[]> parameterMap) throws Exception {
+		config.setAllowedMethods("GET, POST");
+		return initialConfig;
+	}
+
+	@Override
 	protected void onRequest(HttpServletRequest request) throws Exception {
-		// validate that the request is from Trello
 		System.out.println("hallooo :)))");
 	}
 
@@ -23,7 +31,7 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 	@Override
 	protected String doPost(HttpServletRequest request) throws Exception {
 
-		return "skfjaskjfklsajfljasdf";
+		return ":(";
 	}
 
 }
