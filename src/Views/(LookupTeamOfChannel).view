@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <note class='view' xmlns='http://www.lotus.com/dxl' version='12.0' maintenanceversion='2.2'
  replicaid='C1258AFC00296AAF'>
-<noteinfo noteid='276' unid='0BD5C0815EB38257C1258A7600430F70' sequence='12'>
+<noteinfo noteid='2b2' unid='0BD5C0815EB38257C1258A7600430F70' sequence='12'>
 <created><datetime>20231129T131228,64+01</datetime></created>
-<modified><datetime dst='true'>20240411T133552,76+02</datetime></modified>
+<modified><datetime dst='true'>20240411T093232,80+02</datetime></modified>
 <revised><datetime>20231207T151715,47+01</datetime></revised>
-<lastaccessed><datetime dst='true'>20240411T133552,75+02</datetime></lastaccessed>
-<addedtofile><datetime dst='true'>20240411T133552,75+02</datetime></addedtofile></noteinfo>
+<lastaccessed><datetime dst='true'>20240411T093232,79+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T093232,79+02</datetime></addedtofile></noteinfo>
 <updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
 <wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
 <item name='$FormulaClass' sign='true'><text>1</text></item>

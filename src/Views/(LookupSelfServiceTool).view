@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <note class='view' xmlns='http://www.lotus.com/dxl' version='12.0' maintenanceversion='2.2'
  replicaid='C1258AFC00296AAF'>
-<noteinfo noteid='38e' unid='145E63AC524DAEE6C1258ABC0050DE8B' sequence='2'>
+<noteinfo noteid='36a' unid='145E63AC524DAEE6C1258ABC0050DE8B' sequence='2'>
 <created><datetime>20240207T154318,51+01</datetime></created>
-<modified><datetime dst='true'>20240411T133555,59+02</datetime></modified>
+<modified><datetime dst='true'>20240411T093234,25+02</datetime></modified>
 <revised><datetime>20240207T154319,86+01</datetime></revised>
-<lastaccessed><datetime dst='true'>20240411T133555,58+02</datetime></lastaccessed>
-<addedtofile><datetime dst='true'>20240411T133555,58+02</datetime></addedtofile></noteinfo>
+<lastaccessed><datetime dst='true'>20240411T093234,24+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T093234,24+02</datetime></addedtofile></noteinfo>
 <updatedby><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
 <wassignedby><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
 <item name='$FormulaClass' sign='true'><text>1</text></item>
