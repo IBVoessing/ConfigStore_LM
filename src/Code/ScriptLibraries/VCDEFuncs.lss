@@ -1,0 +1,2048 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library VCDEFuncs
+	Created Apr 19, 2021 by Denis Kopprasch/IT/Duesseldorf/IBV/DE
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "Common_JSON"
+Use "CSVConverter"
+
+%REM
+	2024-01-26, rhi:
+		Private Sub Update_DocInfo(doc As Notesdocument) verwenden
+			updated
+				Sub UI_Document_Querysave(Source As NotesUIDocument, Continue As Variant)
+				Private Sub Tool_Update_Docs(tdoc As notesdocument)
+		Private Sub Tool_Update_Docs(tdoc As notesdocument)
+			verwende LU-Ansicht (LookUpByTool)
+	
+	2024-01-11, rhi:
+		new
+			Private Function getValuesFromToolInstanceDoc(doc As NotesDocument, tiDoc As Notesdocument) As Boolean		
+	
+	
+	
+	2024-01-04, rhi:
+		Sub UI_Document_Querysave(Source As NotesUIDocument, Continue As Variant)
+			Gemeinsame Sub für alle Docs, die die SubForm "DocInfo" eingebunden haben
+			Felder "Reviser" und "lastUpdated" (beide CwC) aktualisieren
+	
+	
+	2023-10-14, rhi:
+		Umbenennung der Library in VCDEFuncs
+	
+	2023-09-27, rhi:
+		Private Sub Tool_generate_JSON(doc As notesdocument)
+			neue Tool-Felder "usageCategories" und "usageTypes" mit ins JSON aufnehmen
+		
+		Private Sub getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument)
+			neue Tool-Felder "usageCategories" und "usageTypes" mit ins Doc übernehmen
+			
+		zusätzlich geändert in
+		Private Function getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument) As Boolean
+		--> dadurch wird erkennbar/zurückgeben, ob sich etwas geändert hat
+		--> zur Entscheidung, ob gespeichert werden muss 	
+			
+		Private Sub Tool_Update_Docs(tdoc As notesdocument)
+			neue Sub, um Resource bei Änderungen am Tool upzudaten			
+		
+		Sub UI_Tool_Quersave(Source As NotesUIDocument, Continue As Variant)				
+			Call Update_Tool_Usage()
+			
+			
+	
+	2022-03-08, rhi
+		updated
+			Sub Agent_Import_CSV_Config()
+				anhand ToolInstanceID prüfen, ob es bereits ein vorhandenes Doc gibt
+	
+	
+	2022-02-10, rhi
+		new
+			Options
+				Use "CSVConverter"
+				
+			Sub Agent_Import_CSV_Config()
+			
+			Private Sub linkProjectListDoc(doc As notesdocument)
+				Teile aus Sub Agent_XSP_VAPI_SyncUpdateConfig()
+			
+			Private Sub linkToolDoc(doc As notesdocument)		
+	
+	
+	2022-01-19, rhi:
+		new:
+			Private Sub removeProjectItems(doc As notesdocument)
+				Entfernt alle Projekt Felder
+				
+			Sub UI_Document_ResetProject()
+				Aufruf aus SF "Project"	für aktuelles Doc
+				
+			Sub Agent_Config_ResetProject_Selected()
+				Aufruf aus Ansicht für gewählte Configs	
+	
+	
+	2021-12-15, 16, rhi
+		changed:
+			PostDecodeJson
+				Projekt-Zuordnung: Der response aus VAPI für Projekte enthält nun auch die UNID des Docs aus der Projektliste, ebenfalls speichern
+			getValuesFromProjectListDoc
+			
+	
+	2021-11-29, rhi
+		changed:
+			PostDecodeJson
+				Tool-Zuordnung: neuen Knoten/object "tool" berücksichtigen
+	
+	2021-11-25/26, dko, rhi
+		new:
+			Declarations: 
+				Private gl_dbGPR As NotesDatabase
+				
+			Private Sub Init_GPR()	
+				
+			Private Function getProjectNumberFromString(aStr As String) As String
+				analog 	TNotesUtil.getProjectNumberFromString
+				
+			Private Function getToolDoc(key As String) As NotesDocument	
+	
+		changed:
+			Sub Agent_XSP_VAPI_SyncUpdateConfig()
+	
+	2021-10-01, rhi:
+		changed:
+			Private Sub getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument)
+				auch die UNID übertragen
+				alle FeldNamen lowerCamelCase
+				
+			Private Sub Tool_generate_JSON(doc As notesdocument)	
+				alle FeldNamen lowerCamelCase
+	
+			Private Sub Tool_generate_JSON(doc As notesdocument)
+				auch die UNID übernehmen
+				
+		new:
+			Sub Agent_Config_SetTool()
+							
+				
+	
+	2021-09-22, rhi:
+		changed:
+			Private Sub PostDecodeJson(doc As NotesDocument)
+				neuen Knoten/object "configState" berücksichtigen	
+	
+	2021-09-14, rhi:
+		new:
+			Private Sub Tool_generate_JSON(doc As notesdocument)
+			Sub Agent_Tool_generate_JSON_selected()
+
+			Private Sub getValuesFromProjectDoc(doc As NotesDocument, pDoc As notesdocument)
+		
+			Private Sub getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument)
+			
+			Sub UI_Document_ChooseTool()
+						
+		changed:
+			Sub UI_Tool_Quersave(Source As NotesUIDocument, Continue As Variant)
+				verwende Tool_generate_JSON
+				
+			Sub Sub UI_Document_ChooseProject()
+				verwende getValuesFromProjectDoc
+				
+			Private Sub PostDecodeJson(doc As NotesDocument)
+				neuen Knoten/object "project" berücksichtigen	
+					
+	
+	2021-09-09, rhi:
+		changed:
+			Sub UI_Tool_QuerySave()
+				Behandlung "Properties" (mvf)
+				"infourl"
+				Behandlung/Bildung "pictureurl"
+			
+	
+	2021-09-09, rhi:
+		new:
+			Sub UI_Document_ChooseProject()
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Sub Initialize
+Declare Sub UI_Tool_Quersave(Source As NotesUIDocument, Continue As Variant)
+Declare Private Function getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument) As Boolean
+Declare Sub Agent_Migrate_ToolInstance()
+Declare Private Sub linkToolDoc(doc As notesdocument)
+Declare Sub Agent_Sync_TIM_TI()
+Declare Private Sub getValuesFromProjectListDoc(doc As NotesDocument, pListDoc As notesdocument)
+Declare Sub UI_Document_Querysave(Source As NotesUIDocument, Continue As Variant)
+Declare Private Sub Update_DocInfo(doc As Notesdocument)
+Declare Private Function getToolDoc(key As String) As NotesDocument
+Declare Sub Agent_Import_CSV_Config()
+Declare Private Sub PostDecodeJson(doc As NotesDocument)
+Declare Sub Agent_XSP_VAPI_SyncUpdateConfig()
+Declare Sub Agent_Config_ResetProject_Selected()
+Declare Sub UI_Document_ResetProject()
+Declare Sub UI_Document_ChooseProject()
+Declare Private Sub Init_GPR()
+Declare Private Function getProjectNumberFromString(aStr As String) As String
+Declare Sub Agent_Cleanup_ToolInstance()
+Declare Private Sub Tool_Update_Docs(tdoc As notesdocument)
+Declare Sub Agent_Config_SetProject()
+Declare Sub Agent_PostDecodeJSON_Selected()
+Declare Private Function getProjectListDoc(key As String) As NotesDocument
+Declare Private Sub Tool_generate_JSON(doc As notesdocument)
+Declare Sub logEvent(doc As NotesDocument, msg As String)
+Declare Sub UI_Document_ChooseTool()
+Declare Sub Agent_Config_SetTool()
+Declare Sub Agent_Tool_generate_JSON_selected()
+Declare Sub Agent_XSP_PostDecodeJSON()
+Declare Private Sub removeProjectItems(doc As notesdocument)
+Declare Private Function getValuesFromToolInstanceDoc(doc As NotesDocument, tiDoc As Notesdocument) As Boolean
+Declare Sub Agent_Migrate_Tool()
+Declare Private Sub linkProjectListDoc(doc As notesdocument)
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private session As NotesSession
+Private db As NotesDatabase
+Private gl_dbGPR As NotesDatabase
+
+
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	If session Is Nothing Then
+		Set session = New NotesSession
+		Set db = session.Currentdatabase
+	End If
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:UI_Tool_Quersave:5:8
+%REM
+	Sub UI_Tool_Quersave
+	Description: Build JSONConfig
+%END REM
+Sub UI_Tool_Quersave(Source As NotesUIDocument, Continue As Variant)
+	
+	On Error goto doError
+
+	Dim doc As NotesDocument
+	
+%rem
+	Dim nav As NotesJSONNavigator
+	Dim arr As NotesJSONArray
+	Dim hlparr
+	Dim i As Integer
+	Dim eval As Variant
+	Dim pictureUrl As string
+%end rem
+
+	Set doc = Source.Document
+
+	Call Tool_generate_JSON(doc)
+	
+	Call Tool_Update_Docs(doc)
+	
+	GoTo ende
+
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Continue = False
+	Resume ende
+	
+ende:
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:1:getValuesFromToolDoc:5:8
+%REM
+	Sub getValuesFromToolDoc
+	Description: Comments for Sub
+%END REM
+Private Function getValuesFromToolDoc(doc As NotesDocument, tDoc As NotesDocument) As Boolean
+	
+	On Error GoTo doError
+
+	Dim needSave As Boolean
+	needSave = False
+	
+	
+	'Name (Eindeutig, möglicher Key)
+	If Not IsEqual(doc.toolName(0), tDoc.name(0)) Then
+		doc.toolName = tDoc.Name(0)
+		NeedSave = True
+	End If
+	
+	'2021-10-01,rhi: zusätzlich auch die UNID übernehmen (Standard Key)
+	If Not IsEqual(doc.toolUnid(0), tDoc.Universalid) Then
+		doc.toolUnid = tDoc.Universalid
+		NeedSave = True
+	End If
+
+	'Title
+	If Not IsEqual(doc.toolTitle(0), tDoc.Title(0)) Then
+		doc.toolTitle = tDoc.Title(0)
+		NeedSave = True
+	End If
+	
+	'Type
+	If Not IsEqual(doc.toolType(0), tDoc.Type(0)) Then
+		doc.toolType = tDoc.Type(0)
+		NeedSave = True
+	End If
+
+	'pictureURL
+	If Not IsEqual(doc.toolPictureUrl(0), tDoc.PictureUrl(0)) Then
+		doc.toolPictureUrl = tDoc.PictureUrl(0)
+		NeedSave = True
+	End If
+	
+
+%rem
+	'2023-09-26, rhi: Usage
+	If Not IsEqual(doc.toolUsageCategories, tDoc.usageCategories) Then
+		doc.toolUsageCategories = tDoc.usageCategories
+		NeedSave = True
+	End If
+	
+	If Not IsEqual(doc.toolUsageTypes, tDoc.usageTypes) Then
+		doc.toolUsageTypes = tDoc.usageTypes
+		NeedSave = True
+	End If
+	
+	'Scheme (Beispiel)
+	If Not IsEqual(doc.toolJsonScheme(0), tDoc.JSONScheme(0)) Then
+		doc.toolJsonScheme = tDoc.JSONScheme(0)
+		NeedSave = True
+	End If
+
+	'Mapping (Anweisung, was vorher kommt)
+	If Not IsEqual(doc.toolJsonMapping(0), tDoc.JSONMapping(0)) Then
+		doc.toolJsonMapping = tDoc.JSONMapping(0)
+		NeedSave = True
+	End If
+%end rem	
+	getValuesFromToolDoc = needSave
+	
+
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:Agent_Migrate_ToolInstance:5:8
+%REM
+	Sub Agent_Migrate_ToolInstance()
+	Description: Comments for Sub
+%END REM
+Sub Agent_Migrate_ToolInstance()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+		'Form
+		Call doc.Replaceitemvalue("Form", "ToolInstance")
+		
+		'Feldwerte umkopieren
+			'Platform
+		Call doc.Replaceitemvalue("platformOrgId", doc.jsonTid(0))
+		Call doc.Replaceitemvalue("platformContextName", doc.jsonTeamName(0))
+		Call doc.Replaceitemvalue("platformSubContextId", doc.jsonChannelId(0))
+		Call doc.Replaceitemvalue("platformSubContextName", doc.jsonChannelName(0))
+		Call doc.Replaceitemvalue("platformPlacementName", doc.jsonTabName(0))
+		Call doc.Replaceitemvalue("platformPlacementName", doc.jsonTabName(0))
+		
+			'Instance
+		'TODO: ToolInstanceId oder resourceid?
+		Call doc.Replaceitemvalue("objectId", doc.resourceid(0))
+		Call doc.Replaceitemvalue("info", doc.ToolInstanceInfo(0))
+		Call doc.Replaceitemvalue("name", doc.ToolInstanceName(0))
+		Call doc.Replaceitemvalue("url", doc.ToolInstanceUrl(0))
+		Call doc.Replaceitemvalue("usageTypes", doc.ToolUsageTypes)
+		
+			'Tool
+		Call doc.Replaceitemvalue("ToolName", doc.ToolID(0))
+		
+		
+		
+		'Felder löschen
+		%rem
+		doc.Removeitem("Type")
+		
+		doc.Removeitem("jsonTid")
+		
+		doc.Removeitem("jsonChannelId")
+		doc.Removeitem("jsonChannelName")
+		doc.Removeitem("jsonRootPath")
+		doc.Removeitem("jsonShareData")
+		doc.Removeitem("jsonSource")
+		doc.Removeitem("jsonTabName")
+		doc.Removeitem("jsonTeamName")
+		
+		doc.Removeitem("jsonUpn")
+		doc.Removeitem("jsonUserID")
+		doc.Removeitem("jsonUsername")
+		
+		doc.Removeitem("resourceid")
+		doc.Removeitem("ToolID")
+		doc.Removeitem("ToolInstanceId")
+		doc.Removeitem("ToolInstanceInfo")
+		doc.Removeitem("ToolInstanceName")
+		doc.Removeitem("ToolInstanceUrl")
+		doc.Removeitem("ToolInstanceParentId")
+		doc.Removeitem("ToolJSONConfig")
+		doc.Removeitem("ToolJSONScheme")
+		
+		doc.Removeitem("ToolUsageCategories")
+		doc.Removeitem("ToolUsageTypes")
+		%end rem
+		
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+
+
+
+
+'++LotusScript Development Environment:2:2:linkToolDoc:5:8
+%REM
+	Sub LinkToolDoc
+	Description: Comments for Sub
+%END REM
+Private Sub linkToolDoc(doc As notesdocument)
+	
+	On Error GoTo doError
+	
+	Dim key As String
+	Dim tDoc As NotesDocument
+	
+	key = GetFirstItemValue(doc, "ToolUnid")
+	If Trim(key) = "" Then
+		key = GetFirstItemValue(doc, "ToolName")
+	End If
+	
+	If key <> "" Then
+		'die verwendete LUView in getToolDoc kann sowohl UNID als auch ID als Schlüssel nutzen
+		Set tDoc = getToolDoc(key)
+		Call getValuesFromToolDoc(doc, tDoc)
+	End If
+		
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:Agent_Sync_TIM_TI:5:8
+%REM
+	Sub Agent_Sync_TIM_TI
+	Description: Comments for Sub
+%END REM
+Sub Agent_Sync_TIM_TI()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim tndc As NotesDocumentCollection
+	
+	Dim doc As NotesDocument
+	Dim tiDoc As NotesDocument
+	
+	Dim needSave As Boolean
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+
+	While Not doc Is Nothing
+		
+		Set tiDoc = Nothing
+		needSave = false
+		
+		If (doc.ToolInstanceUNID(0) <> "") Then
+			Set tiDoc = db.Getdocumentbyunid(doc.ToolInstanceUNID(0))
+			
+			If (Not tiDoc Is NOthing) Then
+				needsave = getValuesFromToolInstanceDoc(Doc, tidoc)
+				
+				If (needSave) Then
+					Call Update_DocInfo(Doc)
+					
+					Call doc.save(True, False)			
+				End If
+				
+			End If
+		End If
+		
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+	
+ende:	
+End Sub
+
+'++LotusScript Development Environment:2:2:getValuesFromProjectListDoc:5:8
+%REM
+	Sub getValuesFromProjectDoc
+	Description: Comments for Sub
+%END REM
+Private Sub getValuesFromProjectListDoc(doc As NotesDocument, pListDoc As notesdocument)
+	
+	On Error GoTo doError
+
+	'avoid access to "Nothing" -> Reset Projekt Assignment if project list doc is not present
+	If pListDoc Is Nothing Then Set pListDoc = New NotesDocument(db)
+
+	'ProjektNummer
+	Call doc.Replaceitemvalue("ProjectPNr", GetFirstItemValue(pListDoc, "ProjektNr"))
+	'ProjektTitel
+	Call doc.Replaceitemvalue("ProjectTitle", GetFirstItemValue(pListDoc, "ProjektTitel"))
+	
+	'ReplicaID der entsprechenden Unternehmens ProjektDB
+	Call doc.Replaceitemvalue("ProjectRID", GetFirstItemValue(pListDoc, "SYNC_SOURCEDBREPLICAID"))
+	'UNID in der entsprechenden Unternehmens ProjektDB
+	Call doc.Replaceitemvalue("ProjectUNID", GetFirstItemValue(pListDoc, "SYNC_SOURCEUNID"))
+
+	'UNID des Docs in der Globalen Projektliste
+	Call doc.Replaceitemvalue("ProjectID", pListDoc.Universalid)
+	
+
+	'CompanyID ("VI", "VP", "VV")
+	Call doc.Replaceitemvalue("ProjectCID", GetFirstItemValue(pListDoc, "FirmaKreis"))
+
+	'2021-11-25, dko: Kostenstelle nur bei EL-Blättern
+	If GetFirstItemValue(pListDoc, "BlattTyp") = "EL" Then
+		Call doc.Replaceitemvalue("ProjectKST", GetFirstItemValue(pListDoc, "Kostenstelle"))
+	Else
+		Call doc.Replaceitemvalue("ProjectKST", "")
+	End If
+	
+	%REM
+	Unused
+	Call doc.Replaceitemvalue("ProjectGPLUNID", pListDoc.Universalid)
+			
+	Call doc.Replaceitemvalue("ProjectNL", GetFirstItemValue(pListDoc, "Niederlassung"))
+	Call doc.Replaceitemvalue("ProjectABT", GetFirstItemValue(pListDoc, "Abteilung"))
+	
+	Call doc.Replaceitemvalue("ProjectGPartnerName", GetFirstItemValue(pListDoc, "GPartnerName"))
+	Call doc.Replaceitemvalue("ProjectGPartnerName2", GetFirstItemValue(pListDoc, "GPartnerName2"))
+	
+	Call doc.Replaceitemvalue("ProjectGPartnerKID", GetFirstItemValue(pListDoc, "GPartnerKID"))
+	Call doc.Replaceitemvalue("ProjectGPartnerFID", GetFirstItemValue(pListDoc, "GPartnerFID"))
+	Call doc.Replaceitemvalue("ProjectGPartnerUNID", GetFirstItemValue(pListDoc, "GPartnerUNID"))
+	%end rem
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+
+
+
+'++LotusScript Development Environment:2:2:UI_Document_Querysave:7:8
+%REM
+	Sub UI_Doc_Querysave
+	Description: 
+		Gemeinsame Sub für alle Docs, die die SubForm "DocInfo" eingebunden haben
+		Felder "Reviser" und "lastUpdated" (beide CwC) aktualisieren
+%END REM
+Sub UI_Document_Querysave(Source As NotesUIDocument, Continue As Variant)
+	
+	On Error GoTo doError
+
+	Dim doc As NotesDocument
+
+	Set doc = Source.Document
+
+	If Not doc.Isnewnote Then
+		Call Update_DocInfo(doc)
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Continue = False
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:Update_DocInfo:5:8
+%REM
+	Sub Update_DocInfo
+	Description: Comments for Sub
+%END REM
+Private Sub Update_DocInfo(doc As Notesdocument)
+	
+	On Error GoTo doError
+
+	Call doc.Replaceitemvalue("Reviser", "admin")
+	Call doc.Replaceitemvalue("lastUpdated", Now())
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:1:getToolDoc:5:8
+%REM
+	Function getToolDoc
+	Description: Comments for Function
+%END REM
+Private Function getToolDoc(key As String) As NotesDocument
+	
+	On Error GoTo doError
+	
+	Dim v As NotesView
+
+	'Default
+	Set getToolDoc = Nothing
+
+	Set v = GetGlobalView(db, "(LookupTools)")
+
+	If Not v Is Nothing Then
+		Set getToolDoc = v.Getdocumentbykey(key, True)
+	End If
+
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:Agent_Import_CSV_Config:5:8
+%REM
+	Sub Agent_Import_Config_CSV
+	Description: Comments for Sub
+%END REM
+Sub Agent_Import_CSV_Config()
+	
+	On Error GoTo doError
+	
+	Dim filename As String
+	
+	fileName = session.Getenvironmentstring("vcdeConfigLastPathProjectToolInstanceImport")
+	fileName = InputBox("Pfad", "", fileName)
+	
+	If filename <> "" Then
+		Call session.Setenvironmentvar("vcdeConfigLastPathProjectToolInstanceImport", fileName)
+	Else
+		Print "Abbruch"
+		GoTo ende
+	End If
+	
+	Dim csvFile As New CSVImportFileStream(fileName, "")
+	Dim csv As New CSVImportStructured(csvFile)
+	Dim data
+	Dim ndc As notesdocumentcollection
+	Dim Doc As NotesDocument
+	Dim formula As string
+	
+	While Not csv.IsEOF
+		
+		Set doc = nothing
+		
+		'Einlesen der Daten aus der Zeile
+		data = csv.NextRow()
+		
+		'gibt es bereits eine Config? 
+		If (IsElement(data("objectID")) And data("objectID") <> "") Then
+			'letzte Abfrage zurücksetzen
+			formula = ""
+			
+			'Basis
+			formula = "Form = ""ToolInstance"" & @IsUnavailable($Conflict)"
+			
+			'objectID der ToolInstance anhängen
+			formula = formula + " & objectID=""" + data("objectID") + """"
+			
+			'ggf. weiter einschränken
+			If (IsElement(data("ToolUnid")) And data("ToolUnid") <> "") Then
+				formula = formula + " & ToolUNID=""" + data("ToolUnid") + """"
+			Elseif (IsElement(data("ToolName")) And data("ToolName") <> "") Then 
+				formula = formula + " & ToolName=""" + data("ToolName") + """"
+			End If
+			
+			Set ndc = db.search(formula, Nothing, 0)
+			
+			If (not ndc Is Nothing And ndc.count = 1) Then
+				Set doc = ndc.Getfirstdocument()
+			End If
+			
+		End If
+		
+		If doc Is Nothing Then
+			Set doc = CreateNewDocument(db, "ToolInstance")
+		End If
+		
+		'Daten aus Tabelle übernehmen
+		ForAll value In data
+			Call ReplaceUnequalItemSingleValue(doc, ListTag(value), value)
+		End ForAll
+		
+		'ProjektDoc verlinken
+		Call linkProjectListDoc(Doc)
+		
+		'ToolDoc verlinken
+		Call linkToolDoc(Doc)
+		
+		doc.csvImported = Now()
+		
+		Call doc.Save(True, False)
+		
+	Wend
+	
+	'Delete csv
+	Delete csvFile
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:PostDecodeJson:1:8
+Private Sub PostDecodeJson(doc As NotesDocument)
+
+	On Error GoTo doError
+	
+	Dim jsonNav As NotesJSONNavigator
+	Dim jsonElem As NotesJSONElement
+	Dim jsonObj As NotesJSONObject
+	
+	'Umlaute müssen in maskiert werden
+	Set jsonNav = session.CreateJsonNavigator("[" & GetFirstItemvalue(doc, "ConfigJSON") & "]")
+	
+	'Objektdefinition einlesen: es wird nur ein Objekt im array unterstützt
+	Set jsonElem = jsonNav.Getfirstelement()
+	'Print "jsonElem.Type", jsonElem.Type
+	
+	Set jsonObj = jsonElem.Value
+	'Print "jsonObj.Size", jsonObj.Size
+	
+	
+	%REM	
+	Set jsonElem  = jsonObj.Getfirstelement()
+	While Not jsonElem Is Nothing
+		Print "name/Type", jsonElem.Name, jsonElem.Type		
+		Set jsonElem  = jsonObj.Getnextelement()
+	Wend
+	
+	'Print "jsonObj.GetElementbyname(""rootPath"") is Nothing", jsonObj.Getelementbyname("rootPath") Is Nothing 
+	%END REM
+	
+	'Config: App-spezifisch
+	%rem
+	Call doc.Replaceitemvalue("jsonSource", GetJSONStringByPointer(jsonObj, "source", ""))
+	Call doc.Replaceitemvalue("jsonRootPath", GetJSONStringByPointer(jsonObj, "rootPath", ""))
+	Call doc.Replaceitemvalue("jsonUserID", GetJSONStringByPointer(jsonObj, "userID", ""))
+	Call doc.Replaceitemvalue("jsonUsername", GetJSONStringByPointer(jsonObj, "username", ""))
+	Call doc.Replaceitemvalue("jsonTabName", GetJSONStringByPointer(jsonObj, "tabName", ""))
+	Call doc.Replaceitemvalue("jsonShareData", GetJSONIntegerByPointer(jsonObj, "shareData", 0))
+	
+	Call doc.Replaceitemvalue("Type", "Unknown")
+	%end rem
+	
+	Call doc.Replaceitemvalue("platformPlacementName", GetJSONStringByPointer(jsonObj, "tabName", ""))
+	
+	
+	'Config: Integration
+	Dim jsonTypeObj As NotesJSONObject
+
+	'Bis Ende 04/2021 / OOD
+	Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonObj, "teamsContext")
+	If Not jsonTypeObj Is Nothing Then
+		
+		%rem
+		'Es ist ein Teams Knoten
+		Call doc.Replaceitemvalue("Type", "Teams")
+		
+		Call doc.Replaceitemvalue("jsonTeamName", GetJSONStringByPointer(jsonTypeObj, "teamName", ""))
+		Call doc.Replaceitemvalue("jsonTid", GetJSONStringByPointer(jsonTypeObj, "tid", ""))
+		Call doc.Replaceitemvalue("jsonChannelName", GetJSONStringByPointer(jsonTypeObj, "channelName", ""))
+		Call doc.Replaceitemvalue("jsonChannelId", GetJSONStringByPointer(jsonTypeObj, "channelId", ""))
+		Call doc.Replaceitemvalue("jsonUpn", GetJSONStringByPointer(jsonTypeObj, "upn", ""))
+		%end rem
+		
+		Call doc.Replaceitemvalue("platformName", "MS_TEAMS")
+		
+		Call doc.Replaceitemvalue("platformContextName", GetJSONStringByPointer(jsonTypeObj, "teamName", ""))
+		Call doc.Replaceitemvalue("platformOrgId", GetJSONStringByPointer(jsonTypeObj, "tid", ""))
+		Call doc.Replaceitemvalue("platformSubContextName", GetJSONStringByPointer(jsonTypeObj, "channelName", ""))
+		Call doc.Replaceitemvalue("platformSubContextId", GetJSONStringByPointer(jsonTypeObj, "channelId", ""))
+
+		
+	End If
+	
+	'Ab ca. 05/2021
+	Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonObj, "context")
+	If Not jsonTypeObj Is Nothing Then
+		
+		'Es ist ein Teams Knoten
+		'TODO: eigentlich unklar, im Request sollte hierfür noch eine Property explizit gesetzt werden, wenn wir nicht anhand des Inhalts raten wolllen
+		Call doc.Replaceitemvalue("Type", "Teams")
+		
+		'TODO: weitere Metadaten von noch zu definierenden Properties auslesen
+		'->Projektnummer, Kostenstelle
+		
+		Call doc.Replaceitemvalue("jsonUpn", GetJSONStringByPointer(jsonTypeObj, "upn", ""))
+		
+		Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonTypeObj, "platformContext")
+		If Not jsonTypeObj Is Nothing Then
+			%rem
+			Call doc.Replaceitemvalue("jsonTeamName", GetJSONStringByPointer(jsonTypeObj, "teamName", ""))
+			Call doc.Replaceitemvalue("jsonTid", GetJSONStringByPointer(jsonTypeObj, "tid", ""))
+			Call doc.Replaceitemvalue("jsonChannelName", GetJSONStringByPointer(jsonTypeObj, "channelName", ""))
+			Call doc.Replaceitemvalue("jsonChannelId", GetJSONStringByPointer(jsonTypeObj, "channelId", ""))
+			%end rem
+			
+			Call doc.Replaceitemvalue("platformContextName", GetJSONStringByPointer(jsonTypeObj, "teamName", ""))
+			Call doc.Replaceitemvalue("platformContextId", GetJSONStringByPointer(jsonTypeObj, "groupId", ""))
+			Call doc.Replaceitemvalue("platformOrgId", GetJSONStringByPointer(jsonTypeObj, "tid", ""))
+			Call doc.Replaceitemvalue("platformSubContextName", GetJSONStringByPointer(jsonTypeObj, "channelName", ""))
+			Call doc.Replaceitemvalue("platformSubContextId", GetJSONStringByPointer(jsonTypeObj, "channelId", ""))
+			
+			
+			
+		End If
+		
+	End If
+	
+	
+	'2021-09-15, rhi: Projektauswahl
+	Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonObj, "project")
+	If Not jsonTypeObj Is Nothing Then
+		%REM
+		ab 2021-12-15 (id ist nun die UNID des Docs in der Globalen Projektliste, nicht mehr die Webix-ID)	
+		"project": {
+	        "unid": "E86CB0D1D00B190CC12583270036DD36",
+	        "pnr": "2852",
+	        "id": "90C91FB2DF531F38C12583270039A188",
+	        "rId": "C125670C002E88A0",
+	        "type": "GP",
+	        "title": "Erneuerung Infrastruktur Werk Hamburg",
+	        "kst": "9159",
+	        "cId": "VI"
+	    },	
+			
+			
+		"project": {
+       		"unid": "E86CB0D1D00B190CC12583270036DD36",
+        	"pnr": "2852",
+        	"id": 1631702902715,
+        	"rId": "C125670C002E88A0",
+        	"type": "GP",
+        	"title": "Erneuerung Infrastruktur Werk Hamburg",
+        	"kst": "9159",
+        	"cId": "VI"
+    	},
+		%END REM
+		
+		'ProjektNummer
+		Call doc.Replaceitemvalue("ProjectPNr", GetJSONStringByPointer(jsonTypeObj, "pnr", ""))
+		'ProjektTitel
+		Call doc.Replaceitemvalue("ProjectTitle", GetJSONStringByPointer(jsonTypeObj, "title", ""))
+	
+		'ReplicaID der entsprechenden Unternehmens ProjektDB
+		Call doc.Replaceitemvalue("ProjectRID", GetJSONStringByPointer(jsonTypeObj, "rId", ""))
+		'UNID in der entsprechenden Unternehmens ProjektDB
+		Call doc.Replaceitemvalue("ProjectUNID", GetJSONStringByPointer(jsonTypeObj, "unid", ""))
+
+		'UNID in der Globalen Projektliste (seit 2021-12-15)
+		Call doc.Replaceitemvalue("ProjectID", GetJSONStringByPointer(jsonTypeObj, "id", ""))
+
+
+		'CompanyID ("VI", "VP", "VV")
+		Call doc.Replaceitemvalue("ProjectCID", GetJSONStringByPointer(jsonTypeObj, "cId", ""))
+		'Kostenstelle
+		Call doc.Replaceitemvalue("ProjectKST", GetJSONStringByPointer(jsonTypeObj, "kst", ""))
+	
+		'Kostenstelle
+		Call doc.Replaceitemvalue("ProjectType", GetJSONStringByPointer(jsonTypeObj, "type", ""))
+	End If
+	
+	
+	'2021-09-22, rhi: Zustand des Tabs
+	Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonObj, "configState")
+	If Not jsonTypeObj Is Nothing Then
+		%REM
+		"configState": {
+	        "lastUpdate": "Wednesday, September 22, 2021 11:02 AM",
+	        "active": 0,
+	        "modifiedBy": "FM9759290c-0380-43e0-a109-8a8f3df9f9fa"
+	    },
+		%END REM
+		Call doc.Replaceitemvalue("jsonConfigStateActive", GetJSONIntegerByPointer(jsonTypeObj, "active", 0))
+		
+	End If
+
+
+	'2021-11-29, rhi: tool
+	%REM
+ 	"tool": {
+        "id": "VCDE-UM",
+        "type": "Mail",
+        "unid": "556037E04AD521E2C1258791003F0D09"
+    }
+	%END REM
+	
+	Dim hlpToolUNID As String
+	Dim toolDoc As NotesDocument
+	
+	Set jsonTypeObj = GetJSONValueByPointerAsObject(jsonObj, "tool")
+	If Not jsonTypeObj Is Nothing Then
+		Set toolDoc = Nothing
+		
+		'gucken, ob "unid" angegeben
+		hlpToolUNID = GetJSONStringByPointer(jsonTypeObj, "unid", "")
+		
+		If Trim(hlpToolUNID) <> "" Then
+			Set toolDoc = db.Getdocumentbyunid(hlpToolUNID)
+		End If
+		
+		If toolDoc Is Nothing Then
+			'gucken ob "id" angegeben (kann unid oder id sein)
+			hlpToolUNID = GetJSONStringByPointer(jsonTypeObj, "id", "")
+			
+			If Trim(hlpToolUNID) <> "" Then
+				Set toolDoc = getToolDoc(hlpToolUNID)
+			End If
+		End If
+		
+		If Not toolDoc Is Nothing Then
+			Call getValuesFromToolDoc(Doc, Tooldoc)
+		End If
+		
+		'Zusätzlich: InstanceUrl
+		'Call doc.Replaceitemvalue("ToolInstanceUrl", GetJSONStringByPointer(jsonTypeObj, "instanceUrl", ""))
+		Call doc.Replaceitemvalue("url", GetJSONStringByPointer(jsonTypeObj, "instanceUrl", ""))
+		
+		
+	End If
+
+		
+	
+	Call doc.Save(True, False)
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:Agent_XSP_VAPI_SyncUpdateConfig:5:8
+%REM
+	Sub Agent_XSP_SaveHuddoBoard
+	Description: Comments for Sub
+%END REM
+Sub Agent_XSP_VAPI_SyncUpdateConfig()
+
+	On Error GoTo doError
+	
+	Dim doc As NotesDocument, tDoc As NotesDocument, pListDoc As NotesDocument
+	
+	Set doc = session.Documentcontext
+	
+	'Init Error-Mode to XPage/Related
+	Call ErrStackXPageContext()
+
+	Set tDoc = GetDocumentByUNID(db, GetFirstItemValue(doc, "toolUnid"))
+	Call getValuesFromToolDoc(doc, tDoc)
+	
+	Dim key As String
+	
+	'1) tmpProjectLookupKey: Der Schlüssel, der verwendet werden soll für den Lookup, unabhängig von ggf. bereits gesetzten anderen Feldern
+	'-> Formate gem. GPR (LookupVCDEMultiKeys): UNID(Original), UNID(PListe), COMP-PNR (GesamtPr), COMP-PNR-KST (TeilPr), PNR (GesamtPr)
+	key = GetFirstItemValue(doc, "tmpProjectLookupKey")
+	If key <> "" Then
+		Set pListDoc = getProjectListDoc(key)
+		Call doc.Removeitem("tmpProjectLookupKey")
+		
+		'Print key, Not pListDoc Is Nothing
+	End If
+
+	'2) Projekt-UNID des Originalprojekts
+	If pListDoc Is Nothing Then
+		key = GetFirstItemValue(doc, "ProjectUNID")
+		If key <> "" Then Set pListDoc = getProjectListDoc(key)
+	End If
+
+	'3) zusammengesetzter Schlüssel: VI-1234[-5678}	
+	If pListDoc Is Nothing Then
+		
+		Dim hlpArr
+		ReDim hlpArr(2) As String
+		
+		hlpArr(0) = GetFirstItemValue(doc, "ProjectCID")
+		hlpArr(1) = GetFirstItemValue(doc, "ProjectPNR")
+		hlpArr(2) = GetFirstItemValue(doc, "ProjectKST")
+		
+		hlpArr = cnvVarArray(hlpArr, True)
+		
+		key = Join(hlpArr, "-")
+		If key <> "" Then Set pListDoc = getProjectListDoc(key)
+		
+	End If
+	
+	Call getValuesFromProjectListDoc(doc, pListDoc)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStackFinal("", doc)
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+
+'++LotusScript Development Environment:2:2:Agent_Config_ResetProject_Selected:6:8
+%REM
+	Sub Agent_Config_ResetProject_Selected
+	Description: 
+		für gewählte Configs im Client
+%END REM
+Sub Agent_Config_ResetProject_Selected()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+		Call removeProjectItems(doc)
+		
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:2:UI_Document_ResetProject:6:8
+%REM
+	Sub UI_Document_ResetProject
+	Description: 
+		Aufruf per HotSpot in SF "Project" für aktuelle Doc
+%END REM
+Sub UI_Document_ResetProject()
+
+	On Error GoTo doError
+	
+	Dim s As New NotesSession
+	Dim db As NotesDatabase
+	Dim w As New NotesUIWorkspace
+	Dim doc As NotesDocument
+	
+	Set doc = w.Currentdocument.Document
+	
+	Call removeProjectItems(doc)
+	
+	Call w.Currentdocument.Reload()
+	Call w.Currentdocument.Refresh(False, False, True)
+
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:UI_Document_ChooseProject:6:8
+%REM
+	Sub UI_Document_ChooseProject
+	Description: 
+		Used in SubForm "Project"
+%END REM
+Sub UI_Document_ChooseProject()
+
+	On Error GoTo doError
+	
+	Dim s As New NotesSession
+	Dim db As NotesDatabase
+	Dim ndc As NotesDocumentCollection
+	Dim w As New NotesUIWorkspace
+	Dim doc As NotesDocument, pDoc As NotesDocument
+	
+	Set db = s.CurrentDatabase
+	
+	'Auswahlliste anbieten
+	Set ndc = w.Picklistcollection(PICKLIST_CUSTOM, False, db.Server, GetSystemVar("GPR_DB"), "(AuswahlProjQSic)", "Projekt auswählen", "Wählen Sie das Projekt aus.")
+	
+	Set pDoc = ndc.Getfirstdocument()
+	
+	If Not pDoc Is Nothing Then
+		
+		Set doc = w.Currentdocument.Document
+		
+		'Übernehmen der Daten
+		w.Currentdocument.Autoreload = False
+		
+		Call getValuesFromProjectListDoc(Doc, Pdoc)
+	
+		
+		w.Currentdocument.Autoreload = True
+		Call w.Currentdocument.Reload()
+		Call w.Currentdocument.Refresh(False, False, True)
+		
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:Init_GPR:5:8
+%REM
+	Sub Init_GPR
+	Description: Comments for Sub
+%END REM
+Private Sub Init_GPR()
+	
+	On Error GoTo doError
+	
+	If gl_dbGPR Is Nothing Then
+		
+		Set gl_dbGPR = New NotesDatabase("", "")
+		Call gl_dbGPR.Open(db.Server, GetSystemVar("GPR_DB")) 
+		
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:getProjectNumberFromString:15:8
+%REM
+	Function getProjecNumberFromString
+	Description: 
+		Ermittle die ersten 4 aufeinanderfolgenden Ziffern (an einer Wortgrenze) per RegEx
+		
+		analog JAVA TNotesUtil.getProjecNumberFromString
+		
+		siehe:
+			https://lekkimworld.com/2005/09/25/using-regular-expressions-from-lotusscript/
+			https://lekkimworld.com/2005/10/31/submatches-in-regexp-from-lotusscript/
+		
+			https://regexr.com/
+		
+%END REM
+Private Function getProjectNumberFromString(aStr As String) As String
+	
+	On Error GoTo doError
+	
+	Dim regexp As Variant
+	Dim matches As Variant
+
+	'Default
+	getProjectNumberFromString = ""
+
+	'create object
+	Set regexp = CreateObject("VBScript.RegExp")
+
+	'make pattern matching case insensitive
+	regexp.IgnoreCase = True
+
+	'set pattern
+	regexp.Pattern = |(\b\d{4}\b)|
+	
+	If regexp.Test(astr) = -1 Then
+		Set matches = regexp.Execute(astr)
+		getProjectNumberFromString = matches(0).value
+	End If
+	
+	
+	GoTo ende
+
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Function
+	
+
+
+
+
+'++LotusScript Development Environment:2:2:Agent_Cleanup_ToolInstance:8:8
+%REM
+	Sub Agent_Cleanup_ToolInstance
+	Description:
+		Ausführung über gewählte Docs (ToolInstance)
+		Nicht mehr benötigte Felder löschen 
+			(siehe auch Agent_Migrate_ToolInstance, wurde aber damals ausgeremmt, falls die Infos noch benötigt werden sollten)
+%END REM
+Sub Agent_Cleanup_ToolInstance()
+
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+	%REM
+		siehe Agent_Migrate_ToolInstance
+			
+		'Form
+		Call doc.Replaceitemvalue("Form", "ToolInstance")
+		
+		'Feldwerte umkopieren
+		'Platform
+		Call doc.Replaceitemvalue("platformOrgId", doc.jsonTid(0))
+		Call doc.Replaceitemvalue("platformContextName", doc.jsonTeamName(0))
+		Call doc.Replaceitemvalue("platformSubContextId", doc.jsonChannelId(0))
+		Call doc.Replaceitemvalue("platformSubContextName", doc.jsonChannelName(0))
+		Call doc.Replaceitemvalue("platformPlacementName", doc.jsonTabName(0))
+		Call doc.Replaceitemvalue("platformPlacementName", doc.jsonTabName(0))
+		
+		'Instance
+		'TODO: ToolInstanceId oder resourceid?
+		Call doc.Replaceitemvalue("objectId", doc.resourceid(0))
+		Call doc.Replaceitemvalue("info", doc.ToolInstanceInfo(0))
+		Call doc.Replaceitemvalue("name", doc.ToolInstanceName(0))
+		Call doc.Replaceitemvalue("url", doc.ToolInstanceUrl(0))
+		Call doc.Replaceitemvalue("usageTypes", doc.ToolUsageTypes)
+		
+		'Tool
+		Call doc.Replaceitemvalue("ToolName", doc.ToolID(0))
+	%end rem	
+		
+		
+		'Felder löschen
+
+		doc.Removeitem("ToolID") 				'--> toolName
+		doc.Removeitem("ToolInstanceId")		'unused
+		doc.Removeitem("ToolInstanceInfo") 		'--> info
+		doc.Removeitem("ToolInstanceName") 		'--> name
+		doc.Removeitem("ToolInstanceUrl") 		'--> url
+		doc.Removeitem("ToolInstanceParentId")	'unused
+		doc.Removeitem("ToolJSONConfig")		'unused
+		doc.Removeitem("ToolJSONScheme")		'unused
+		
+		doc.Removeitem("ToolUsageCategories")	'unused
+		doc.Removeitem("ToolUsageTypes")		'--> usageTypes
+		
+		
+		
+	%rem
+		doc.Removeitem("Type")
+
+		doc.Removeitem("jsonTid")
+		
+		doc.Removeitem("jsonChannelId")
+		doc.Removeitem("jsonChannelName")
+		doc.Removeitem("jsonRootPath")
+		doc.Removeitem("jsonShareData")
+		doc.Removeitem("jsonSource")
+		doc.Removeitem("jsonTabName")
+		doc.Removeitem("jsonTeamName")
+		
+		doc.Removeitem("jsonUpn")
+		doc.Removeitem("jsonUserID")
+		doc.Removeitem("jsonUsername")
+		
+		doc.Removeitem("resourceid")
+	%end rem
+		
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Tool_Update_Docs:5:8
+%REM
+	Sub Update_Tool_Usage
+	Description: Comments for Sub
+%END REM
+Private Sub Tool_Update_Docs(tdoc As notesdocument)
+	
+	On Error GoTo doError
+	
+	Dim LUView As NotesView
+	Dim NDC As NotesDocumentCollection
+	Dim DOC As NotesDocument
+	Dim needSave As Boolean
+	
+	'LookUp-View anbinden
+	Set LUView = db.GetView("(LookupByTool)") ' Ansicht enhält Docs, die die SF "Tool" verwenden nach ToolName/ToolUIND
+	If LUView Is Nothing Then GoTo ende
+	
+	'Alle Resourcen holen, die das Tool verwenden 
+	Set ndc = LUView.GetAllDocumentsByKey(tdoc.UniversalID)
+	
+	If ndc.Count > 0 Then
+
+		If MessageBox("Sollen " & ndc.Count & " Ressourcen mit aktualisiert werden?", 4+32, "Aktualisierung abhängiger Dokumente") = 6 Then
+			
+			Set Doc = ndc.GetFirstDocument
+			
+			While Not Doc Is Nothing
+				
+				needSave = false
+				
+				'Abgleich erforderlich, wurde etwas geändert?
+				needSave = getValuesFromToolDoc(doc, tDoc)
+				
+				If needSave Then
+					Call Update_DocInfo(doc)
+					Call doc.Save(True, False)		
+				End If		
+				
+				Set doc = ndc.GetNextDocument(doc)
+			Wend
+			
+		End If
+		
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:Agent_Config_SetProject:9:8
+%REM
+	Sub Agent_Config_SetProject
+	Description:
+		für gewählte Configs im Client
+			Projekt per Dialog auswählen
+			Daten mit vorhandenen Funktionen übertragen
+	
+%END REM
+Sub Agent_Config_SetProject()
+	
+	On Error GoTo doError
+	
+	Dim w As New NotesUIWorkspace
+	
+	Dim ndc As NotesDocumentCollection
+	Dim pndc As NotesDocumentCollection
+	
+	Dim doc As NotesDocument
+	Dim pdoc As NotesDocument
+	
+	'Auswahlliste anbieten
+	Set pndc = w.Picklistcollection(PICKLIST_CUSTOM, False, db.Server, GetSystemVar("GPR_DB"), "(AuswahlProjQSic)", "Projekt auswählen", "Wählen Sie das Projekt aus.")
+	
+	Set pDoc = ndc.Getfirstdocument()
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+		'Übernehmen der Daten
+		Call getValuesFromProjectListDoc(Doc, Pdoc)
+		
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Agent_PostDecodeJSON_Selected:5:8
+%REM
+	Sub Agent_PostDecodeJSON_Selected
+	Description: Comments for Sub
+%END REM
+Sub Agent_PostDecodeJSON_Selected()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		Call PostDecodeJson(doc)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:1:getProjectListDoc:5:8
+%REM
+	Function getProjectListDoc
+	Description: Comments for Function
+%END REM
+Private Function getProjectListDoc(key As String) As NotesDocument
+	
+	On Error GoTo doError
+	
+	Dim v As NotesView
+	Dim vec As NotesViewEntryCollection
+	Dim ve As NotesViewEntry
+	
+	Call Init_GPR()
+	
+	Set v = GetGlobalView(gl_dbGPR, "(LookupVCDEMultiKeys)")
+	Set vec = v.Getallentriesbykey(key, True)
+	
+	'Get First one
+	Set ve = vec.Getfirstentry()
+	
+	If Not ve Is Nothing Then
+		Set getProjectListDoc = ve.Document
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:Tool_generate_JSON:6:8
+%REM
+	Sub Tool_generate_JSON
+	Description:
+		Berechnung des Feldes "jsonConfig"
+%END REM
+Private Sub Tool_generate_JSON(doc As notesdocument)
+	
+	On Error GoTo doError
+	
+	Dim nav As NotesJSONNavigator
+	Dim arr As NotesJSONArray
+	Dim hlparr
+	Dim i As Integer
+	Dim eval As Variant
+	Dim pictureUrl As String
+	
+	
+	Set nav = session.CreateJsonNavigator("")
+	
+
+	Call nav.appendElement(GetFirstItemValue(doc, "name"), "name")
+
+	'2021-10-01,rhi: zusätzlich auch die UNID übernehmen
+	Call nav.appendElement(doc.Universalid, "unid")
+	
+	Call nav.appendElement(GetFirstItemValue(doc, "Title"), "title")
+	Call nav.appendElement(GetFirstItemValue(doc, "Type"), "type")
+	Call nav.appendElement(GetFirstItemValue(doc, "Description"), "description")
+	
+	'InfoUrl
+	Call nav.appendElement(GetFirstItemValue(doc, "InfoUrl"), "infourl")
+	
+	'Properties (MultiValueField)
+	Set arr = nav.appendArray("services")
+	
+	hlparr = doc.Services
+	For i=0 To UBound (hlparr)
+		If (Trim(hlparr(i)) <> "") Then
+			Call arr.appendElement(hlparr(i))
+		End If
+	Next
+	
+	'UsageCategories
+	Set arr = nav.appendArray("usageCategories")
+	
+	hlparr = doc.usageCategories
+	For i=0 To UBound (hlparr)
+		If (Trim(hlparr(i)) <> "") Then
+			Call arr.appendElement(hlparr(i))
+		End If
+	Next	
+	
+	'UsageTypes
+	Set arr = nav.appendArray("usageTypes")
+	
+	hlparr = doc.usageTypes
+	For i=0 To UBound (hlparr)
+		If (Trim(hlparr(i)) <> "") Then
+			Call arr.appendElement(hlparr(i))
+		End If
+	Next
+	
+	
+	'Icon
+	'@WebDbName + "/0/" + hlpUNID + "/$FILE/icon.gif"
+	pictureUrl = ""
+	eval = Evaluate("@IsMember(""icon.gif""; @AttachmentNames)", doc)
+	If (eval(0) = 1) Then
+		pictureUrl = GetSystemVar("HTTP_ROOT") + "/" + db.FileName + "/0/" + doc.Universalid + "/$FILE/icon.gif"
+	End If
+
+	eval = Evaluate("@IsMember(""icon.png""; @AttachmentNames)", doc)
+	If (eval(0) = 1) Then
+		pictureUrl = GetSystemVar("HTTP_ROOT") + "/" + db.FileName + "/0/" + doc.Universalid + "/$FILE/icon.png"
+	End If
+	
+	If (Trim(pictureUrl) <> "") Then
+		Call nav.appendElement(pictureUrl, "pictureurl")
+	End If
+
+	'Zusätzlich auch als Feld im Doc speichern
+	Call doc.Replaceitemvalue("pictureUrl", pictureUrl)
+	
+	
+	Call doc.ReplaceItemValue("jsonConfig", nav.Stringify())
+	
+	
+	GoTo ende
+
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:logEvent:5:8
+%REM
+	Erzeugt einen neuen Event Eintrag im übergebenen Doc (Feld wird notfalls erstellt)
+	Datum(dd.MM.yyyy), Zeit(hh:mm:ss): Mitteilung(msg) Benutzer
+%END REM
+Sub logEvent(doc As NotesDocument, msg As String)
+
+	On Error GoTo doerror
+
+	Dim dateTime As New NotesDateTime("")	
+	Dim item As NotesItem
+	Dim newEntry As String, todayStr As String
+
+	
+	If Not doc Is Nothing And Trim(msg)<>"" Then
+
+		dateTime.LSLocalTime = Now()
+
+		todayStr = dateTime.DateOnly & ", " & dateTime.Timeonly
+
+		newEntry = todayStr & ": " & msg & " (" & GetClientUsername().Common & ")"
+		
+		Set item = doc.Getfirstitem("events")
+		
+		If item Is Nothing Then
+			doc.events = newEntry
+		Else
+			Call item.AppendToTextList(newEntry)
+		End If
+		
+	End If
+	
+	GoTo ende
+	
+doError:
+
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:UI_Document_ChooseTool:5:8
+%REM
+	Sub UI_Document_ChooseTool
+	Description: Comments for Sub
+%END REM
+Sub UI_Document_ChooseTool()
+	
+	On Error GoTo doError
+	
+	Dim s As New NotesSession
+	Dim db As NotesDatabase
+	Dim ndc As NotesDocumentCollection
+	Dim w As New NotesUIWorkspace
+	Dim doc As NotesDocument, tDoc As NotesDocument
+	
+	Set db = s.CurrentDatabase
+	
+	'Auswahlliste anbieten
+	Set ndc = w.Picklistcollection(PICKLIST_CUSTOM, False, db.Server, db.Filename, "Tools", "Tool auswählen", "Wählen Sie ein Tool aus.")
+	
+	Set tDoc = ndc.Getfirstdocument()
+	
+	If Not tDoc Is Nothing Then
+		
+		Set doc = w.Currentdocument.Document
+		
+		w.Currentdocument.Autoreload = False
+	
+		'Übernehmen der Daten
+		Call getValuesFromToolDoc(Doc, tdoc)
+		
+		w.Currentdocument.Autoreload = True
+		Call w.Currentdocument.Reload()
+		Call w.Currentdocument.Refresh(False, False, True)
+		
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:2:Agent_Config_SetTool:9:8
+%REM
+	Sub Agent_Config_SetTool
+	Description: 
+		für gewählte Configs im Client
+			Tool per Dialog auswählen
+			Daten mit vorhandenen Funktionen übertragen
+	
+%END REM
+Sub Agent_Config_SetTool()
+	
+	On Error GoTo doError
+	
+	Dim w As New NotesUIWorkspace
+	
+	Dim ndc As NotesDocumentCollection
+	Dim tndc As NotesDocumentCollection
+	
+	Dim doc As NotesDocument
+	Dim tdoc As NotesDocument
+	
+	'Auswahlliste anbieten
+	Set tndc = w.Picklistcollection(PICKLIST_CUSTOM, False, db.Server, db.Filename, "Tools", "Tool auswählen", "Wählen Sie ein Tool aus.")
+	
+	Set tDoc = tndc.Getfirstdocument()
+	
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+		'Übernehmen der Daten
+		Call getValuesFromToolDoc(Doc, tdoc)
+		
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:2:Agent_Tool_generate_JSON_selected:7:8
+%REM
+	Sub Agent_Tool_generate_JSON_selected
+	Description: 
+		Neuberechnung des Feld "JSONConfig" für gewählte (Tool)Docs
+	
+%END REM
+Sub Agent_Tool_generate_JSON_selected()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		Call Tool_generate_JSON(Doc)
+		Call doc.save(True, False)
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:2:Agent_XSP_PostDecodeJSON:1:8
+Sub Agent_XSP_PostDecodeJSON()
+
+	On Error GoTo doError
+	
+	Dim doc As NotesDocument
+	
+	'Kontext = Parameterdokument
+	Set doc = session.Documentcontext
+	
+	'Init Error-Mode to XPage/Related
+	Call ErrStackXPageContext()
+
+	Call PostDecodeJson(doc)
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStackFinal("", doc)
+	Resume ende
+	
+ende:
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:removeProjectItems:5:8
+%REM
+	Sub DeleteProjectItems
+	Description: Comments for Sub
+%END REM
+Private Sub removeProjectItems(doc As notesdocument)
+	
+	On error GoTo doError
+	
+	doc.Removeitem("ProjectCID")
+	doc.Removeitem("ProjectPNr")
+	doc.Removeitem("ProjectKST")
+	doc.Removeitem("ProjectID")
+	doc.Removeitem("ProjectTitle")
+	doc.Removeitem("ProjectRID")
+	doc.Removeitem("ProjectUNID")
+	
+
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+'++LotusScript Development Environment:2:1:getValuesFromToolInstanceDoc:5:8
+%REM
+	Function getValuesFromToolInstanceDoc
+	Description: Comments for Function
+%END REM
+Private Function getValuesFromToolInstanceDoc(doc As NotesDocument, tiDoc As Notesdocument) As Boolean
+	
+	On Error GoTo doError
+
+	Dim needSave As Boolean
+	needSave = False
+	
+	'UNID
+	If Not IsEqual(doc.ToolInstanceUNID(0), tiDoc.Universalid) Then
+		doc.ToolInstanceUNID = tiDoc.Universalid
+		NeedSave = True
+	End If
+	
+	'Name
+	If Not IsEqual(doc.ToolInstanceName(0), tiDoc.name(0)) Then
+		doc.ToolInstanceName = tiDoc.Name(0)
+		NeedSave = True
+	End If
+
+
+	getValuesFromToolInstanceDoc = needSave
+	
+
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+	
+	
+End Function
+
+'++LotusScript Development Environment:2:2:Agent_Migrate_Tool:5:8
+%REM
+	Sub Agent_Migrate_Tool
+	Description: Comments for Sub
+%END REM
+Sub Agent_Migrate_Tool()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.Unprocesseddocuments
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		
+		'Feldwerte umkopieren
+		doc.Name = doc.id(0)
+		
+		'Felder löschen
+		'Call doc.Removeitem("id")
+		
+		'JSON-Feld aktualisieren
+		Call Tool_generate_JSON(Doc)
+		
+		Call doc.save(True, False)
+		
+		
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+
+
+
+
+'++LotusScript Development Environment:2:2:linkProjectListDoc:5:8
+%REM
+	Sub linkProjectListDoc
+	Description: Comments for Sub
+%END REM
+Private Sub linkProjectListDoc(doc As notesdocument)
+	
+	On Error GoTo doError
+	
+	Dim key As String
+	Dim pListDoc As Notesdocument
+	
+	'1) tmpProjectLookupKey: Der Schlüssel, der verwendet werden soll für den Lookup, unabhängig von ggf. bereits gesetzten anderen Feldern
+	'-> Formate gem. GPR (LookupVCDEMultiKeys): UNID(Original), UNID(PListe), COMP-PNR (GesamtPr), COMP-PNR-KST (TeilPr), PNR (GesamtPr)
+	key = GetFirstItemValue(doc, "tmpProjectLookupKey")
+	If key <> "" Then
+		Set pListDoc = getProjectListDoc(key)
+		Call doc.Removeitem("tmpProjectLookupKey")
+		
+		'Print key, Not pListDoc Is Nothing
+	End If
+
+	'2) Projekt-UNID des Originalprojekts
+	If pListDoc Is Nothing Then
+		key = GetFirstItemValue(doc, "ProjectUNID")
+		If key <> "" Then Set pListDoc = getProjectListDoc(key)
+	End If
+
+	'3) zusammengesetzter Schlüssel: VI-1234[-5678}	
+	If pListDoc Is Nothing Then
+		
+		Dim hlpArr
+		ReDim hlpArr(2) As String
+		
+		hlpArr(0) = GetFirstItemValue(doc, "ProjectCID")
+		hlpArr(1) = GetFirstItemValue(doc, "ProjectPNR")
+		hlpArr(2) = GetFirstItemValue(doc, "ProjectKST")
+		
+		hlpArr = cnvVarArray(hlpArr, True)
+		
+		key = Join(hlpArr, "-")
+		If key <> "" Then Set pListDoc = getProjectListDoc(key)
+		
+	End If
+	
+	Call getValuesFromProjectListDoc(doc, pListDoc)
+	
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+End Sub
+

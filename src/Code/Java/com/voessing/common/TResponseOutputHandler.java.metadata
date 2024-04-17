@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="3f6" sequence="43" unid="850011544D571319C125828D004C48F2">
+<created><datetime dst="true">20180514T155314,10+02</datetime></created>
+<modified><datetime dst="true">20240411T133556,12+02</datetime></modified>
+<revised><datetime dst="true">20240410T141808,80+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133556,11+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133556,11+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE"><text>com/voessing/common/TResponseOutputHandler.java</text></item>
+
+
+
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/common/TResponseOutputHandler.java</text></item>
+
+
+<item name="$Flags"><text>34567Cg~[</text></item></note>

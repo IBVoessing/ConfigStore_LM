@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xp:view xmlns:xp="http://www.ibm.com/xsp/core"
+	xmlns:xp_1="http://www.ibm.com/xsp/coreex" rendered="false"
+	readonly="true" viewState="nostate">
+
+	<xp:this.beforeRenderResponse><![CDATA[#{javascript:
+	//println("Calling API.xsp API Template v3");
+	CSAPIAppBean.API_Call();
+	}]]></xp:this.beforeRenderResponse>
+	<xp:span style="font-weight:bold;text-decoration:underline">
+		API.xsp - API
+	</xp:span>
+	<xp:br></xp:br>
+	<xp:span style="font-weight:bold"></xp:span>
+</xp:view>

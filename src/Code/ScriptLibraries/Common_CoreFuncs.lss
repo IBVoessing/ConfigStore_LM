@@ -1,0 +1,4477 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+Option Public
+Option Explicit
+
+%REM
+
+'################################################################################
+
+Global gültige, einfache und oft benötgte Routinen
+
+TODO: 
+Funktion String2Array(): Volle Array-Breite (integer-Bereich) nutzen: LBound() 
+statt 0! -> ggf. als neue Prozedur.
+
+'################################################################################
+
+2024-03-01, dko:
+	- RemoveGlobalRuntimeParameter() hinzugefügt
+
+2023-08-24, dko: 
+	- internal_List2String(): Fix: Erst prüfen, ob L eine Liste ist, nur dann etwas zurückgeben
+
+2021-09-20, dko:
+	- Set GetGlobalRuntimeParameter() / GetGlobalRuntimeParameter()
+		-> Variablenspeicher für die globale Hinterlegung und Abfrage von Laufzeitparametern/Variablen
+
+2021-06-09, dko:
+	- IsEqualValues() V1/V2: 1 Woche lang beide ausführen und im Log protokollieren, wenn es Abweichungen gibt
+
+2020-03-17, dko:
+	- strEncodeBase64() hinzugefügt
+
+2016-09-22, dko:
+	- ErrStackXPageContext() und ErrStackFinal() angepasst
+
+2015-09-30, dko:
+	- ErrStackXPageContext() - Fehlerinformationen in das DocumentContext-Objekt schreiben
+
+2013-09-09, dko:
+	- CumulateArrayOfDouble() - gibt das Array verändert (kumuliert) zurück
+	- GetMonthsBetweenDates() - gibt die Anzahl der Monate zwischen 2 Datumswerten (inklusive) zurück
+
+2013-05-08-10, dko:
+	- Fix KaufmaennischRunden() mit negativen Zahlen
+	- RoundSymArith(): Symmetric arithmetic rounding - rounds .5 away from 0. (like Excel)
+		-> Fixed: gem. IBM Technote nun mit Evaluate() implementiert
+		-> Changed: Evaluate() möglichst nur dann verwenden, wenn erforderlich (sehr schlechte Performance)
+		
+2012-12-06, dko:
+	- GetCRLF(count)
+
+2011-12-06, dko:
+	- ResortListToTagname(): Objekte nicht mit Delete löschen
+	
+2011-09-06, dko:
+	- GetLevenshteinDistance(a As String, b As String) As Integer hinzugefügt
+		-> ermittelt Anzahl der minimal notwendigen Änderungsschritte, um von string a zu string b zu gelangen
+
+2011-01-03, dko:
+	- StripTimeFromDTField(): Zeitkomponente aus einem Date/Time Notes-Feld entfernen 
+	- StripDateFromDTField(): Datumskomponente aus einem Date/Time Notes-Feld entfernen 
+
+2010-06-07, dko:
+	- TStringStream.Addnewline(eoltype) hinzugefügt: CR/LF anhängen. EOL_XXX-Konstanten benutzen!
+
+2010-05-26/27, dko
+	- Übername IsArrayInitialized() und NormalizedPhonenumber() (mpe)
+
+2009-11-27, dko:
+	- FlagBitRegister(), FlagBitUnRegister(), FlagBitRegistered(9 hinzugefügt: für bitweise Vergleiche (Implementierung von Flags)
+
+2009-11-25, dko:
+	- Fix ShellSortEs(): Überlauf bei großem Array
+
+2009-09-24, dko (mpe):
+	- strIsEqual() hinzugefügt
+
+2009-09-21, dko:
+	- isNumBetween() hinzugefügt, analog isDateBetween()
+
+2009-07-29, dko:
+	- Fix AppendToArray(): Init des dynamischen Arrays bei Bedarf mit minimal möglicher LBound (ARR_LOWESTBOUND)
+
+2009-05-20, mpe/dko:
+	- TSimpleStringBuffer hinzugefügt
+	- Dec(), DecBy(), Inc(), IncBy() und UCaseListtags() hinzugefügt
+
+2009-04-21/22, dko:
+	- CurrentDocument(): Implementation geändert, da es sonst zu Fehlern in IBV-Datenbanken kam (IBV Ressourcen)
+	- ReplaceString(): mit Rückgabe true/false
+	- StringSuperReplace(): StringSuperReplace("test+++test", "++", "+") => "test+test"
+
+2009-04-16, mpe:
+	- Added function StoreDocACForCurrentWebuser()
+	- Added sub  Stopp()
+
+2009-04-15, mpe:
+	- Added functions AddDocACReaders(), AddDocACReadersForCurrentWebuser(), 
+	  AddDocACAuthors(), AddDocACAuthorsForCurrentWebuser(), AddDocAC(), and 
+	  AddDocACForCurrentWebuser().
+
+2009-04-14, mpe:
+	- Added function IsSomething().
+	- Added functions CurrentDatabase(), CurrentDocument(), CurrentServer(), 
+	  CurrentSession(), CurrentSessionUser(), CurrentWebUser() and 
+	  CurrentWebuserNotesName().
+
+
+2009-03-26, dko:
+	- Assert(): Auslösen eines definierten User-Fehlers 1999 mit optionaler Beschreibung bei Nichterfüllung einer Annahme-Bedingung
+
+2009-02-11, dko:
+	- IntToHex() hinzugefügt
+
+2009-02-06, dko:
+	- Raise(): Es wird nun der Originalfehlercode + Text erneut ausgelöst, statt einen Dummy-Fehler auszulösen
+
+2009-01-15, dko:
+	- GetDateOnly()
+
+2009-01-05, dko:
+	- Übernahme einiger Funktionen von mpe
+		-> MaskFormulaExpression()
+		-> CreateUniqueString()
+
+2008-08-29, dko:
+	- MISErrorHandling: Option zum Verhindern der benutzerausgabe implementiert
+	- ErrStackSuppressOutput(doSuppress as Integer): Setzen der Eigebnschaft
+
+2008-04-08, dko:
+	- GetWordCount() hinzugefügt: Ermittelt die Anzahl der Wörter im übergebenen String (analog MS Word 2000)
+
+2008-03-20, dko:
+	- String2Array(): Bei "String Too Large" - Fehler (z.B. Trenner zu lang) wird als Alternative nun die alte Methode ausgeführt
+
+2008-03-19, dko:
+	- cnvVarArray(): übernommen auf MISFuncs ("trimArray()") und aufgebohrt: Rückgabe variant-Array mit variant-Elementen
+	- Array2String() und String2Array() umgestellt auf Split() und Join() in Kombination mit cnvVarArray()
+
+2008-03-18, dko:
+	- Klasse TStringStream aus Funcs übernommen
+
+2007-12-28, dko:
+	- isMemberOf(): prüft, ob ein String in einem Array enthalten ist
+
+2007-12-14, dko:
+	- AddBusinessDays(): einen Endtermin berechnen mit Hilfe von BusinessDays()
+
+2007-10-08, dko:
+	- ListTags2String() und ListValues2String() sowie int. Methode bereitgestellt
+	- getLeadingZeros() zur Ermittlung der führenden Nullen als String (ohne den Wert selbst)
+
+2007-09-20, dko:
+	- ARR_LOWESTBOUND und ARR_HIGHESTBOUND als Konstanten hinzugefügt
+	- Array2String(): Volle Array-Breite (integer-Bereich) nutzen: LBound() statt 0!
+	- shellSortEx(): für Arrays beliebigen Typs, übernommen aus ArraySort shellSort()
+	- ResortListToTagname(): Liste neu sortieren nach Tag
+
+2007-07-23, dko:
+	- FullnameConform() hinzugefügt
+
+2007-02-08, dko:
+	- JSConformText() hinzugefügt: ersetzt ' und \ durch \' und \\;
+
+2007-02-08, dko:
+	- HTMLConformText() hinzugefügt: ersetzt < und > durch &lt; und &gt;
+
+2007-01-23, dko:
+	- Funktionen zum Extrahieren des Textes zwischen 2 HTML-Tags hinzugefügt
+
+2007-01-11, dko:
+	- Error-Stack wird nun erst erzeugt, wenn der erste Fehler auftritt (statt pro Forma per Initialize)
+	- Error-Stack wird im Terminate per Delete entfernt, statt nach Terminate durch Entladen der Lib
+
+2007-01-08, dko:
+	- MISFuncs synched
+	- Fehlerbehandlung von Common_Funcs übernommen
+
+2006-09-15, dko:
+	- Vorbereitet zur Verwendung in NotesFuncs und NotesStrings
+
+2006-08-23, dko:
+	- IsEqual() aus NotesFuncs
+
+2005-11-03, dko:
+	IsDateBetween() aus NotesFuncs
+
+2005-03-29, dko:
+	BusinessDays()
+
+2005-03-03, dko:
+	strBegins(), strEnds(), strLTrim(), strRTrim(), strTrim() eingefügt
+
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class TStringStream
+Declare Class TSimpleStringBuffer
+Declare Private Class MISErrorHandling
+Declare Sub Initialize
+Declare Sub Terminate
+Declare Function GetLevenshteinDistance(a As String, b As String) As Integer
+Declare Function MaskFormulaExpression(aExpression As String) As String
+Declare Function KaufmaennischRunden(Byval aValue As Double) As Double
+Declare Function getLeadingZeros(anyNumber, anzStellen As Byte) As String
+Declare Function GetGlobalRuntimeParameter(param As String, returnValueIfMissing As Variant) As Variant
+Declare Function ExtractFileName(Byval n As String) As String
+Declare Function strEnds(sValue As String, sChar As String, compMethod As Integer) As Integer
+Declare Function HTMLConformText(Byval txt As String) As String
+Declare Sub Assert( condition, optionalArg)
+Declare Sub ErrStackClear()
+Declare Public Function AppendToArray(aDynamicArray, aValueToAppend As Variant) As Long
+Declare Private Function isWebSession() As Integer
+Declare Public Function InitArray_0(aDynamicArray, aInitialValue As Variant) As Integer
+Declare Function GetDaysInYear(j As Integer) As Integer
+Declare Public Function CurrentSession() As NotesSession
+Declare Private Sub AddUnicodeReplacementRange(rStart As Integer, ByVal rEnd As Integer, ascCode As Byte)
+Declare Public Sub DecBy(aNumber As Long, aDiff As Long)
+Declare Function GetWordCount(Byval strX As String) As Long
+Declare Function IsDateBetween(testDate, d1, d2) As Integer
+Declare Function ListTags2String(L, trenner As String, ignoreempty As Integer) As String
+Declare Function CreateUniqueString() As String
+Declare Function strTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+Declare Public Sub UCaseListtags(aList)
+Declare Function GetPartialSumOfArrayDouble(arr, startIndex As Integer, ByVal endeIndex As Integer) As Double
+Declare Function extractOuterXML(txt As String, tag As String) As String
+Declare Function extractHTMLTag(txt As String, tag As String, inTag As String, includeTag As Integer) As String
+Declare Function cnvVarArray(Array As Variant, removeEmpty As Integer) As Variant
+Declare Function JSConformText(Byval txt As String) As String
+Declare Function extractOuterHTML(txt As String, tag As String) As String
+Declare Public Sub Stopp
+Declare Function strEncodeBase64(strIn As String) As String
+Declare Function UTF82Str(s$) As String
+Declare Sub ErrStackBase(hlpInfo As String, hinweis)
+Declare Sub ErrStackSuppressOutput(Byval suppress As Integer)
+Declare Function GetQuartal(monat As Integer) As Integer
+Declare Function MakeValidPathname(ByVal FilePath As String) As String
+Declare Function AddBusinessDays(org As NotesDateTime, anzTage As Integer, daysToExclude List As Integer, datesToExclude) As NotesDateTime
+Declare Function ListValues2String(L, trenner As String, ignoreempty As Integer) As String
+Declare Sub StripTimeFromDTField(it As NotesItem)
+Declare Public Function CurrentWebuserNotesName() As NotesName
+Declare Function ExtractFileExt(Byval n As String) As String
+Declare Public Function CurrentDatabase() As NotesDatabase
+Declare Sub Raise()
+Declare Function GetDaysInMonth(m As Integer, j As Integer) As Integer
+Declare Public Function CurrentServer() As String
+Declare Sub StripDateFromDTField(it As NotesItem)
+Declare Private Sub PrepareUnicodeReplacements()
+Declare Function ExtractFileDrive(Byval n As String) As String
+Declare Public Function ElementCount(aListOrArray) As Long
+Declare Function DateMax(d1, d2)
+Declare Sub ResortListToTagname(L)
+Declare Sub CumulateArrayOfDouble(aValues)
+Declare Public Function CurrentNotesDatadir() As String
+Declare Public Function strDelLeadingSlash(Byval aText As String) As String
+Declare Public Sub IncBy(aNumber As Long, aDiff As Long)
+Declare Function strIsEqual(aString1 As String, aString2 As String, aCompMethod As Integer) As Boolean
+Declare Sub ErrStackXPageContext()
+Declare Function IsEqualValues2(w1, w2) As Boolean
+Declare Function shL(x As Long, anzbits As Integer) As Long
+Declare Private Function IsEqualValues1(w1, w2) As Boolean
+Declare Function DateMin(d1, d2)
+Declare Function shR(x As Long, anzbits As Integer) As Long
+Declare Function NumMax(n1, n2)
+Declare Function strLTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+Declare Function XMLConformText(ByVal txt As String) As String
+Declare Function IsMemberOf(arr, entry As String, compMethod As Integer) As Integer
+Declare Function strPadLeft(value As String, newLen As Integer, char As String) As String
+Declare Public Function IsSomething(aObject As Variant) As Boolean
+Declare Function strAddSlash(Byval n As String) As String
+Declare Function strRTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+Declare Function NumMin(n1, n2)
+Declare Public Function CurrentSessionUser() As String
+Declare Function strDelSlash(Byval n As String) As String
+Declare Public Function InitArray_Min(aDynamicArray, aInitialValue As Variant) As Integer
+Declare Public Function strAddLeadingSlash(Byval aText As String) As String
+Declare Function IsNumBetween(n, mMin, mMax) As Integer
+Declare Function RoundSymArith(ByVal aDouble As Double, ByVal decimalPlaces As Integer) As Double
+Declare Function GetListtagCount(L) As Long
+Declare Function extractInnerHTML(txt As String, tag As String) As String
+Declare Function GetMonthsBetweenDates(dBeginn, dEnde) As Integer
+Declare Sub FlagBitUnregister(res As Long, bit As Long)
+Declare Function FullnameConform(Byval sstr As String) As String
+Declare Function FlagBitRegistered(Byval res As Long, bit As Long) As Integer
+Declare Function StringSuperReplace(Byval aString As String, Byval aFind As String, Byval aReplace As String, Byval CompMethod As Integer) As String
+Declare Function Array2String(array,trenner As String, ignoreempty As Integer) As String
+Declare Public Sub Inc(aNumber As Long)
+Declare Function ADNameConform(ByVal sStr As String) As String
+Declare Sub ErrStack(hinweis)
+Declare Function String2Array(wert As String, Trenner As String, ignoreEmpty As Integer) As Variant
+Declare Private Function internal_List2String(mode As Byte, L, trenner As String, ignoreempty As Integer) As String
+Declare Public Function CurrentWebUser() As String
+Declare Function extractXMLTag(txt As String, tag As String, inTag As String, outTag As String, includeTag As Integer) As String
+Declare Function GetDateOnly(Byval datum)
+Declare Public Function InitArrayEx(aDynamicArray, aInitialValue As Variant, aLBound) As Integer
+Declare Sub SetGlobalRuntimeParameter(param As String, value As Variant)
+Declare Public Function CurrentDocument() As NotesDocument
+Declare Function strBegins(sValue As String, sChar As String, compMethod As Integer) As Integer
+Declare Function str2UTF8(s$) As String
+Declare Sub FlagBitRegister(res As Long, bit As Long)
+Declare Function UmlautErsetzung(Byval sstr As String) As String
+Declare Public Function IsArrayInitialized(aArray As Variant) As Boolean
+Declare Function TrimToNumber(strx) As String
+Declare Sub ErrStackFinal(hinweis, optDoc)
+Declare Function strMLKPartialFix(key As String) As String
+Declare Public Sub Dec(aNumber As Long)
+Declare Public Sub shellSortEx( ar )
+Declare Function ExtractFilePath(Byval n As String) As String
+Declare Function GetCRLF(count As Integer) As String
+Declare Function strPadRight(value As String, newLen As Integer, char As String) As String
+Declare Function IsEqual(w1, w2) As Integer
+Declare Function ReplaceString(aString As String, Byval aFind As String, Byval aReplace As String, Byval CompMethod As Integer) As Boolean
+Declare Function IsEqualValues(w1, w2) As Boolean
+Declare Function strReplace(Byval Source As String, Byval search As String, Byval toReplace As String, Byval CompMethod As Integer) As String
+Declare Function IntToHex(n As Integer, minNewLen As String) As String
+Declare Function NormalizedPhonenumber(Byval aPhonenumber As String, Byval aDefaultInternationalAreaCode As String, Byval aDefaultAreaCode As String)
+Declare Function StrReplaceCRLF_LF(Byval source As String,repl As String) As String
+Declare Function BusinessDays(startDate As NotesdateTime, endDate As NotesDateTime, daysToExclude List As Integer, datesToExclude) As Long
+Declare Function MakeValidFilename(Byval Filename As String) As String
+Declare Sub RemoveGlobalRuntimeParameter(param As String)
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'################################################################################
+'Declare global constants.
+'################################################################################
+
+'Constants used by GetThreadInfo() (same as LSI_THREAD_XXXXX, renamed due to 
+'naming conflicts in libraries, which import LSPRVAL.LSS):
+Public Const THREADINFO_LINE          =  0	'LSI_THREAD_LINE
+Public Const THREADINFO_PROC          =  1	'LSI_THREAD_PROC
+Public Const THREADINFO_MODULE        =  2	'LSI_THREAD_MODULE
+Public Const THREADINFO_VERSION       =  3	'LSI_THREAD_VERSION
+Public Const THREADINFO_LANGUAGE      =  4	'LSI_THREAD_LANGUAGE
+Public Const THREADINFO_COUNTRY       =  5	'LSI_THREAD_COUNTRY
+Public Const THREADINFO_TICKS         =  6	'LSI_THREAD_TICKS
+Public Const THREADINFO_TICKS_PER_SEC =  7	'LSI_THREAD_TICKS_PER_SEC
+Public Const THREADINFO_PROCESS_ID    =  8	'LSI_THREAD_PROCESS_ID
+Public Const THREADINFO_TASK_ID       =  9	'LSI_THREAD_TASK_ID
+Public Const THREADINFO_CALLPROC      = 10	'LSI_THREAD_CALLPROC
+Public Const THREADINFO_CALLMODULE    = 11	'LSI_THREAD_CALLMODULE
+
+'Globale, benutzerdefinierte Fehlerkonstanten
+Public Const ERROR_DEFAULT = 1000
+Public Const ERROR_ZIP_ATTACH_CONTENT = 1002
+
+'################################################################################
+'Globale Konstanten und Variablen
+'################################################################################
+
+Dim PLATFORM_ID    As Byte
+Dim PLATFORM_64BIT As Integer
+
+Const P_NOT_SUPPORTED = 0
+Const P_WINDOWS       = 1
+Const P_LINUX         = 2
+
+Const ARR_LOWESTBOUND  = -32768
+Const ARR_HIGHESTBOUND =  32768
+
+'################################################################################
+'Private Konstanten und Variablen
+'################################################################################
+Private FCurrentWebuserNotesName As NotesName
+
+Private EStack As MISErrorHandling
+
+'################################################################################
+'The following private vars will be initialized in the initialize section and 
+'accessed by their belonging public functions (i.e. FCurrentDatabase will be 
+'read by function CurrentDatabase()).
+'###############################################################################
+
+Private FCurrentSession          As NotesSession
+Private FCurrentNotesDatadir     As String
+
+
+Private gl_UnicodeReplacementList List As Byte
+Private gl_UnicodeReplacementsDone As Boolean
+
+Private gl_UseIsEqualMethod2 As Boolean
+Private gl_isEqualValuesLogged As Boolean
+
+Private gl_GlobalRuntimeParameter List As Variant
+
+
+'################################################################################
+'Class declarations
+'################################################################################
+
+Class TStringStream
+	
+	Private st As NotesStream
+	
+	'Create
+	Sub New
+		Dim session As New NotesSession
+		Set st = session.CreateStream
+	End Sub
+	
+	'Cleanup
+	Sub Delete
+		Call Me.Reset()
+		Delete st
+	End Sub
+	
+	'Stream leeren
+	Sub Reset()
+		Call st.Truncate()
+	End Sub
+	
+	'Streaminhalt as String zurückliefern
+	Property Get Value As String
+		st.Position = 0
+		Value = st.ReadText()
+	End Property	
+	
+	'Streaminhalt setzen
+	Property Set Value As String
+		Call Me.Reset()
+		Call Me.internal_Append(Value)
+	End Property
+	
+	'Text an Streamende schreiben
+	Sub Append(s As String)
+		Call Me.internal_Append(s)
+	End Sub
+	
+	'CR/LF anhängen je nach Plattform: Konstanten benutzen: EOL_CR, EOL_LF, EOL_CRLF, EOL_PLATFORM
+	Sub AddNewline(eolType As Long)
+		If eolType <> 5 Then Call st.Writetext("", eolType)
+	End Sub
+	
+	'interne methode
+	Private Sub internal_Append(s As String)
+		Call st.WriteText(s)
+	End Sub
+	
+	'Länge des Streams ermitteln
+	Property Get Length As Long
+		Length = st.Bytes
+	End Property
+	
+	'Stream exportieren
+	Property Get obj As NotesStream
+		Set obj = st
+	End Property
+	
+End Class
+
+
+
+'################################################################################
+'TSimpleStringBuffer Class
+'
+'This class helps to handle large amounts of text. Just create an instance of 
+'the class and use it's .Append() method to construct your large text. Then 
+'call the .AsString() or the .AsText() or the .Join() method to get the whole 
+'stored text. While .AsString() simply concatenates the stored text you can use 
+'.AsText to concatenate the stored text with line breaks or .Join() to 
+'concatenate the stored text with a given separator.
+
+'Note, that this is a "simple" class, which means that it doesn't any 
+'optimization when managing the internal buffer array.
+'################################################################################
+Class TSimpleStringBuffer
+	Private Buffer()  As String
+	Private FCount    As Integer    
+	Private Increment As Integer
+	
+	Sub New(Byval aSize As Integer)
+		If aSize <= 0 Then aSize = 16
+		
+		Redim Me.Buffer(aSize)
+		Me.Increment = aSize
+		Me.FCount    = 0
+	End Sub
+	
+	Sub Append(Byval aText As String)
+		Dim buffer_size As Integer
+		
+		buffer_size = Ubound(Me.Buffer())
+		
+		If Me.FCount >= buffer_size Then
+			Redim Preserve Me.Buffer(buffer_size + Me.Increment)
+		End If
+		
+		Me.Buffer(Me.FCount) = aText
+		Me.FCount            = Me.FCount + 1
+	End Sub
+	
+	Function AsString() As String
+		Me.AsString = Me.Join("")
+	End Function
+	
+	Function AsText() As String
+		Me.AsText = Me.Join(Chr$(13) & Chr$(10))
+	End Function
+	
+	Function Clear
+		Me.FCount = 0
+	End Function
+	
+	Public Property Get Count As Integer
+		Me.Count = Me.FCount
+	End Property
+	
+	Function IsEmpty As Boolean
+		Me.IsEmpty = Me.FCount <= 0
+	End Function
+	
+	Function Join(Byval aSeparator As String) As String
+		Dim s As String
+		
+		If Me.FCount > 0 Then
+			Redim Preserve Me.Buffer(Me.FCount - 1)    
+			s = Join(Me.Buffer, aSeparator)
+		End If
+		
+		Me.Join = s
+	End Function
+End Class
+Private Class MISErrorHandling
+	
+	Private Stack List As String
+	Private Count As Integer
+	Private cAgent As String
+	Private Logserver As String
+	Private currDBTitle As String
+	
+	Private initContextUNID As String
+	Private initRemoteUser As String
+	Private initTime As Variant
+	
+	Public SuppressUserOutput As Integer
+	Public OutputToDocumentContext As Boolean
+	
+	Sub Add(hinweis, proc)
+		On Error Resume Next		
+		Dim hlpStr As String
+		If Count=0 Then
+			'Fehlerauslösende Proc
+			hlpStr = "#" & Count & " (" + proc + "), line=" & Erl() & ", cause=" & Error() & ", code=" & Err() & ", [" & hinweis & "]"
+		Else
+			'Calling Procedures verkürzt
+			hlpStr = "#" & Count & " (" + proc + "), line=" & Erl() & ", [" & hinweis & "]"
+		End If
+		Stack(Cstr(Count)) = hlpStr
+		Count = count + 1
+	End Sub
+	
+	%REM
+		Sub Finalize
+		Description: Comments for Sub
+	%END REM
+	Sub Finalize(optDoc)
+
+		On Error Resume Next
+		
+		'Nix zu tun -> Exit!
+		If Not IsElement(Stack("0")) Then Exit Sub
+		
+		Dim session As New NotesSession
+		Dim it As NotesItem
+		Dim hlpStr As String, hlp As String, html As String
+		Dim g As NotesLog
+		Dim lName As String
+		Dim hlpArr
+		
+		Dim isWebSess As Integer
+		Dim wasLogged As Boolean
+		
+		isWebSess = isWebSession()
+		
+		hlp = "Type=LS-Error; "
+		
+		If OutputToDocumentContext Then
+			hlp = hlp & "Context=XPage/Related; "
+		ElseIf isWebSess Then
+			hlp = hlp & "Context=Web; "
+		Else
+			hlp = hlp & "Context=Client; "
+		End If
+		
+		hlp = hlp + "initTime=" & initTime + "; "
+		
+		If initContextUNID <> "" Then hlp = hlp + "initContextUNID=" + initContextUNID + "; "
+		If initRemoteUser <> "" Then hlp = hlp + "initRemoteUser=" + initRemoteUser + "; "
+		
+		If Not session.CurrentDatabase Is Nothing Then
+			hlp = hlp + "delDatabase=" + session.CurrentDatabase.Title + "; "
+		End If
+		
+		If Not session.DocumentContext Is Nothing Then
+			hlp = hlp + "delContextUNID=" + session.DocumentContext.UniversalID + "; "
+			
+			'akt. User als zusatzinfo			
+			If session.DocumentContext.Remote_User(0) <> "" Then
+				hlp = hlp + "remote_user=" & session.DocumentContext.Remote_User(0) + "; "
+			End If
+		End If
+		
+		hlp = hlp
+		ForAll x In Stack
+			hlp = hlp + x + "; "
+		End ForAll
+		
+		If suppressUserOutput Then
+			hlp = hlp + "OUTPUT_SUPPRESSED=TRUE; "
+		End If
+		
+		'Fehlerbehandlung für Web und XPage-Context verbiegen, um die Info zu erhalten, ob protokolliert werden konnte
+		If Not SuppressUserOutput And (OutputToDocumentContext Or isWebSess) Then
+			On Error GoTo NoAgentLog
+		End If
+		
+		If session.IsOnServer Then
+			Set g = New NotesLog(session.Username + "\" + currDBTitle + "\" + cAgent)
+		Else
+			Set g = New NotesLog(Logserver + "\" + currDBTitle + "\" + cAgent)
+		End If
+		
+		Call g.OpenNotesLog(Logserver, "AgentLog.nsf")
+		Call g.LogError(262145, hlp)
+		Call g.Close()
+		
+		wasLogged = True
+		
+afterLog:		
+		'Rücksetzen der Fehlerbehandlung
+		On Error Resume Next
+		
+		'Visualisieren, sofern nicht per Script deaktiviert
+		If Not suppressUserOutput Then
+			If OutputToDocumentContext Then
+				If Not optDoc Is Nothing Then
+					
+					Set it = optDoc.ReplaceITemValue("XPAGE_LS_LASTERROR", "")
+					it.Issummary = False
+					
+					If wasLogged Then
+						hlpStr = "Der Fehler wurde für die weitere Analyse protokolliert."
+					Else
+						hlpStr = "Der Fehler wurde NICHT protokolliert."
+					End If
+					
+					Call it.Appendtotextlist(hlpStr)
+					
+					hlpArr = Split(strReplace(strReplace(hlp, "; #", GetCRLF(1) & "Call:", 5), "; ", GetCRLF(1), 5), GetCRLF(1))
+					ForAll info In hlpArr
+						Call it.AppendToTextList(info)	
+					End ForAll
+					
+				End If
+			ElseIf isWebSess Then
+				
+				If wasLogged Then
+					hlpStr = "<FONT SIZE=2 COLOR=#179806>Der Fehler wurde für die weitere Analyse protokolliert. Sollte es sich um ein Problem in der Anwendung handeln, wird er so bald wie möglich behoben.</FONT>"
+				Else
+					hlpStr = "<FONT SIZE=2 COLOR=#179806>Der Fehler wurde <b>NICHT</b> protokolliert.</FONT>"
+				End If
+				
+				Print {
+<html>
+<head>
+<title>
+Fehler
+</title> 
+</head>
+}
+				html = |
+<style>
+	.sidePanel {
+	display				:		block;
+	margin				:		0 40 0 30;
+	padding				:		5;
+	background-color	:		#FFEEEE;
+	border-width		:		2 0 2 0;
+	border-style		:		solid;
+	border-color		:		#FF4444;
+}
+
+	.small	{
+	font: 8pt Arial;
+	color: gray;
+	padding-top: 20px;
+}
+</style><basefont face="Arial">
+<div class="sidePanel">
+<b>
+Es ist ein Fehler aufgetreten:
+<font color=#C000000>
+<h4>Fehler bei der Abarbeitung eines Serverscripts</h4></Font></b>
+<div>| + hlpStr + |</div>
+<div class="small">| + strReplace(strReplace("; " + hlp, "; #", "<br><li>", 5), "; ", "<br>", 5) + |<br></div>
+</div>	
+|
+				
+				Print "<body>" 
+				Print html
+				
+				Print {
+</body>
+</html>
+}
+				
+			Else
+				'Notes Client
+				Print "# Error, Callstack:"
+				ForAll x In Stack
+					Print x
+				End ForAll
+			End If
+		End If
+		
+		'Stack löschen
+		Erase Stack
+		
+		GoTo ende
+		
+NoAgentLog:
+		On Error Resume Next
+		Resume afterLog
+		
+ende:
+	End Sub
+	
+	Sub New 
+		Dim session As New NotesSession
+		
+		cAgent = "ErrStack"
+		If Not session.CurrentAgent Is Nothing Then cagent = session.CurrentAgent.Name
+		Logserver = session.CurrentDatabase.Server
+		currDBTitle = session.CurrentDatabase.Title
+		
+		initTime = Now()
+		
+		'Test der Werte New vs. Delete
+		If Not session.DocumentContext Is Nothing Then
+			initContextUNID = session.DocumentContext.UniversalID
+			'akt. User als zusatzinfo
+			If session.DocumentContext.Remote_User(0) <> "" Then
+				initRemoteUser = session.DocumentContext.Remote_User(0)
+			End If
+		End If
+		
+	End Sub
+	
+	Sub Delete
+		Call Finalize(Nothing)
+	End Sub
+	
+	%REM
+		Sub Clear
+		Description: Comments for Sub
+	%END REM
+	Sub Clear()
+		Erase Stack
+	End Sub
+	
+End Class
+
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	'################################################################################
+	'Initialize private vars accessed by public functions.
+	'################################################################################
+	
+	If FCurrentSession Is Nothing Then
+		Set FCurrentSession = New NotesSession
+		
+		'IsEqualValues V1/V2 parallel/Debug für 1 Woche laufen lassen
+		gl_UseIsEqualMethod2 = DateNumber(2021, 6, 16) >= Today()
+
+	End If
+	
+	'################################################################################
+	'Initialize other vars.
+	'################################################################################
+	
+	'Define Platform ID on Init
+	If IsDefined("WINDOWS") Then
+		PLATFORM_ID = P_WINDOWS
+		
+		If Lcase(CurrentSession().Platform) = "windows/64" Then
+			'64bit Domino
+			PLATFORM_64BIT = True
+		Else
+			'32bit Domino auf Win32 ODER Winx64
+			PLATFORM_64BIT = False
+		End If
+		
+	Elseif IsDefined("LINUX") Then
+		PLATFORM_ID = P_LINUX
+		PLATFORM_64BIT = False
+	Else
+		PLATFORM_ID = P_NOT_SUPPORTED
+		PLATFORM_64BIT = False
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Terminate:1:10
+Sub Terminate
+	
+	'Entladen des Error-Stacks statt nach Terminate forcieren
+	On Error Resume Next
+	Delete EStack
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetLevenshteinDistance:1:8
+Function GetLevenshteinDistance(a As String, b As String) As Integer
+ 
+    Dim i As Integer
+    Dim j As Integer
+    Dim cost As Integer
+    Dim d() As Integer
+    Dim min1 As Integer
+    Dim min2 As Integer
+    Dim min3 As Integer
+ 
+    If Len( a ) = 0 Then
+	    GetLevenshteinDistance = Len( b )
+        Exit Function
+    End If
+ 
+    If Len( b ) = 0 Then
+	    GetLevenshteinDistance = Len( a )
+        Exit Function
+    End If
+ 
+    ReDim d(Len(a), Len(b))
+ 
+    For i = 0 To Len(a)
+        d(i, 0) = i
+    Next
+ 
+    For j = 0 To Len(b)
+        d(0, j) = j
+    Next
+ 
+    For i = 1 To Len(a)
+        For j = 1 To Len(b)
+            If Mid(a, i, 1) = Mid(b, j, 1) Then
+                cost = 0
+            Else
+                cost = 1
+            End If
+ 
+            ' Since Min() function is not a part of VBA, we'll "emulate" it below
+            min1 = (d(i - 1, j) + 1)
+            min2 = (d(i, j - 1) + 1)
+            min3 = (d(i - 1, j - 1) + cost)
+ 
+            If min1 <= min2 And min1 <= min3 Then
+                d(i, j) = min1
+            ElseIf min2 <= min1 And min2 <= min3 Then
+                d(i, j) = min2
+            Else
+                d(i, j) = min3
+            End If
+            
+        Next
+    Next
+ 
+	GetLevenshteinDistance = d(Len(a), Len(b))
+
+End Function
+
+
+'++LotusScript Development Environment:2:1:MaskFormulaExpression:1:8
+Function MaskFormulaExpression(aExpression As String) As String
+	'################################################################################
+	'Prepare expression (string or array) for use within formula.
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	MaskFormulaExpression = aExpression
+	
+	'\ => \\
+	MaskFormulaExpression = Replace(MaskFormulaExpression, "\", "\\") 
+	
+	'" => \"
+	MaskFormulaExpression = Replace(MaskFormulaExpression, """", "\""") 
+	
+	'That's All Folks!
+	Goto ende
+	
+do_error:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:KaufmaennischRunden:1:8
+Function KaufmaennischRunden(Byval aValue As Double) As Double
+	
+	KaufmaennischRunden = RoundSymArith(aValue, 2)
+	
+	%REM
+	aValue = aValue * 100
+	If aValue >= 0 Then
+		KaufmaennischRunden = Int( (aValue) + 0.50) / 100
+	Else
+		KaufmaennischRunden = Int( (aValue) - 0.50) / 100
+	End If
+	%END REM
+	
+End Function
+
+'++LotusScript Development Environment:2:1:getLeadingZeros:1:8
+Function getLeadingZeros(anyNumber, anzStellen As Byte) As String
+	
+	'führende Nullen zurückgeben, die zum Auffüllen der Zahl mit der gewünschten 
+	'Anzahl an Vorkommastellen benötigt werden
+	'-> gibt NICHT anyNumber mit zurück!
+	
+	On Error Goto doerror
+	
+	Dim hlp As String
+	
+	hlp = "" & Fix(anyNumber)
+	
+	If Len(hlp)<anzStellen Then
+		getLeadingZeros = String(anzStellen-Len(hlp), "0")
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetGlobalRuntimeParameter:5:8
+%REM
+	Function GetGlobalRuntimeParameter
+	Description: Comments for Function
+%END REM
+Function GetGlobalRuntimeParameter(param As String, returnValueIfMissing As Variant) As Variant
+	
+	If IsElement(gl_GlobalRuntimeParameter(param)) Then
+		GetGlobalRuntimeParameter = gl_GlobalRuntimeParameter(param)
+	Else
+		GetGlobalRuntimeParameter = returnValueIfMissing
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ExtractFileName:1:8
+Function ExtractFileName(Byval n As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Dim i As Integer
+	Dim hlp As String
+	
+	ExtractFileName$ = ""
+	
+	i% = Len(n$)
+	
+     'Dateinamen mit Extension extrahieren
+	Do While i% > 0
+		hlp$ = Mid$(n$, i%, 1)
+		If hlp$ = "\" Or hlp$ = ":" Then Exit Do
+		ExtractFileName$ = Mid$(n$, i%, 1) + ExtractFileName$
+		i% = i% -1
+	Loop
+	
+End Function
+
+'++LotusScript Development Environment:2:1:strEnds:1:8
+Function strEnds(sValue As String, sChar As String, compMethod As Integer) As Integer
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Endet der String mit den angegebenen zeichen (Vergleichsmethode wird berücksichtigt)
+	
+	strEnds = (Strcompare(Right(sValue, Len(sChar)), sChar, compMethod) = 0)
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:HTMLConformText:1:8
+Function HTMLConformText(Byval txt As String) As String
+	
+	'HTML-Displaytext: < und > ersetzen durch HTML-Platzhalter
+	'-> nicht anwenden, wenn Tags (z.B. <b>) gerendert werden soll
+	
+	txt = strReplace(txt, "<", "&lt;", 5)
+	HTMLConformText = strReplace(txt, ">", "&gt;", 5)
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:Assert:1:8
+Sub Assert( condition, optionalArg)
+	
+	'Auslösen eines Abbruchs mit optionaler Beschreibung, wenn die Bedingung nicht erfüllt ist
+	
+	On Error Goto 0
+	
+	Dim hlp As String
+	
+	If Not Condition Then
+		If Isarray(optionalArg) Then 
+			hlp = "; DESCR: " & Array2String(optionalArg, "; ", True)
+		Elseif Typename(optionalArg) = "STRING" Then
+			hlp = "; DESCR: " & optionalArg
+		End If
+		
+		Error 1999, "ASSERTION FAILED" & hlp
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:ErrStackClear:5:8
+%REM
+	Sub ErrStackClear
+	Description: Comments for Sub
+%END REM
+Sub ErrStackClear()
+	
+	If Not EStack Is Nothing Then Call EStack.Clear()
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:AppendToArray:1:8
+Public Function AppendToArray(aDynamicArray, aValueToAppend As Variant) As Long
+	'################################################################################
+	'Redims the given array to one more element and sets the appended element to the 
+	'given value. Existing array elements will be preserved.
+	'if array is uninitialized, it will be initialized with the smallest possible lbound
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	If Not (Isarray(aDynamicArray)) Then
+		Error 1000, "Array parameter expected to be an array"
+	End If
+	
+	'Calculate new upper bound
+	'2009-07-29, dko: Init bei Bedarf
+	On Error 200 Goto initArr
+	AppendToArray = Ubound(aDynamicArray) + 1
+	On Error Goto do_error
+	
+	'Resize array
+	Redim Preserve aDynamicArray(Lbound(aDynamicArray) To AppendToArray)
+	
+	'Append new value
+	If Isobject(aValueToAppend) Then
+		Set aDynamicArray(AppendToArray) = aValueToAppend
+	Else
+		aDynamicArray(AppendToArray) = aValueToAppend		
+	End If
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+initArr:
+	'initialize uninitialized dynamic array
+	On Error Goto do_error
+	AppendToArray = ARR_LOWESTBOUND
+	Redim aDynamicArray(AppendToArray To AppendToArray)
+	Resume Next
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+	
+End Function
+
+'++LotusScript Development Environment:2:1:isWebSession:1:8
+Private Function isWebSession() As Integer
+	
+	'8.5.3 Evaluate @ClientType LS Fix. 
+	
+	On Error Resume Next
+	Dim hlpArr
+	
+	hlpArr = Evaluate("@ClientType")
+	
+	isWebSession= (LCase(hlpArr(0)) = "web") And FCurrentSession.IsOnServer
+	
+End Function
+
+'++LotusScript Development Environment:2:1:InitArray_0:1:8
+Public Function InitArray_0(aDynamicArray, aInitialValue As Variant) As Integer
+	'################################################################################
+	'Inits given array with LBound = 0.
+	'################################################################################
+	
+	InitArray_0 = InitArrayEx(aDynamicArray, aInitialValue, 0)
+End Function
+
+'++LotusScript Development Environment:2:1:GetDaysInYear:1:8
+Function GetDaysInYear(j As Integer) As Integer
+	
+	On Error Goto invalid
+	
+	GetDaysInYear = Datenumber(j, 12, 31) - Datenumber(j, 1, 1) + 1
+	
+	Goto ende
+	
+invalid:
+	On Error Resume Next
+	GetDaysInYear = 0
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CurrentSession:1:8
+Public Function CurrentSession() As NotesSession
+	Set CurrentSession = FCurrentSession
+End Function
+
+'++LotusScript Development Environment:2:2:AddUnicodeReplacementRange:5:8
+%REM
+	Sub AddUnicodeReplacementRange
+	Description: Comments for Sub
+%END REM
+Private Sub AddUnicodeReplacementRange(rStart As Integer, ByVal rEnd As Integer, ascCode As Byte)
+	
+	Dim i As Integer
+	
+	If rEnd = 0 Then rEnd = rStart
+	
+	For i = rStart To rEnd
+		gl_UnicodeReplacementList(i) = ascCode
+	Next i
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:2:DecBy:1:8
+Public Sub DecBy(aNumber As Long, aDiff As Long)
+	'################################################################################
+	'Decrement aNumber by aDiff.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	aNumber = aNumber - aDiff
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Sub
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:1:GetWordCount:1:8
+Function GetWordCount(Byval strX As String) As Long
+	
+	'Gibt die Anzahl der Wörter in einem String zurück (Zählverfahren analog MS Word 2000)
+	
+	Dim replStr As String
+	Dim uniqueSpaces As Long
+	Dim searchArr()	
+	
+	Redim searchArr(1)
+	searchArr(0) = Chr(32)
+	searchArr(1) = Chr(9)
+	
+	'Anzahl von TAB und SPACES ermitteln, nachdem aufeinanderfolgende Vorkommen entfernt wurden
+	strx = Fulltrim(Replace(strReplaceCRLF_LF(strx, " "), searchArr, " ", 1, -1, 5))
+	uniqueSpaces = Len(strX)-Len(Replace(strx, searchArr, "", 1, -1, 5))
+	
+	If uniqueSpaces = 0 Then
+		If Len(strx) > 0 Then
+			'1 Wort enthalten
+			GetWordCount = 1
+		Else
+			GetWordCount = 0
+		End If
+	Else
+		'Anzahl "Zwischenräume" + 1
+		GetWordCount = uniqueSpaces + 1
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:IsDateBetween:1:8
+Function IsDateBetween(testDate, d1, d2) As Integer
+	
+	Dim tst1, tst2
+	
+%REM
+gibt true zurück, wenn das testdatum 
+- zwischen d1 und d2 liegt
+- größer/gleich d1 ist und d2 kein Datum ist
+- kleiner/gleich d2 ist und d1 kein Datum ist
+%END REM
+	
+	If Not Isdate(testDate) Then 
+		IsDateBetween = False
+		Exit Function
+	End If
+	
+	
+	If Isdate(d1) And Isdate(d2) Then
+		If Year(testdate) = 1899 Then
+			'time only
+			If d1 > d2 Then
+				tst1 = Timenumber(23, 59, 59)
+				tst2 = Timenumber(0, 0, 0)
+				IsDateBetween = IsDateBetween(testDate, d1, tst1) Or IsDateBetween(testDate, tst2, d2)
+			Else
+				IsDateBetween = (testdate >= d1) And (testDate <= d2)
+			End If
+		Else
+			'date+time compare
+			IsDateBetween = (testdate >= d1) And (testDate <= d2)
+		End If
+	Elseif Isdate(d1) Then
+'		if year(testdate)=1899 then -> ???
+		IsDateBetween = testDate >= d1
+	Elseif Isdate(d2) Then
+		IsDateBetween = testDate <= d2
+	Else
+		IsDateBetween = False
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ListTags2String:1:8
+Function ListTags2String(L, trenner As String, ignoreempty As Integer) As String
+	
+	'Die Listentags als String zurückgeben
+	
+	On Error Goto doerror
+	
+	ListTags2String = internal_List2String(1, L, trenner, ignoreempty)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CreateUniqueString:1:8
+Function CreateUniqueString() As String
+	'################################################################################
+	'Returns a unique string
+	'################################################################################
+	
+	Dim e
+	
+	e = Evaluate("@Unique")
+	CreateUniqueString = e(0)
+End Function
+
+
+'++LotusScript Development Environment:2:1:strTrim:1:8
+Function strTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Links und Rechs zeichen entfernen
+	
+	strTrim = strRTrim(strLTrim(sValue, sChar, compMethod), sChar, compMethod)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:UCaseListtags:1:8
+Public Sub UCaseListtags(aList)
+	'################################################################################
+	'Change tags in given List to uppercase.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	Dim temp_list List 
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	If Not Islist(aList) Then Exit Sub
+	
+	Forall v In aList
+		'Save upper case tag and value of original list into temporary list
+		temp_list(Ucase(Listtag(v))) = v
+		
+		'Delete original list item
+		Erase aList(Listtag(v))
+	End Forall
+	
+	Forall v In temp_list
+		'Add list item with uppercase tag from temporary list
+		aList(Listtag(v)) = v
+	End Forall
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Sub
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:1:GetPartialSumOfArrayDouble:6:8
+%REM
+	Function GetPartialSumOfArray
+	Aus dem Array ab der Startposition bis zur Endeposition summierne
+	-> bei Start/Ende ausßerhalb der Bound 0 zurückgeben
+%END REM
+Function GetPartialSumOfArrayDouble(arr, startIndex As Integer, ByVal endeIndex As Integer) As Double
+	
+	On Error GoTo doError
+	
+	Dim i As Integer
+	Dim result As Double
+	
+	
+	'Exit Cond: Start darf nur innerhalb der Bounds sein
+	If startIndex < LBound(arr) Then GoTo ende
+	If startIndex > UBound(arr) Then GoTo ende
+	
+'Anpassung: endeIndex außerhalb von Ubound() auf UBound(9 festlegen
+	If endeIndex > UBound(arr) Then endeIndex = UBound(arr)
+	
+	For i = startIndex To endeIndex
+		If IsNumeric(arr(i)) Then result = result + arr(i)
+	Next i
+	
+	GetPartialSumOfArrayDouble = result
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+		
+ende:
+		
+End Function
+
+'++LotusScript Development Environment:2:1:extractOuterXML:1:8
+Function extractOuterXML(txt As String, tag As String) As String
+	
+	On Error GoTo doerror
+	
+	extractOuterXML = extractXMLTag(txt, tag, "<", ">", True)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:extractHTMLTag:1:8
+Function extractHTMLTag(txt As String, tag As String, inTag As String, includeTag As Integer) As String
+	
+	'2019-01-23, dko: Unvollständig (aufgefallen bei XML-Auslesen, gilt aber auch bei verwendung für HTML)
+		'-> Problem bei ähnlichen Tags: <ORDER und <ORDER_ITEM: hier müsste nach inTag = "<ORDER>" bzw. "<ORDER " gesucht werden
+			'-> Problem bei OutTag: </ORDER_ITEM> -> gesucht wird nur nach "</ORDER", was falsch wäre
+		'-> Problem mit Kommentaren: diese werden nicht berücksichtigt. Enthalten diese auskommentierte Tags, werden diese trotzdem erkannt
+	
+	'Extrahiert den Inhalt zwischen eines genannten Tags - optional inklusive des Tags
+	On Error Goto doerror
+	
+	Dim cAW As String
+	Dim cOuterBeg As Long, cOuterEnd As Long
+	Dim cInnerBeg As Long, cInnerEnd As Long
+	Dim outTag As String
+	
+	outTag = inTag & "/" &  tag
+	
+	cOuterBeg = Instr(1, txt, inTag & tag, 5)
+	If cOuterBeg = 0 Then Goto ende
+	
+	cInnerBeg = Instr(cOuterBeg, txt, ">", 5) + 1
+	
+	cInnerEnd = Instr(cInnerBeg, txt, outTag, 5)
+	
+	If cInnerEnd <= 0 Then
+		'kein End-tag vorhanden: Bis zum nächsten "<" lesen
+		cInnerEnd = Instr(cInnerBeg, txt, inTag, 5)
+		
+		If cInnerEnd <= 0 Then
+			'Kein weiteres Tag vorhanden: Gesamte Länge verwenden
+			cInnerEnd = Len(txt)
+		End If
+		
+		cOuterEnd = cInnerEnd
+	Else
+		cOuterEnd = Instr(cInnerEnd+1, txt, ">", 5) + 1
+	End If
+	
+	If includeTag Then
+		extractHTMLTag = Mid$(txt, cOuterBeg, cOuterEnd - cOuterBeg)
+	Else
+		extractHTMLTag = Mid$(txt, cInnerBeg, cInnerEnd - cInnerBeg)
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:cnvVarArray:1:8
+Function cnvVarArray(Array As Variant, removeEmpty As Integer) As Variant
+	
+%REM
+2008-03-19, dko:
+	Übernahme von trimArray() aus MISFuncs und Erweiterung um Parameter
+	- Elemeniert bei Bedarf Null und Leerstrings
+	- gibt in Jedem Fall ein Array vom Typ Variant mit allen Elementen vom Typ Variant zurück
+
+INPUT:
+	Array - das zu bearbeitende Array
+	removeEmpty - Leere Werte entfernen
+
+OUTPUT:
+	das bearbeitete Array
+%END REM
+	
+	On Error Goto fehler
+	
+	Dim i As Integer, n As Integer, last As Integer
+	
+	'Abbruchkriterium - kein Array
+	If Not Isarray(Array) Then
+		cnvVarArray = Array
+		Goto ende
+	End If
+	
+	'Ausgangsbasis für Zielarray: gleich-großes Array wie Quelle
+	Redim trimedarr(Lbound(Array) To Ubound(Array))
+	
+	If removeEmpty Then
+		'Neues Array nach und nach anwachsen lassen und Werte nur übernehmen, wenn nicht leer
+		n = Lbound(Array)
+		last = n
+		
+		For i =Lbound(Array) To Ubound(Array)
+			If ""&array(i) <>"" Then  
+				trimedarr(n) = array(i)
+				last = n  'letzte belegte Position merken
+				n= n+1
+			End If
+		Next i
+		
+		'Den Überschuß entfernen
+		Redim Preserve trimedarr(Lbound(trimedarr) To last)
+	Else
+		'Werte direkt übernehmen
+		For i =Lbound(Array) To Ubound(Array)
+			trimedarr(i) = array(i)
+		Next i
+	End If
+	
+	cnvVarArray = trimedarr
+	
+	Goto Ende
+	
+fehler:
+	On Error Resume Next
+	Call ErrStack("Common_CoreFuncs")
+	On Error Goto 0
+	Raise
+	
+ende:	
+	
+End Function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:1:JSConformText:1:8
+Function JSConformText(Byval txt As String) As String
+	
+	txt = strReplace(txt, "\", "\\", 5)
+	JSConformText = strReplace(txt, "'", "\'", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:extractOuterHTML:1:8
+Function extractOuterHTML(txt As String, tag As String) As String
+	
+	On Error Goto doerror
+	
+	extractOuterHTML = extractHTMLTag(txt, tag, "<", True)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:Stopp:1:8
+Public Sub Stopp
+	'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	'!!!  DON'T USE THIS ROUTINE IN PRODUCTION CODE. IT ONLY HELPS DEVELOPING BY  !!!
+	'!!!      CREATING BREAKPOINTS IN THE FRONT END TO CONTROL PROGRAMM FLOW.     !!!
+	'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	
+	'################################################################################
+	'Use this routine to simply stop the script by raising an error. The error 
+	'description reflects the calling proc and the calling module.
+	'################################################################################
+	
+	Error 1000, "Stopped script in proc """ & Getthreadinfo(THREADINFO_CALLPROC) & "()"" of module """ & Getthreadinfo(THREADINFO_CALLMODULE) & """"
+End Sub
+
+
+'++LotusScript Development Environment:2:1:strEncodeBase64:1:8
+Function strEncodeBase64(strIn As String) As String
+	
+	On Error GoTo doError
+	
+	Dim stream As NotesStream
+	Dim doc As NotesDocument
+	Dim body As NotesMIMEEntity
+
+	' setup
+	Set stream = FCurrentSession.CreateStream()
+	Call stream.WriteText(strIn)
+
+	' create temp doc to do base64 encoding
+	Set doc = FCurrentSession.CurrentDatabase.CreateDocument
+	Set body = doc.CreateMIMEEntity
+
+	Call body.SetContentFromText(stream, "", ENC_NONE)
+	Call body.EncodeContent(ENC_BASE64)
+
+	'strEncodeBase64 = body.ContentAsText
+	
+	'2020-06-08, dko: Hier schleicht sich evtl. ein 0D0A ein am Ende. Dies kann generell nie vorkommen in einem Base64 String
+	strEncodeBase64 = strReplaceCRLF_LF(body.ContentAsText, "")
+
+	Call stream.Close
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:UTF82Str:1:8
+Function UTF82Str(s$) As String
+	
+	On Error Goto doerror
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'UTF-8 zu String zurückkonvertieren
+	
+	Dim i As Long
+	Dim r As String
+	Dim u As Long
+	Dim c As String
+	Dim b2 As String
+	Dim b3 As String
+	
+	
+	For i& = 1 To Len(s$)
+		c$ = Mid$(s$, i&, 1)
+		u& = Asc(c$)
+		
+		If u& < &H80 Then
+			r$ = r$ & c$
+		Elseif u& > 191 And u& < 224 Then
+			'2-byte
+			b2 = Asc( Mid$(s$, i&+1, 1))
+			r$ = r$ & Uchr$( Shl((u And 31), 6) Or (b2 And 63))
+			i = i + 1
+		Else
+			'3-byte
+			b2 = Asc( Mid$(s$, i&+1, 1))
+			b3 = Asc( Mid$(s$, i&+2, 1))
+			r$ = r$ & Uchr$( Shl((u And 15), 12) Or Shl((b2 And 63), 6) Or (b3 And 63))
+			i = i + 2
+		End If
+		
+	Next i
+	
+	UTF82Str = r$
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:ErrStackBase:1:8
+Sub ErrStackBase(hlpInfo As String, hinweis)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Error-Wrapper-Functions
+	On Error Resume Next
+	
+	If EStack Is Nothing Then Set EStack = New MISErrorHandling
+	Call EStack.Add(hinweis, hlpInfo)
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:ErrStackSuppressOutput:1:8
+Sub ErrStackSuppressOutput(Byval suppress As Integer)
+	
+	'2008-08-29: Benutzerausgabe für ErrStack() unterdrücken
+	
+	'Error-Wrapper-Functions
+	On Error Resume Next
+	If EStack Is Nothing Then Set EStack = New MISErrorHandling
+	EStack.SuppressUserOutput = suppress
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:GetQuartal:1:8
+Function GetQuartal(monat As Integer) As Integer
+	GetQuartal = Fix( (monat +2)/3 )
+End Function
+
+'++LotusScript Development Environment:2:1:MakeValidPathname:1:8
+Function MakeValidPathname(ByVal FilePath As String) As String
+	
+	'2012-05-18: ROOT TEMPLATE CHECKED
+	'-> analog MakeValidFilename, aber ohne Entfernung von "\", filePath ein voller Pfad sein kann
+	
+	'2019-04-05, dko: Pfadbestandteile dürfen nicht auf "." enden, außer Spezialpfade für relative Angaben ".." und "."
+	'-> außerdem sind führende und nachfolgende Leerzeichen nicht erlaubt
+	'-> außerdem sidn leere Pfadbestandteile auch nicht erlaubt
+	
+	On Error GoTo doerror
+	
+	Const NOT_ALLOWED = "/:*?""<>|	"
+	
+	Dim i As Integer
+	Dim hlp As String
+	Dim hlpArr
+	
+	For i = 1 To Len(NOT_ALLOWED)
+		hlp = Mid$(NOT_ALLOWED, i, 1)
+		FilePath = strReplace(FilePath, hlp, "_", 5)
+	Next i
+	
+	hlpArr = Split(FilePath, "\")
+	For i = 0 To UBound(hlpArr)
+		hlpArr(i) = Trim(hlpArr(i))
+		If hlpArr(i) <> "." And hlpArr(i) <> ".." Then
+			While strEnds(hlpArr(i), ".", 5)
+				hlpArr(i) = Left$(hlpArr(i), Len(hlpArr(i))-1)
+			Wend
+			'wichtig: nochmal trimmen, da es auch so gewesen sein kann: "abc ..." 
+			hlpArr(i) = Trim(hlpArr(i))	
+		End If
+	Next i
+	
+	MakeValidPathname = Join(cnvVarArray(hlpArr, True), "\")
+	
+	GoTo ende
+	
+'2019-04-05, dko: sollte aussteigen bei Fehlern	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+
+%REM	
+doerror:
+	On Error Resume Next
+	Resume ende
+	
+ende:
+%END REM
+
+End Function
+
+'++LotusScript Development Environment:2:1:AddBusinessDays:1:8
+Function AddBusinessDays(org As NotesDateTime, anzTage As Integer, daysToExclude List As Integer, datesToExclude) As NotesDateTime
+	
+	'berechnet ein Enddatum unter Verrechnung der gewünschten BusinessDays
+	
+	Dim d As Integer
+	Dim x As NotesDateTime
+	Dim y As NotesDateTime
+	Dim n As Integer
+	
+	Set x=New NotesDateTime("")
+	Set y=New NotesDateTime("")
+	
+	'Init
+	x.LocalTime = org.LocalTime
+	y.LocalTime = org.LocalTime
+	d=anzTage
+	n=0
+	
+	If d>0 Then
+		'+X Tage
+		While n <> d
+			Call y.AdjustDay(d-n)
+			n = BusinessDays(x, y, daysToExclude, datesToExclude)-1
+		Wend
+		Set AddBusinessDays = y
+	Elseif d<0 Then
+		'-X Tage
+		While n <> d
+			Call x.AdjustDay(d-n)
+			n = - BusinessDays(x, y, daysToExclude, datesToExclude)	+1
+		Wend
+		Set AddBusinessDays = x
+	Else
+		Set AddBusinessDays = org
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ListValues2String:1:8
+Function ListValues2String(L, trenner As String, ignoreempty As Integer) As String
+	
+	'Die Listenwerte als String zurückgeben
+	'-> evtl. problematisch, wenn keine Str-Konvertierung möglich ist
+	
+	On Error Goto doerror
+	
+	ListValues2String = internal_List2String(2, L, trenner, ignoreempty)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:StripTimeFromDTField:1:8
+Sub StripTimeFromDTField(it As NotesItem)
+
+	'Zeitkomponente aus einem Date/Time-Feld entfernen
+
+	On Error GoTo doerror
+	
+	Dim ndt As NotesDateTime
+	Dim i As Integer
+	Dim myvalues
+	
+	If it Is Nothing Then GoTo ende
+	
+	If UBound(it.Values) = 0 Then
+		
+		If IsDate(it.Values(0)) Then
+			Set ndt = New NotesDateTime(it.Values(0))
+			Call ndt.Setanytime()
+			Call it.Parent.Replaceitemvalue(it.Name, ndt)
+		End If
+		
+	Else
+	
+		If IsDate(it.Values(0)) Then
+			
+			myValues = it.Getvaluedatetimearray()
+			For i=0 To UBound(myValues)
+				Call myValues(i).Setanytime()
+			Next i
+			it.Values = myValues
+			
+		End If
+		
+	End If
+
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende: 
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:CurrentWebuserNotesName:1:8
+Public Function CurrentWebuserNotesName() As NotesName
+	
+	If FCurrentWebuserNotesName Is Nothing Then
+		Set FCurrentWebuserNotesName = New NotesName(CurrentWebuser())
+		
+		If FCurrentWebuserNotesName.Common = "" Then
+			Set FCurrentWebuserNotesName = New NotesName("anonymous")
+		End If			
+	End If
+	
+	Set CurrentWebuserNotesName = FCurrentWebuserNotesName
+End Function
+
+'++LotusScript Development Environment:2:1:ExtractFileExt:1:8
+Function ExtractFileExt(Byval n As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Dim i As Integer
+	Dim hlp As String
+	
+	ExtractFileExt$ = ""
+	
+	i% = Len(n$)
+	
+     'Extension der Datei ermitteln
+	Do While i% > 0
+		hlp$ = Mid$(n$, i%, 1)
+		ExtractFileExt$ = Mid$(n$, i%, 1) + ExtractFileExt$
+		If hlp$ = "." Or hlp$ = "\" Or hlp$ = ":" Then Exit Do
+		i% = i% -1
+	Loop
+	
+     'wenn ohne Extension, Ergebnis zurücksetzen, ansonsten Extension MIT  "." zurückgeben
+	If Mid$(ExtractFileExt$, 1, 1) <> "." Then 
+		ExtractFileExt$ = ""
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CurrentDatabase:1:8
+Public Function CurrentDatabase() As NotesDatabase
+	Set CurrentDatabase = FCurrentSession.CurrentDatabase
+End Function
+
+'++LotusScript Development Environment:2:2:Raise:1:8
+Sub Raise()
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Error-Wrapper-Function
+	On Error Goto 0
+	Error Err(), Error$()
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetDaysInMonth:1:8
+Function GetDaysInMonth(m As Integer, j As Integer) As Integer
+	
+	On Error Goto invalid
+	
+	Dim hlp As New NotesDateTime( Datenumber(j, m, 1) )
+	
+	Call hlp.AdjustMonth(1)
+	Call hlp.AdjustDay(-1)
+	
+	GetDaysInMonth = Day(hlp.LSLocalTime)
+	
+	Goto ende
+	
+invalid:
+	On Error Resume Next
+	GetDaysInMonth = 0
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CurrentServer:1:8
+Public Function CurrentServer() As String
+	CurrentServer = FCurrentSession.CurrentDatabase.Server
+End Function
+
+'++LotusScript Development Environment:2:2:StripDateFromDTField:1:8
+Sub StripDateFromDTField(it As NotesItem)
+
+	'Datumskomponente aus einem Date/Time-Feld entfernen
+
+	On Error GoTo doerror
+	
+	Dim ndt As NotesDateTime
+	Dim i As Integer
+	Dim myvalues
+	
+	If it Is Nothing Then GoTo ende
+	
+	If UBound(it.Values) = 0 Then
+		
+		If IsDate(it.Values(0)) Then
+			Set ndt = New NotesDateTime(it.Values(0))
+			Call ndt.Setanydate()
+			Call it.Parent.Replaceitemvalue(it.Name, ndt)
+		End If
+		
+	Else
+		
+		If IsDate(it.Values(0)) Then
+			
+			myValues = it.Getvaluedatetimearray()
+			For i=0 To UBound(myValues)
+				Call myValues(i).Setanydate()
+			Next i
+			it.Values = myValues
+			
+		End If
+		
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende: 
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:PrepareUnicodeReplacements:5:8
+%REM
+	Sub PrepareUnicodeReplacements
+	Description: Comments for Sub
+%END REM
+Private Sub PrepareUnicodeReplacements()
+	
+	If gl_UnicodeReplacementsDone Then GoTo ende
+	
+	'160 - 383: Latin-1 Supplement
+	Call AddUnicodeReplacementRange(192, 195, Asc("A"))
+	Call AddUnicodeReplacementRange(197, 0,   Asc("A"))
+	Call AddUnicodeReplacementRange(199, 0,   Asc("C"))
+	Call AddUnicodeReplacementRange(200, 203, Asc("E"))
+	Call AddUnicodeReplacementRange(204, 207, Asc("I"))
+	Call AddUnicodeReplacementRange(209, 0,   Asc("N"))
+	Call AddUnicodeReplacementRange(210, 213, Asc("O"))
+	Call AddUnicodeReplacementRange(215, 0,   Asc("x"))	'Sonderzeichen xMal
+	Call AddUnicodeReplacementRange(216, 0,   Asc("O"))
+	Call AddUnicodeReplacementRange(217, 219, Asc("U"))
+	Call AddUnicodeReplacementRange(221, 0,   Asc("Y"))
+	
+	Call AddUnicodeReplacementRange(224, 227, Asc("a"))
+	Call AddUnicodeReplacementRange(229, 0,   Asc("a"))
+	Call AddUnicodeReplacementRange(231, 0,   Asc("c"))
+	Call AddUnicodeReplacementRange(232, 235, Asc("e"))
+	Call AddUnicodeReplacementRange(236, 239, Asc("i"))
+	Call AddUnicodeReplacementRange(241, 0,   Asc("n"))
+	Call AddUnicodeReplacementRange(242, 245, Asc("o"))
+	Call AddUnicodeReplacementRange(248, 0,   Asc("o"))
+	Call AddUnicodeReplacementRange(249, 251, Asc("u"))
+	Call AddUnicodeReplacementRange(253, 0,   Asc("y"))
+	Call AddUnicodeReplacementRange(255, 0,   Asc("y"))
+	
+	'256 bis 383: Latin Extended-A
+	Call AddUnicodeReplacementRange(256, 0, Asc("A"))
+	Call AddUnicodeReplacementRange(257, 0, Asc("a"))
+	Call AddUnicodeReplacementRange(258, 0, Asc("A"))
+	Call AddUnicodeReplacementRange(259, 0, Asc("a"))
+	Call AddUnicodeReplacementRange(260, 0, Asc("A"))
+	Call AddUnicodeReplacementRange(261, 0, Asc("a"))
+
+	Call AddUnicodeReplacementRange(262, 0, Asc("C"))
+	Call AddUnicodeReplacementRange(263, 0, Asc("c"))
+	Call AddUnicodeReplacementRange(264, 0, Asc("C"))
+	Call AddUnicodeReplacementRange(265, 0, Asc("c"))
+	Call AddUnicodeReplacementRange(266, 0, Asc("C"))
+	Call AddUnicodeReplacementRange(267, 0, Asc("c"))
+	Call AddUnicodeReplacementRange(268, 0, Asc("C"))
+	Call AddUnicodeReplacementRange(269, 0, Asc("c"))
+
+	Call AddUnicodeReplacementRange(270, 0, Asc("D"))
+	Call AddUnicodeReplacementRange(271, 0, Asc("d"))
+	Call AddUnicodeReplacementRange(272, 0, Asc("D"))
+	Call AddUnicodeReplacementRange(273, 0, Asc("d"))
+
+	Call AddUnicodeReplacementRange(274, 0, Asc("E"))
+	Call AddUnicodeReplacementRange(275, 0, Asc("e"))
+	Call AddUnicodeReplacementRange(276, 0, Asc("E"))
+	Call AddUnicodeReplacementRange(277, 0, Asc("e"))
+	Call AddUnicodeReplacementRange(278, 0, Asc("E"))
+	Call AddUnicodeReplacementRange(279, 0, Asc("e"))
+	Call AddUnicodeReplacementRange(280, 0, Asc("E"))
+	Call AddUnicodeReplacementRange(281, 0, Asc("e"))
+	Call AddUnicodeReplacementRange(282, 0, Asc("E"))
+	Call AddUnicodeReplacementRange(283, 0, Asc("e"))
+
+	Call AddUnicodeReplacementRange(284, 0, Asc("G"))
+	Call AddUnicodeReplacementRange(285, 0, Asc("g"))
+	Call AddUnicodeReplacementRange(286, 0, Asc("G"))
+	Call AddUnicodeReplacementRange(287, 0, Asc("g"))
+	Call AddUnicodeReplacementRange(288, 0, Asc("G"))
+	Call AddUnicodeReplacementRange(289, 0, Asc("g"))
+	Call AddUnicodeReplacementRange(290, 0, Asc("G"))
+	Call AddUnicodeReplacementRange(291, 0, Asc("g"))
+
+	Call AddUnicodeReplacementRange(292, 0, Asc("H"))
+	Call AddUnicodeReplacementRange(293, 0, Asc("h"))
+	Call AddUnicodeReplacementRange(294, 0, Asc("H"))
+	Call AddUnicodeReplacementRange(295, 0, Asc("h"))
+
+	Call AddUnicodeReplacementRange(296, 0, Asc("I"))
+	Call AddUnicodeReplacementRange(297, 0, Asc("i"))
+	Call AddUnicodeReplacementRange(298, 0, Asc("I"))
+	Call AddUnicodeReplacementRange(299, 0, Asc("i"))
+	Call AddUnicodeReplacementRange(300, 0, Asc("I"))
+	Call AddUnicodeReplacementRange(301, 0, Asc("i"))
+	Call AddUnicodeReplacementRange(302, 0, Asc("I"))
+	Call AddUnicodeReplacementRange(303, 0, Asc("i"))
+	Call AddUnicodeReplacementRange(304, 0, Asc("I"))
+	Call AddUnicodeReplacementRange(305, 0, Asc("i"))
+
+	Call AddUnicodeReplacementRange(308, 0, Asc("J"))
+	Call AddUnicodeReplacementRange(309, 0, Asc("j"))
+
+	Call AddUnicodeReplacementRange(310, 0, Asc("K"))
+	Call AddUnicodeReplacementRange(311, 0, Asc("k"))
+	Call AddUnicodeReplacementRange(312, 0, Asc("k"))
+
+	Call AddUnicodeReplacementRange(313, 0, Asc("L"))
+	Call AddUnicodeReplacementRange(314, 0, Asc("l"))
+	Call AddUnicodeReplacementRange(315, 0, Asc("L"))
+	Call AddUnicodeReplacementRange(316, 0, Asc("l"))
+	Call AddUnicodeReplacementRange(317, 0, Asc("L"))
+	Call AddUnicodeReplacementRange(318, 0, Asc("l"))
+	Call AddUnicodeReplacementRange(319, 0, Asc("L"))
+	Call AddUnicodeReplacementRange(320, 0, Asc("l"))
+	Call AddUnicodeReplacementRange(321, 0, Asc("L"))
+	Call AddUnicodeReplacementRange(322, 0, Asc("l"))
+	
+	Call AddUnicodeReplacementRange(323, 0, Asc("N"))
+	Call AddUnicodeReplacementRange(324, 0, Asc("n"))
+	Call AddUnicodeReplacementRange(325, 0, Asc("N"))
+	Call AddUnicodeReplacementRange(326, 0, Asc("n"))
+	Call AddUnicodeReplacementRange(327, 0, Asc("N"))
+	Call AddUnicodeReplacementRange(328, 0, Asc("n"))
+	Call AddUnicodeReplacementRange(329, 0, Asc("n"))
+	Call AddUnicodeReplacementRange(330, 0, Asc("N"))
+	Call AddUnicodeReplacementRange(331, 0, Asc("n"))
+
+	Call AddUnicodeReplacementRange(332, 0, Asc("O"))
+	Call AddUnicodeReplacementRange(333, 0, Asc("o"))
+	Call AddUnicodeReplacementRange(334, 0, Asc("O"))
+	Call AddUnicodeReplacementRange(335, 0, Asc("o"))
+	Call AddUnicodeReplacementRange(336, 0, Asc("O"))
+	Call AddUnicodeReplacementRange(337, 0, Asc("o"))
+
+	Call AddUnicodeReplacementRange(340, 0, Asc("R"))
+	Call AddUnicodeReplacementRange(341, 0, Asc("r"))
+	Call AddUnicodeReplacementRange(342, 0, Asc("R"))
+	Call AddUnicodeReplacementRange(343, 0, Asc("r"))
+	Call AddUnicodeReplacementRange(344, 0, Asc("R"))
+	Call AddUnicodeReplacementRange(345, 0, Asc("r"))
+	
+	Call AddUnicodeReplacementRange(346, 0, Asc("S"))
+	Call AddUnicodeReplacementRange(347, 0, Asc("s"))
+	Call AddUnicodeReplacementRange(348, 0, Asc("S"))
+	Call AddUnicodeReplacementRange(349, 0, Asc("s"))
+	Call AddUnicodeReplacementRange(350, 0, Asc("S"))
+	Call AddUnicodeReplacementRange(351, 0, Asc("s"))
+	Call AddUnicodeReplacementRange(352, 0, Asc("S"))
+	Call AddUnicodeReplacementRange(353, 0, Asc("s"))
+
+	Call AddUnicodeReplacementRange(354, 0, Asc("T"))
+	Call AddUnicodeReplacementRange(355, 0, Asc("t"))
+	Call AddUnicodeReplacementRange(356, 0, Asc("T"))
+	Call AddUnicodeReplacementRange(357, 0, Asc("t"))
+	Call AddUnicodeReplacementRange(358, 0, Asc("T"))
+	Call AddUnicodeReplacementRange(359, 0, Asc("t"))
+	
+	Call AddUnicodeReplacementRange(360, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(361, 0, Asc("u"))
+	Call AddUnicodeReplacementRange(362, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(363, 0, Asc("u"))
+	Call AddUnicodeReplacementRange(364, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(365, 0, Asc("u"))
+	Call AddUnicodeReplacementRange(366, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(367, 0, Asc("u"))
+	Call AddUnicodeReplacementRange(368, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(369, 0, Asc("u"))
+	Call AddUnicodeReplacementRange(370, 0, Asc("U"))
+	Call AddUnicodeReplacementRange(371, 0, Asc("u"))
+	
+	Call AddUnicodeReplacementRange(372, 0, Asc("W"))
+	Call AddUnicodeReplacementRange(373, 0, Asc("w"))
+	
+	Call AddUnicodeReplacementRange(374, 0, Asc("Y"))
+	Call AddUnicodeReplacementRange(375, 0, Asc("y"))
+	Call AddUnicodeReplacementRange(376, 0, Asc("Y"))
+	
+	Call AddUnicodeReplacementRange(377, 0, Asc("Z"))
+	Call AddUnicodeReplacementRange(378, 0, Asc("z"))
+	Call AddUnicodeReplacementRange(379, 0, Asc("Z"))
+	Call AddUnicodeReplacementRange(380, 0, Asc("z"))
+	Call AddUnicodeReplacementRange(381, 0, Asc("Z"))
+	Call AddUnicodeReplacementRange(382, 0, Asc("z"))
+	
+	gl_UnicodeReplacementsDone = True
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:ExtractFileDrive:1:8
+Function ExtractFileDrive(Byval n As String) As String
+	
+	Dim i As Integer
+	Dim n_file As String
+	Dim pos As Integer
+	
+	ExtractFileDrive$ = ""
+	
+     'deckt lokale und Novell-Pfade ab
+	pos% = Instr(1, n$, ":", 5)
+	
+     'Als unicode-Notierung behandeln -> Server extrahieren
+	If pos = 0 Then
+		pos% = Instr(1, n$, "\\", 5)
+		If pos% > 0 Then
+			ExtractFileDrive$ = "\\"
+			n$ = strAddSlash(n$)
+			n$ = Mid$(n$, 3)
+			pos% = Instr(1, n$, "\", 5)
+			ExtractFileDrive$ = ExtractFileDrive$ + Mid$(n$, 1, pos%)
+			n$ = Mid$(n$, pos%+1)
+			
+               'Schluss beim Rechner-Namen ?
+			If Len(n$) = 0 Then 
+				ExtractFileDrive$ = strDelSlash(ExtractFileDrive$)
+				Exit Function
+			End If
+			
+			n$ = strAddSlash(n$)
+			pos% = Instr(1, n$, "\", 5)
+			ExtractFileDrive$ = ExtractFileDrive$ + Mid$(n$, 1, pos%)
+		End If
+	Else
+		ExtractFileDrive$ = ExtractFileDrive$ + Mid$(n$, 1, pos%) 
+		If Len(n$) > pos% Then
+			If Mid$(n$, pos%+1, 1) = "\" Then ExtractFileDrive$ = ExtractFileDrive$ + "\"
+		End If
+	End If
+	
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ElementCount:1:8
+Public Function ElementCount(aListOrArray) As Long
+	'################################################################################
+	'Returns the number of elements in the given list or array.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	ElementCount = 0
+	
+	'Return numberof array elements
+	If Isarray(aListOrArray) Then
+		ElementCount = Ubound(aListOrArray) - Lbound(aListOrArray) + 1
+		Exit Function
+	End If
+	
+	'Return numberof list elements
+	If Islist(aListOrArray) Then 
+		Forall elements In aListOrArray
+			Call Inc(ElementCount)
+		End Forall
+		Exit Function
+	End If
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+'++LotusScript Development Environment:2:1:DateMax:1:8
+Function DateMax(d1, d2)
+	
+%REM
+Funktion liefert das größere Datum zurück oder den Parameter, der ein Datum ist
+%END REM
+	
+	DateMax = ""
+	
+	If Isdate(d1) And Isdate(d2) Then
+		If d1 > d2 Then
+			DateMax  = d1
+		Else
+			DateMax = d2
+		End If
+	Else
+		If Isdate(d1) Then
+			DateMax = d1
+		Elseif Isdate(d2) Then
+			DateMax = d2
+		End If
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:2:ResortListToTagname:1:8
+Sub ResortListToTagname(L)
+	
+	'Liste neu sortieren nach Tag
+	'-> über Hilfsarray, also max. ~65000 Listenelemente
+	'-> Liste darf auch Objekte enthalten
+	
+	On Error Goto doerror
+	
+	Dim count As Integer
+	Dim value
+	Dim ar() As String
+	
+	If Not Islist(L) Then Exit Sub
+	
+	'Anzahl der Elemente ermitteln: Volle mögliche Array-Breite ausnutzen
+	Count = Arr_LowestBound
+	Forall X In L
+		Count = Count + 1
+	End Forall
+	
+	If Count > ARR_LOWESTBOUND Then
+		Redim ar(ARR_LOWESTBOUND To Count-1)
+		
+		Count=ARR_LOWESTBOUND 
+		
+		'Tags in Array umspeichern: Tags sind immer Typ String
+		Forall X In L
+			ar(count) = Listtag(x)
+			If count < ARR_HIGHESTBOUND Then Count=count+1
+		End Forall
+		
+		Call shellSortEx(ar)
+		
+		'umspeichern: Element merken, löschen und an Liste neu anfügen
+		For Count=Lbound(ar) To Ubound(ar)
+			If Isobject(L(ar(count))) Then
+				Set value = L(ar(count))
+				'2011-12-06, dko: nicht löschen, da Objekt sonst ggf. leer ist: Delete L(ar(Count))
+				Erase L(ar(Count))
+				Set L(ar(count)) = value
+			Else
+				value = L(ar(count))
+				Erase L(ar(Count))
+				L(ar(count)) = value
+			End If
+			
+		Next Count
+		
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:CumulateArrayOfDouble:1:8
+Sub CumulateArrayOfDouble(aValues)
+	
+	Dim gWert As Double
+	Dim hlpWert As Double
+	
+	Dim i As Integer
+	
+	'Kumulieren der Werte. Nicht-Numerische Werte werden mit 0 interpretiert
+	gWert = 0
+	For i=LBound(aValues) To UBound(aValues)
+		If IsNumeric(aValues(i)) then
+			hlpWert = aValues(i)
+		Else
+			hlpWert = 0
+		End if
+		gWert = gWert + hlpWert
+		aValues(i) = gWert
+	Next i
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:CurrentNotesDatadir:1:8
+Public Function CurrentNotesDatadir() As String
+	'################################################################################
+	'Returns the name of the Notes data directory.
+	'################################################################################
+	
+	If FCurrentNotesDatadir = "" Then
+		FCurrentNotesDatadir = strAddSlash(FCurrentSession.GetEnvironmentString("Directory", True))
+	End If
+	
+	CurrentNotesDatadir = FCurrentNotesDatadir
+End Function
+
+'++LotusScript Development Environment:2:1:strDelLeadingSlash:1:8
+Public Function strDelLeadingSlash(Byval aText As String) As String
+	'################################################################################
+	'Returns aText without a leading slash, if present.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	If Left$(aText, 1) = "\" Then 
+		strDelLeadingSlash = Right$(aText, Len(aText) - 1)
+	Else
+		strDelLeadingSlash = aText
+	End If
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+
+'++LotusScript Development Environment:2:2:IncBy:1:8
+Public Sub IncBy(aNumber As Long, aDiff As Long)
+	'################################################################################
+	'Increment aNumber by aDiff.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	aNumber = aNumber + aDiff
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Sub
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:1:strIsEqual:1:8
+Function strIsEqual(aString1 As String, aString2 As String, aCompMethod As Integer) As Boolean
+	strIsEqual = Strcompare(aString1, aString2, aCompMethod) = 0
+End Function
+
+'++LotusScript Development Environment:2:2:ErrStackXPageContext:7:8
+%REM
+	Sub ErrStackXPageContext
+	Methode sorgt dafür, dass die Fehler-Informationen in das Feld "XPAGE_LS_LASTERROR" des DocumentContext-Dokuments 
+	geschrieben werden, sofern es vorhanden ist (egal ob Websession oder nicht, nur wenn nicht SuppressedOutput)
+	Das Feld wird hierbei automatisch erstmal zurückgesetzt (entfernt)
+%END REM
+Sub ErrStackXPageContext()
+	
+	'2008-08-29: Benutzerausgabe für ErrStack() unterdrücken
+	
+	'Error-Wrapper-Functions
+	On Error Resume Next
+	If EStack Is Nothing Then Set EStack = New MISErrorHandling
+	EStack.OutputToDocumentContext = True
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:IsEqualValues2:9:8
+%REM
+	IsEqualValues2()
+	28.05.21
+	Performance-optimierte Variante, die Strings nicht mehr mit strCompare() vergleicht, sondern nur mit "=". Die zeitaufwendige Typename()-Prüfung entfällt dabei
+	Außerdem wird auf Arrays schrittweise geprüft
+	
+	Im Benchmark mehr als doppelt so schnell, aber in der INVDECS eingesetzt langsamer ? Daher nicht benutzt bisher
+%END REM
+Function IsEqualValues2(w1, w2) As Boolean
+	
+	Dim i As Long
+	
+	If IsArray(w1) Then
+		If IsArray(w2) Then
+			'Beides sind Arrays: Check Bounds
+			If UBound(w1) <> UBound(w2) Then Exit Function
+			
+			'Einzelwerte rekursiv checken
+			For i = LBound(w1) To UBound(w1)
+				If Not isEqualValues2(w1(i), w2(i)) Then Exit Function
+			Next i
+			
+			IsEqualValues2 = True
+		Else
+			Exit Function
+		End If
+	Else
+		'w2 könnte Array sein, dann würde es aber fehlschlagen beim Vergleich, was OK ist
+		On Error GoTo vglError
+		IsEqualValues2 = (w1=w2)
+	End If
+
+	GoTo ende
+	
+vglError:
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:shL:1:8
+Function shL(x As Long, anzbits As Integer) As Long
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Zahl x um anzBits nach links verschieben
+	shL = x * (2 ^ anzbits)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:IsEqualValues1:1:8
+Private Function IsEqualValues1(w1, w2) As Boolean
+	
+	Dim i As Long
+	
+	If IsArray(w1) And IsArray(w2) Then
+		'Beides sind Arrays: Check Bounds
+		If UBound(w1) <> UBound(w2) Then Exit Function
+		
+		'Einzelwerte rekursiv checken
+		For i = LBound(w1) To UBound(w1)
+			If Not isEqualValues1(w1(i), w2(i)) Then Exit Function
+		Next i
+		
+		isEqualValues1 = True
+		
+	ElseIf IsArray(w1) Or IsArray(w2) Then
+		'nur eins der beiden ist ein Array: kann nicht gleich sein
+		Exit Function
+	Else
+		If TypeName(w1) = "STRING" And TypeName(w2) = "STRING" Then
+			'Stringvergleich exakt ausführen
+			If StrCompare(w1, w2, 0) <> 0 Then Exit Function
+			IsEqualValues1 = True
+		Else
+			On Error GoTo vglError
+			IsEqualValues1 = (w1=w2)
+		End If
+	End If
+	
+	GoTo ende
+	
+vglError:
+	Resume ende
+	
+ende:
+	
+	
+End Function
+
+'++LotusScript Development Environment:2:1:DateMin:1:8
+Function DateMin(d1, d2)
+	
+%REM
+Funktion liefert das kleinere Datum zurück oder den Parameter, der ein Datum ist
+%END REM
+	
+	DateMin = ""
+	
+	If Isdate(d1) And Isdate(d2) Then
+		If d1 > d2 Then
+			DateMin = d2
+		Else
+			DateMin = d1
+		End If
+	Else
+		If Isdate(d1) Then
+			DateMin = d1
+		Elseif Isdate(d2) Then
+			DateMin = d2
+		End If
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:shR:1:8
+Function shR(x As Long, anzbits As Integer) As Long
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Zahl x um anzBits nach rechts verschieben
+	shR = x \ (2 ^ anzbits)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:NumMax:1:8
+Function NumMax(n1, n2)
+	
+	If Isnumeric(n1) And Isnumeric(n2) Then
+		If n1 > n2 Then NumMax=n1 Else NumMax=n2
+	Elseif Isnumeric(n1) Then
+		NumMax = n1
+	Else
+		NumMax = n2
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:strLTrim:1:8
+Function strLTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Eliminiert alle cChar auf der linken Seite von sValue
+	
+	If Trim(sChar) = "" Then
+		'Leerzeichen->Notes-Funktion verwenden
+		strLTrim = Ltrim(sValue)
+	Elseif sChar = "" Then
+		'Kein Zeichen->Kompletter String
+		strLTrim = sValue
+	Else
+		While strBegins(sValue, sChar, compMethod)
+			sValue = Right(sValue, Len(sValue) - Len(sChar))
+		Wend
+		strLTrim = sValue
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:XMLConformText:5:8
+%REM
+	Function XMLConformText
+	gem: https://wiki.selfhtml.org/wiki/XML/Regeln/Zeichen
+%END REM
+Function XMLConformText(ByVal txt As String) As String
+	
+	Dim Src(4) As String
+	Dim Dst(4) As String
+	
+	Src(0) = "<"
+	Dst(0) = "&lt;"
+	
+	Src(1) = ">"
+	Dst(1) = "&gt;"
+	
+	Src(2) = "&"
+	Dst(2) = "&amp;"
+	
+	Src(3) = """"
+	Dst(3) = "&quot;"
+
+	Src(4) = "'"
+	Dst(4) = "&apos;"
+	
+	XMLConformText = Replace(txt, Src, Dst, 1, -1, 5)
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:IsMemberOf:1:8
+Function IsMemberOf(arr, entry As String, compMethod As Integer) As Integer
+	
+	'Prüft, ob ein String-Wert in einem String-Array enthalten ist
+	
+	Dim i As Integer
+	For i=Lbound(arr) To Ubound(arr)
+		If Strcompare(arr(i), entry, compMethod) = 0 Then 
+			IsMemberOf = True
+			Exit Function
+		End If
+	Next i
+	
+End Function
+
+'++LotusScript Development Environment:2:1:strPadLeft:1:8
+Function strPadLeft(value As String, newLen As Integer, char As String) As String
+	
+	'Einen String Links bis Länge mit char auffüllen und zurückgeben
+	'-> ist Länge >= neue Länge, dann nichts tun
+	
+	If Len(value) >= newLen Then
+		strPadLeft = value
+	Else
+		'links auffüllen
+		strPadLeft = String$(newLen - Len(value), char) & value
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:IsSomething:1:8
+Public Function IsSomething(aObject As Variant) As Boolean
+	'################################################################################
+	'Returns True, if aObject is a object and if aObject is not Nothing, i.e. returns 
+	'True, if aObject is an instantiated object reference.
+	'################################################################################
+	
+	IsSomething = Isobject(aObject) And (Not (aObject Is Nothing))
+End Function
+
+'++LotusScript Development Environment:2:1:strAddSlash:1:8
+Function strAddSlash(Byval n As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	If Right$(n$, 1) <> "\" Then 
+		strAddSlash$ = n$ + "\"
+	Else
+		strAddSlash$ = n$
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:strRTrim:1:8
+Function strRTrim(Byval sValue As String, Byval sChar As String, compMethod As Integer) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Eliminiert alle cChar auf der rechten Seite von sValue
+	
+	If Trim(sChar) = "" Then
+		'Leerzeichen->Notes-Funktion verwenden
+		strRTrim = Rtrim(sValue)
+	Elseif sChar = "" Then
+		'Kein Zeichen->Kompletter String
+		strRTrim = sValue
+	Else
+		While strEnds(sValue, sChar, compMethod)
+			sValue = Left(sValue, Len(sValue) - Len(sChar))
+		Wend
+		strRTrim = sValue
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:NumMin:1:8
+Function NumMin(n1, n2)
+	
+	If Isnumeric(n1) And Isnumeric(n2) Then
+		If n1 > n2 Then NumMin=n2 Else NumMin=n1
+	Elseif Isnumeric(n1) Then
+		NumMin = n1
+	Else
+		NumMin = n2
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CurrentSessionUser:1:8
+Public Function CurrentSessionUser() As String
+	CurrentSessionuser = FCurrentSession.UserName
+End Function
+
+'++LotusScript Development Environment:2:1:strDelSlash:1:8
+Function strDelSlash(Byval n As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	If Right$(n$, 1) = "\" Then 
+		strDelSlash$ = Left$(n$, Len(n$) - 1)
+	Else
+		strDelSlash$ = n$
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:InitArray_Min:1:8
+Public Function InitArray_Min(aDynamicArray, aInitialValue As Variant) As Integer
+	'################################################################################
+	'Inits given array with smallest LBound = -32768, so array can be as large as 
+	'possible.
+	'################################################################################
+	
+	InitArray_Min = InitArrayEx(aDynamicArray, aInitialValue, ARR_LOWESTBOUND)
+End Function
+
+'++LotusScript Development Environment:2:1:strAddLeadingSlash:1:8
+Public Function strAddLeadingSlash(Byval aText As String) As String
+	'################################################################################
+	'Returns aText with a leading slash, if not already present.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	If Right$(aText, 1) <> "\" Then 
+		strAddLeadingSlash = "\" & strAddLeadingSlash
+	Else 
+		strAddLeadingSlash = aText		
+	End If
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+'++LotusScript Development Environment:2:1:IsNumBetween:1:8
+Function IsNumBetween(n, mMin, mMax) As Integer
+	
+	'analog isDateBetween
+	
+	On Error Goto doerror
+	
+	If Not Isnumeric(n) Then 
+		isNumBetween = False
+		Exit Function
+	End If
+	
+	If Isnumeric(mMin) And Isnumeric(mMax) Then
+		isNumBetween = (n >= mMin) And (n <= mMax)
+	Elseif Isnumeric(mMin) Then
+		isNumBetween = n >= mMin
+	Elseif Isnumeric(mMax) Then
+		isNumBetween = n <= mMax
+	Else
+		isNumBetween = False
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:RoundSymArith:6:8
+%REM
+	Symmetric arithmetic rounding - rounds .5 away from 0.
+	Similar to Excel Worksheet Round function.
+	ACHTUNG: Nicht voll kompatibel mit negativen decimalPlaces!
+%END REM
+Function RoundSymArith(ByVal aDouble As Double, ByVal decimalPlaces As Integer) As Double
+
+	On Error GoTo doError
+	
+	'Ziel: wenn die für die Rundung signifikante Ziffer 5 ist, dann soll die Alternativfunktion verwendet werdem
+	'Warum? Weil die Alternativfunktion das hundertfache an Ausführungszeit der Round()-Funktion benötigt.
+	'-> also soll Round für alle Standardfälle verwendet werden, nur bei Problemfällen die Alternativfunktion
+	'Achtung: Fix() und Mod machen Probleme bei großen Zahlen
+	'CLng() funktioniert ebenfalls nicht einwandfrei
+	'Das Ganze ist noch in Testreihen zu bestätigen. Geprüft für 2,1,0 Nachkommastellen von 0 bis 1.000.000
+
+	Dim atest As Long
+	
+	'Gearbeitet wird mit dem auf 5 Nachkommastellen gerundeten Wert, da sonst irreguläre Ergebnisse aufgrund
+	'des internen Ablage der Zahl im Speicher als Binärzahl mit den Funktionen Fix()/Fraction()/Mod auftreten können
+	aDouble = Round(aDouble, 5)
+	
+	'Abgriff des Nachkommastellenbereichs und Kommaverschiebung nach rechts um die gewünschte Anzahl der NK-Stellen zzgl. 1 weitere
+	aTest = Fraction(aDouble)*10^(decimalPlaces+1)
+	
+	'Lässt sich der Testwert durch 5 ohne Rest teilen und bei Division durch 10 entsteht ein Rest, ist die Endziffer eine 5
+	'-> genau dies dient zur Identifikation der Fälle, die durch die Alternativfunktion zu runden sind
+	If aTest Mod 5 = 0 And aTest Mod 10 <> 0 Then
+		'Bridge-Funktion wird benötigt
+		Dim hlpArr
+		If decimalPlaces < 0 Then 
+			decimalPlaces = 0
+		ElseIf decimalPlaces > 5 Then 
+			decimalPlaces = 5
+		End If
+		
+		'hier wird ein dynamischer String verwendet. Besser wäre eine Konstante, dann würde aber ein Notesdocument benötigt,
+		'was aber wiederum Authorenrechte in der DB benötigt. Die Performance ist ca. 130% gemessen zur Verwendung einer Konstante (100%)
+		On Error GoTo err184
+		hlpArr = Evaluate("@Round(@Round(" & aDouble & "; " & 1/10^5 & "); " & 1/10^decimalPlaces & ")")
+		RoundSymArith = hlpArr(0)
+		
+	Else
+		'Standard-Funktion verwenden für alle nicht als problematisch identifizierten Fälle
+		'-> sehr, sehr schnell!
+		RoundSymArith = Round(aDouble, decimalPlaces)
+	End If
+	
+%REM
+	'Einzige Methode, die lt. IBM so rundet wie gewünscht und identisch mit @Round()-Ergebnissen ist
+	'http://www-01.ibm.com/support/docview.wss?uid=swg21210270
+	
+	Dim hlpArr
+	
+	If decimalPlaces < 0 Then decimalPlaces = 0
+	If decimalPlaces > 5 Then decimalPlaces = 5
+	
+	hlpArr = Evaluate("@Round(@Round(" & aDouble & "; " & 1/10^5 & "); " & 1/10^decimalPlaces & ")")
+	RoundSymArith = hlpArr(0)
+%END REM
+
+%REM
+	PROBLEM: z.B. 1252,475 rundet auf ,47 statt ,48. Liegt offenbar am Format, in dem Zahlen in Notes intern gespeichert werden
+	'abgeleitet von http://support.microsoft.com/kb/196652/en-us
+	Dim factor As Double
+
+	factor = 10^decimalPlaces
+	RoundSymArith = Fix(X * Factor + 0.5 * Sgn(X)) / Factor
+%END REM
+
+	GoTo ende
+
+err184:
+	Resume err184Fix
+	
+err184Fix:
+	'2015-01-09, dko: nur protokolllieren, nicht mehr komplett abbrechen. Stattdessen Fallback auf Dokumentmode-Rundung
+	'-> LogError hier nicht verfügbar
+	On Error Resume Next
+	
+	'Call ErrStack("WARN: RoundSymArith() Error 184 - Fallback to Document Mode")
+	
+	Dim session As New NotesSession
+	Dim rDoc As New NotesDocument(session.CurrentDatabase)
+	
+	Const rndMacro$ = "@Round(@Round(aDouble; rnd5); rndX)"
+	
+	rDoc.aDouble = aDouble
+	rDoc.rnd5 = 1/10^5
+	rDoc.rndX = 1/10^decimalPlaces
+
+	On Error GoTo errDocMode
+	hlpArr = Evaluate(rndMacro$, rDoc)
+	RoundSymArith = hlpArr(0)
+
+	'Call ErrStack("aDouble: " & aDouble & ", decimalPlaces: " & decimalPlaces & ", Ergebnis: " & RoundSymArith)
+	
+	GoTo Ende
+	
+errDocMode:
+	Resume errDocModeFix
+	
+errDocModeFix:
+	On Error Resume Next
+	Call ErrStack("WARN: RoundSymArith() Error in Document Mode - Fallback to Round()")
+	RoundSymArith = Round(aDouble, decimalPlaces)
+	Call ErrStack("aDouble: " & aDouble & ", decimalPlaces: " & decimalPlaces & ", Ergebnis: " & RoundSymArith)
+	Resume Ende
+	
+doError:
+	On Error Resume Next
+	Call Errstack("")
+	Call Errstack("aDouble: " & aDouble)
+	Call Errstack("decimalPlaces: " & decimalPlaces)
+	On Error GoTo 0
+	Raise
+	
+ende:
+
+End Function
+
+'++LotusScript Development Environment:2:1:GetListtagCount:1:8
+Function GetListtagCount(L) As Long
+	
+	'Anzahl der Einträge einer Liste ermitteln
+	
+	Dim c As Long
+	
+	If Not Islist(L) Then Exit Function
+	
+	Forall e In L
+		c = c+1
+	End Forall
+	
+	GetListtagCount = C
+	
+End Function
+
+'++LotusScript Development Environment:2:1:extractInnerHTML:1:8
+Function extractInnerHTML(txt As String, tag As String) As String
+	
+	On Error Goto doerror
+	
+	extractInnerHTML = extractHTMLTag(txt, tag, "<", False)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetMonthsBetweenDates:4:8
+'Anzahl der beteiligten Monate zwischen dBeginn und dEnde ermitteln
+'-> liegt dBeginn in gleichen Monat wie dEnde, ist das Ergebnis 1
+'-> liegt dEnde vor dem Monat von dBeginn, ist das Ergebnis 0
+Function GetMonthsBetweenDates(dBeginn, dEnde) As Integer
+	
+	Dim anzMonate As Integer
+	
+	'Anzahl der Monate zwischen Beginn und Ende berechnen
+	'A) volle Monate der beteiligten Jahre
+	anzMonate = (Year(dEnde) - Year(dBeginn) + 1)*12
+	
+	'B) abzgl. Monate vor Beginn
+	anzMonate = anzMonate - Month(dBeginn) + 1
+	
+	'C) abzgl. Monate nach Ende
+	GetMonthsBetweenDates = NumMax(0, anzMonate - (12 - Month(dEnde)))
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:FlagBitUnregister:1:8
+Sub FlagBitUnregister(res As Long, bit As Long)
+	
+	If FlagBitRegistered(res, bit) Then res = res Xor bit
+	
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:1:FullnameConform:1:8
+Function FullnameConform(Byval sstr As String) As String
+
+	%REM
+2021-05-03, dko: 
+	-  27 + 46 hier neu zugelassen
+	- Unicode-To-asci-Mapping erweitert
+	
+Rules: (gem. https://help.hcltechsw.com/domino/10.0.1/admin/plan_dominonamingrequirements_c.html)
+	- max. 79 Zeichen
+	- alpha characters (A - Z), numbers (0 - 9), dash (-), period (.), Space ( ), And underscore (_), plus apostrophe (')
+	
+Geprüft wird NICHT die Länge
+
+	%END REM
+	
+	'zur Bildung valider Full- und Shortnames
+	'Erlaubte Sonderzeichen zurückführen auf deutsche Zeichen
+	'Rest konvertieren in -
+	'deutsche Umlaute bleiben erhalten!
+	
+	Dim i As Integer
+	Dim c As String
+	Dim res As String
+	Dim a As Integer, u As Integer
+
+	Dim Def List As Byte
+	
+	'Ungenannte Zeichen werden auf Bindestrich zurückgeführt
+	Def(0) = 45	'-
+	
+	'Leerzeichen, Bindestrich
+	Def(27) = 27	'Apostrophe
+	Def(32) = 32	' 
+	Def(45) = 45	'-
+	Def(46) = 46	'.
+	
+	'0..9
+	For i=48 To 57
+		Def(i) = i
+	Next i
+	
+	'A..Z
+	For i=65 To 90
+		Def(i) = i
+	Next i
+	
+	'Unterstrich
+	Def(95) = 95	'_
+	
+	'a..z
+	For i=97 To 122
+		Def(i) = i
+	Next i
+	
+	'Deutsche Umlaute
+	Def(196) = 196
+	Def(214) = 214
+	Def(220) = 220
+	Def(223) = 223
+	Def(228) = 228
+	Def(246) = 246
+	Def(252) = 252
+	
+	'Unicode-Ersetzungstabelle hinzufügen
+	Call PrepareUnicodeReplacements()
+	
+	'Einzelzeichen-Prüfung und Ersetzung
+	res = ""
+	For i=1 To Len(sstr)
+		
+		'Zeichen abgreifen
+		c = Mid$(sstr, i, 1)
+		u = Uni(c)
+		
+		If Not IsElement(Def(u)) Then
+			If Not IsElement(gl_UnicodeReplacementList(u)) Then
+				res = res & Chr(Def(0))	'Default
+			Else
+				res = res & Chr(gl_UnicodeReplacementList(u))	'auf Ascii gemappte Zeichen
+			End If
+		Else
+			res = res & Chr(Def(u))	'Erlaubte Zeichen
+		End If
+		
+	Next i
+	
+	FullnameConform = res
+		
+End Function
+
+
+'++LotusScript Development Environment:2:1:FlagBitRegistered:1:8
+Function FlagBitRegistered(Byval res As Long, bit As Long) As Integer
+	
+	FlagBitRegistered = ((res And bit) = bit)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:StringSuperReplace:1:8
+Function StringSuperReplace(Byval aString As String, Byval aFind As String, Byval aReplace As String, Byval CompMethod As Integer) As String
+	'################################################################################
+	'Replaces all occurences of aFind with aReplace in aString and repeats the 
+	'replacing as long as any occurence was found and returns the changed string.
+	'
+	'Example:
+	'StringSuperReplace("test+++test", "++", "+") => "test+test"
+	'################################################################################
+	
+	StringSuperReplace = aString
+	
+	Do 
+	Loop While ReplaceString(StringSuperReplace, aFind, aReplace, CompMethod)
+End Function
+
+'++LotusScript Development Environment:2:1:Array2String:1:8
+Function Array2String(array,trenner As String, ignoreempty As Integer) As String
+	
+	'2008-03-19, dko: Umstellung auf schnellere Methode + onError geändert auf Raise
+	'2007-01-08: ROOT TEMPLATE CHECKED	
+	'2007-09-19, dko: Volle Array-Breite nutzen: LBound() statt 0, 0 muss nicht Untergrenze sein!
+	
+	On Error Goto doerror
+	
+	Array2String = Join(cnvVarArray(array, ignoreEmpty), trenner)
+	
+	Goto Ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende: 
+	
+	
+%REM
+'Bis 2008-03-19
+
+	On Error Goto fehler
+	Dim i As Integer
+	
+	array2string =""
+	
+	For i =Lbound(Array) To Ubound(Array)
+		If ignoreempty Then
+			If ""&array(i) <>"" Then  
+				If Len(array2string) = 0 Then
+					array2string = ""&array(i)
+				Else
+					array2string = array2string  + trenner & array(i)
+				End If
+			End If
+		Else
+			If i = Lbound(Array) Then
+				array2string = ""&array(i)
+			Else
+				array2string = array2string  + trenner & array(i)
+			End If
+		End If
+	Next
+	
+	Goto Ende
+	
+fehler:
+	On Error Resume Next
+	Resume ende
+	
+ende: 
+%END REM
+	
+End Function
+
+'++LotusScript Development Environment:2:2:Inc:1:8
+Public Sub Inc(aNumber As Long)
+	'################################################################################
+	'Increment aNumber by 1.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	Call IncBy(aNumber, 1)
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Sub
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:1:ADNameConform:1:8
+Function ADNameConform(ByVal sStr As String) As String
+	
+	%REM
+https://help.hcltechsw.com/domino/10.0.1/admin/plan_dominonamingrequirements_c.html
+    alpha characters (A - Z)
+    numbers (0 - 9)
+    ampersand (&), dash (-), space ( ) , underscore (_), apostrophe ('), forward slash (/)
+    
+    Explizit keinen Punkt (.), @ oder Doppel-Slash(//)
+	
+	%END REM
+	
+	On Error GoTo doError
+	
+	'Umlaute generell vorab ersetzen
+	sStr = UmlautErsetzung(sStr)
+	
+	'Ansonsten gelten zunächst die gleichen Ersetzungsregeln wie bei FullnameConform
+	'-> wobei das zulässige & sowie / dabei ersetzt werden
+	sStr = FullnameConform(sStr)
+	
+	'Apostroph + Punkt ersetzen
+	Dim Src(1) As String
+	Src(0) = Chr(27)
+	Src(1) = Chr(46)
+	
+	ADNameConform = Replace(sStr, Src, Chr(45)) 
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:ErrStack:1:8
+Sub ErrStack(hinweis)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Error-Wrapper-Functions
+	On Error Resume Next
+	
+	Dim hlpInfo As String
+	
+	hlpInfo = Getthreadinfo(THREADINFO_CALLPROC) & " [" & Getthreadinfo(THREADINFO_CALLMODULE) & "]"
+	
+	Call ErrStackBase(hlpInfo, hinweis)
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:String2Array:1:8
+Function String2Array(wert As String, Trenner As String, ignoreEmpty As Integer) As Variant
+	
+	'2008-03-19, dko: Umstellung auf schnellere Methode + onError geändert auf Raise
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Goto doerror
+	
+	'New Style - Built-In Func "Split()"
+	On Error 228 Goto Err228
+	
+	String2Array = cnvVarArray(Split(wert, trenner), ignoreEmpty)
+	
+	Goto Ende
+	
+Err228:
+	'OLD WAY - Kompatibility Mode (e.g. "String too large")
+	'redefine "on error"
+	On Error 228 Goto doerror
+	Resume OldStyle
+	
+OldStyle:
+	'Code Bis 2008-03-19 - etwa langsamer bei großen Arrays / Strings
+	Dim i As Integer
+	Dim pos As Integer
+	Dim hlpString As String
+	Dim tmp As String
+	
+	Redim hlparr(0)
+	
+	hlpString = wert
+	pos = Instr(hlpstring, Trenner)
+	i = Lbound(hlpArr)
+	
+	While pos > 0
+		
+		If ignoreEmpty Then
+			tmp = Mid(hlpstring, 1, pos -1)
+			If tmp <> "" Then
+				Redim Preserve hlparr(i)
+				hlparr(i) = tmp
+				i = i+1
+			End If
+		Else
+			Redim Preserve hlparr(i)
+			hlparr(i) = Mid(hlpstring, 1, pos -1)
+			i = i+1
+		End If
+		
+		hlpstring = Mid(hlpstring, pos+Len(Trenner)) 
+		pos = Instr(hlpstring, Trenner)
+		
+	Wend
+	
+	If ignoreEmpty Then
+		If hlpstring <> "" Then
+			Redim Preserve hlparr(i)
+			hlparr(i) = hlpstring
+		End If
+	Else
+		Redim Preserve hlparr(i)
+		hlparr(i) = hlpstring
+	End If
+	
+	String2Array = hlparr
+	
+	Goto ende
+	
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende: 
+	
+End Function
+
+'++LotusScript Development Environment:2:1:internal_List2String:1:8
+Private Function internal_List2String(mode As Byte, L, trenner As String, ignoreempty As Integer) As String
+	
+	'Liste zu String konvertieren (Tags oder Values)
+	
+	On Error Goto doerror
+	
+	Dim r As String
+	Dim anz As Long
+	Dim b As String
+	
+	If Not IsList(L) Then GoTo ende
+	
+	anz=0
+	
+	Forall e In L
+		
+		If mode = 1 Then
+			'1: Tags
+			b = Listtag(e)
+		Else
+			'2: Values
+			b = e
+		End If
+		
+		If ignoreempty Then
+			If ""& b <>"" Then  
+				If Len(r) = 0 Then
+					r = ""& b
+				Else
+					r = r & trenner & b
+				End If
+			End If
+		Else
+			If anz = 0 Then
+				r = ""& b
+			Else
+				r = r & trenner & b
+			End If
+		End If
+		
+		anz=anz+1
+		
+	End Forall
+	
+	
+	internal_List2String = r
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CurrentWebUser:1:8
+Public Function CurrentWebUser() As String
+	Dim doc As NotesDocument
+	Set doc = CurrentDocument()
+	If Not doc Is Nothing Then
+		CurrentWebuser = CurrentDocument().Remote_User(0)
+	End If
+End Function
+
+'++LotusScript Development Environment:2:1:extractXMLTag:1:8
+Function extractXMLTag(txt As String, tag As String, inTag As String, outTag As String, includeTag As Integer) As String
+	
+	'Weiterentwickelt auf Basis extractHTMLTag, bhebt folgende Probleme:
+		'-> Problem bei ähnlichen Tags: <ORDER und <ORDER_ITEM: hier müsste nach inTag = "<ORDER>" bzw. "<ORDER " gesucht werden
+		'-> Problem bei OutTag: </ORDER_ITEM> -> gesucht wird nur nach "</ORDER", was falsch wäre
+		'-> Problem mit Kommentaren: diese werden nicht berücksichtigt. Enthalten diese auskommentierte Tags, werden diese trotzdem erkannt
+	
+	
+	'Extrahiert den Inhalt zwischen eines genannten Tags - optional inklusive des Tags
+	On Error GoTo doerror
+	
+	Dim cAW As String
+	Dim cOuterBeg As Long, cOuterEnd As Long
+	Dim cInnerBeg As Long, cInnerEnd As Long
+	Dim outEndTag As String
+	
+	'z.B. </ORDER>
+	outEndTag = inTag & "/" & tag & outTag
+	
+	'Zuerst auf Einleitungs-Tag ohne Attribute prüfen: z.B. <ORDER>
+	cOuterBeg = InStr(1, txt, inTag & tag & outTag, 5)
+	'Alternativ auf Einleitungs-Tag mit Attribute prüfen: z.B. <ORDER type="standard">
+	If cOuterBeg = 0 Then cOuterBeg = InStr(1, txt, inTag & tag & " ", 5)
+	
+	'Wurde kein Tag gefunden, beenden
+	If cOuterBeg = 0 Then GoTo ende
+	
+	'Beginn des inneren Contents feststellen
+	cInnerBeg = InStr(cOuterBeg, txt, outTag, 5) + 1
+	
+	'Ende des inneren Contents feststellen
+	cInnerEnd = InStr(cInnerBeg, txt, outEndTag, 5)
+	
+	If cInnerEnd <= 0 Then
+		'kein End-Tag vorhanden: Bis zum nächsten "<" lesen
+		cInnerEnd = InStr(cInnerBeg, txt, inTag, 5)
+		
+		If cInnerEnd <= 0 Then
+			'Kein weiteres Tag vorhanden: Gesamte Länge verwenden
+			cInnerEnd = Len(txt)
+		End If
+		
+		cOuterEnd = cInnerEnd
+	Else
+		cOuterEnd = InStr(cInnerEnd+1, txt, outTag, 5) + 1
+	End If
+	
+	If includeTag Then
+		extractXMLTag = Mid$(txt, cOuterBeg, cOuterEnd - cOuterBeg)
+	Else
+		extractXMLTag = Mid$(txt, cInnerBeg, cInnerEnd - cInnerBeg)
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetDateOnly:1:8
+Function GetDateOnly(Byval datum)
+	
+	'Nur das Datum eines Date/Time Objektes zurückgeben
+	
+	If Isdate(datum) Then
+		GetDateOnly = Datenumber(Year(datum), Month(datum), Day(Datum))
+	Else
+		GetDateOnly = ""
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:InitArrayEx:1:8
+Public Function InitArrayEx(aDynamicArray, aInitialValue As Variant, aLBound) As Integer
+	'################################################################################
+	'Redims the given array to one element (aLBound To aLBound) and sets the element 
+	'to the given initial value. Returns aLBound.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	If Not (Isarray(aDynamicArray)) Then
+		Error 1000, "Array parameter expected to be an array"
+	End If
+	
+	InitArrayEx = aLBound
+	
+	Redim aDynamicArray(InitArrayEx To InitArrayEx)
+	
+	'Insert initial value
+	If Isobject(aInitialValue) Then
+		Set aDynamicArray(InitArrayEx) = aInitialValue
+	Else
+		aDynamicArray(InitArrayEx) = aInitialValue		
+	End If
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function 
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+
+
+'++LotusScript Development Environment:2:2:SetGlobalRuntimeParameter:5:8
+%REM
+	Sub SetGlobalRuntimeParameter
+	Description: Comments for Sub
+%END REM
+Sub SetGlobalRuntimeParameter(param As String, value As Variant)
+	
+	gl_GlobalRuntimeParameter(param) = value
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:CurrentDocument:1:8
+Public Function CurrentDocument() As NotesDocument
+	Set CurrentDocument = FCurrentSession.DocumentContext
+End Function
+
+'++LotusScript Development Environment:2:1:strBegins:1:8
+Function strBegins(sValue As String, sChar As String, compMethod As Integer) As Integer
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Beginnt der String mit den angegebenen zeichen (Vergleichsmethode wird berücksichtigt)
+	
+	strBegins = (Strcompare(Left(sValue, Len(sChar)), sChar, compMethod) = 0)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:str2UTF8:1:8
+Function str2UTF8(s$) As String
+	
+	On Error Goto doerror
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'http://www.ietf.org/rfc/rfc3629.txt
+	'Realisiert nach Beispiel: http://aktuell.de.selfhtml.org/artikel/javascript/utf8b64/utf8.htm
+	
+	Dim i As Long
+	Dim r As String
+	Dim u As Long
+	Dim c As String
+	
+	For i& = 1 To Len(s$)
+		c$ = Mid$(s$, i&, 1)
+		u& = Uni(c$)
+		If u& < &H80 Then
+			'0..127: 1byte
+			r$ = r$ & c$
+		Elseif u& < &H800 Then
+			'128..2048: 2byte
+			r$ = r$ & Chr$(Shr(u&, 6) Or 192) & Chr$((u& And 63) Or 128)
+		Else
+			'>2048: 3byte
+			r$ = r$ & Chr$(Shr(u&, 12) Or 224) & Chr$((Shr(u&, 6) And 63) Or 128) & Chr$((u& And 63) Or 128)			
+		End If
+	Next
+	str2UTF8 = r$
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+	
+End Function
+
+'++LotusScript Development Environment:2:2:FlagBitRegister:1:8
+Sub FlagBitRegister(res As Long, bit As Long)
+	
+	'Bit-Operationen unterstützen: Bit-Folgen 1,2,4,8,16,32,64,128,256,512,1024,2048,4096...
+	
+	res = res Or bit
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:UmlautErsetzung:1:8
+Function UmlautErsetzung(Byval sstr As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	sstr = strReplace(sstr, "ü", "ue", 4)
+	sstr = strReplace(sstr, "Ü", "Ue", 4)
+	sstr = strReplace(sstr, "ö", "oe", 4)
+	sstr = strReplace(sstr, "Ö", "Oe", 4)
+	sstr = strReplace(sstr, "ä", "ae", 4)
+	sstr = strReplace(sstr, "Ä", "Ae", 4)
+	sstr = strReplace(sstr, "ß", "ss", 4)
+	UmlautErsetzung = sstr
+End Function
+
+'++LotusScript Development Environment:2:1:IsArrayInitialized:1:8
+Public Function IsArrayInitialized(aArray As Variant) As Boolean
+	
+%REM
+	Function IsArrayInitialized
+	Description: Returns True, if aArray is already initialized, otherwise 
+	             returns False. If aArray is not an array, then an exception 
+	             will be thrown.
+%END REM
+	
+	
+	'Define error handling -------------------------------------------------
+	On Error Goto do_error
+	
+	'Run code --------------------------------------------------------------
+	If Isarray(aArray) Then
+		Dim dummy As Integer
+		
+		'Try to access UBound to check, if aArray is initiallized already
+		On Error 200 Goto not_initialized
+		dummy = Ubound(aArray)
+		
+		'If no error 200, aArray is initialized
+		IsArrayInitialized = True
+	Else
+		Error 1000, "Array parameter expected to be an array"
+	End If
+	
+	'That's All Folks! -----------------------------------------------------
+	Exit Function
+	
+	'Error handling --------------------------------------------------------
+not_initialized:
+	IsArrayInitialized = False
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+		'Remember error stack
+	Call ErrStack("")
+	
+		'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+%REM
+	Function NormalizedPhonenumber
+	Description: Removes any non valid characters from aPhonenumber and 
+	             eventually applies aDefaultAreaCode and 
+	             aDefaultInternationalAreaCode.
+	             
+	             Example for return value:
+	             00491752455540
+	             
+	             Note: This routine does not guarantee neither validates the 
+				       given number. It just tries to make a feasible (i.e. 
+				       dialable) phonenumber suitable for dialing applications. 
+	             
+	 Parameters: aDefaultAreaCode (may have leading "0")
+	             aDefaultInternationalAreaCode (may have leading "00" or "+"
+%END REM
+
+'++LotusScript Development Environment:2:1:TrimToNumber:1:8
+Function TrimToNumber(strx) As String
+	
+	'Extrahiert aus einem String nur die numerischen Zeichen 0..9 (zusammengefügt)
+	
+	On Error Goto doerror
+	
+	Dim hlpStr2 As String
+	Dim i As Integer
+	Dim c As String
+	
+	'Daraus nur 0..9 extrahieren
+	hlpStr2=""
+	For i=1 To Len(strX)
+		c=Mid$(strX, i, 1)
+		If Asc(c) >= 48 And Asc(c) <= 57 Then
+			hlpStr2=hlpStr2 & c
+		End If
+	Next i
+	
+	TrimToNumber = hlpStr2
+	
+	Goto ende
+	
+doerror:
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:ErrStackFinal:5:8
+%REM
+	Sub ErrStackFinal
+	Description: Comments for Sub
+%END REM
+Sub ErrStackFinal(hinweis, optDoc)
+
+	'Error-Wrapper-Functions
+	On Error Resume Next
+	
+	Call ErrStack(hinweis)
+	
+	'Explizites Auslösen der Protokollierung (sonst erst automatisch im Delete-Destructor des Objekts)
+	Call EStack.Finalize(optDoc)
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:strMLKPartialFix:10:8
+%REM
+	Function strMLKPartialFix
+	Einen Schlüssel für eine Multi-Key-Lookup-Ansicht mit der Option "Show multiple values as separate entries" so aufbereiten, dass
+	es beim Partial-Match keine fehlenden Datensätze gibt.
+	
+	Siehe dazu SPRs RGAU98RNMK + STAA8HNAXP
+
+	Als Workaround werden daher Backslashes im Schlüssel durch "$$" ersetzt.
+%END REM
+Function strMLKPartialFix(key As String) As String
+	
+	strMLKPartialFix = strReplace(key, "\", "$$", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:Dec:1:8
+Public Sub Dec(aNumber As Long)
+	'################################################################################
+	'Decrement aNumber by 1.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	Call DecBy(aNumber, 1)
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Sub
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:2:shellSortEx:1:8
+Public Sub shellSortEx( ar )
+	
+'Übernahme aus ArraySort, mod dko: 
+'- Array muss nicht notwendigerweise ein String-Array sein
+	
+%REM
+Shell sort is almost as fast as QuickSort, has similar speed regardless of the
+starting sequence of the data, and is very simple. Its only negative aspect is
+that no one can explain why Shell sort works this well.
+Below is the code:
+
+’*** Do a shell sort
+’*** Notice the lack of other comments
+’*** - I’m not sure how it works !
+’*** Routine taken from Sedgewick
+%END REM
+	
+	Dim Lower As Long
+	Dim Upper As Long
+	Dim botMax As Long
+	Dim i As Long
+	Dim k As Long
+	Dim h As Long
+	Dim v
+	
+	If Not Isarray(ar) Then Exit Sub
+	
+	Lower = Lbound( ar )
+	Upper = Ubound( ar )
+	h = 1
+	Do
+'’*** Determine starting ’h’
+		h = (3*h) + 1
+	Loop Until h > Upper-Lower+1
+'     Appendix B-4
+'     Sorting 267
+	Do
+		h = h \ 3
+		botMax = Lower + h - 1
+		For i = botMax + 1 To Upper
+			v = ar( i )
+			k = i
+			While ar( k - h ) > v
+				ar( k ) = ar( k - h )
+				k = k - h
+'’*** A ’goto’ - sorry ’bout that
+				If (k <= botMax) Then Goto wOut
+			Wend
+wOut:
+			If (k <> i) Then ar(k) = v
+		Next
+	Loop Until h = 1
+End Sub
+
+'++LotusScript Development Environment:2:1:ExtractFilePath:1:8
+Function ExtractFilePath(Byval n As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Dim i As Integer
+	Dim n_file As String
+	
+	ExtractFilePath$ = ""
+	
+	n_file$ = ExtractFileName(n$)
+	
+     'Pfad extrahieren
+	ExtractFilePath$ = Mid$(n$, 1, Len(n$) - Len(n_file$))
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetCRLF:2:8
+'Count-mal ein chr(13)+chr(10) zurückgeben
+Function GetCRLF(count As Integer) As String
+	
+	GetCRLF = Replace(Space(count), " ", Chr(13) & Chr(10))
+	
+End Function
+
+'++LotusScript Development Environment:2:1:strPadRight:1:8
+Function strPadRight(value As String, newLen As Integer, char As String) As String
+	
+	'Einen String Links bis Länge mit char auffüllen und zurückgeben
+	'-> ist Länge >= neue Länge, dann nichts tun
+	
+	If Len(value) >= newLen Then
+		strPadRight = value
+	Else
+		'links auffüllen
+		strPadRight = value & String$(newLen - Len(value), char)
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:IsEqual:1:8
+Function IsEqual(w1, w2) As Integer
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Dim i As Long
+	
+	IsEqual = False
+	
+	If Typename(w1) <> Typename(w2) Then Exit Function
+	
+	If Isarray(w1) And Isarray(w2) Then
+		'Beides sind Arrays: Check Bounds
+		If Ubound(w1) <> Ubound(w2) Then Exit Function
+		
+		'Einzelwerte rekursiv checken
+		For i = Lbound(w1) To Ubound(w1)
+			If Not isEqual(w1(i), w2(i)) Then Exit Function
+		Next i
+		
+		isEqual = True
+		
+	Elseif Isarray(w1) Or Isarray(w2) Then
+		'nur eins der beiden ist ein Array: kann nicht gleich sein
+		Exit Function
+	Else
+		If Typename(w1) = "STRING" Then
+			'Stringvergleich exakt ausführen
+			If Strcompare(w1, w2, 0) <> 0 Then Exit Function
+			isEqual = True
+		Else
+			IsEqual = (w1=w2) 
+		End If
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:ReplaceString:1:8
+Function ReplaceString(aString As String, Byval aFind As String, Byval aReplace As String, Byval CompMethod As Integer) As Boolean
+	'################################################################################
+	'Replaces aFind with aReplace in aString and returns true, if any replacing 
+	'occured. So the build in function Replace() can be called now as procedure.
+	'################################################################################
+	
+	Dim old_string As String
+	
+	old_string    = aString
+	aString       = strReplace(aString, aFind, aReplace, CompMethod)
+	ReplaceString = Strcompare(aString, old_string, CompMethod) <> 0
+End Function
+
+'++LotusScript Development Environment:2:1:IsEqualValues:1:8
+Function IsEqualValues(w1, w2) As Boolean
+	
+	Dim result1 As Boolean, result2 As Boolean
+	
+	'V1 immer berechnen
+	result1 = IsEqualValues1(w1, w2)
+	
+	If gl_UseIsEqualMethod2 Then
+		
+		'Methode2 Debug vergleich
+		result2 = IsEqualValues2(w1, w2)
+		
+		If result1 <> result2 Then
+			'Wenn V1 Ergebnis von V2 abweicht, 1x loggen
+			If Not gl_isEqualValuesLogged Then
+				gl_isEqualValuesLogged = True
+				Print "INDEV/DEBUG: IsEqualValues2 Result=" & result2 & ", V1 is different"
+			End If
+		End If
+		
+	End If
+
+	'bis auf Weiteres immer V1 Ergebnis verwenden
+	IsEqualValues = result1
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:strReplace:1:8
+Function strReplace(Byval Source As String, Byval search As String, Byval toReplace As String, Byval CompMethod As Integer) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	StrReplace = Replace(Source, search, toReplace, 1, -1, compMethod)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:IntToHex:1:8
+Function IntToHex(n As Integer, minNewLen As String) As String
+	
+	On Error Goto doerror
+	
+	Dim h As String
+	
+	'Hexcode erstellen
+	h = Hex(n)
+	
+	'auf gewünschte Länge auffüllen
+	If Len(h) < minNewLen Then
+		h = String$(minNewLen-Len(h), "0") & h
+	End If
+	
+	IntToHex = h
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:NormalizedPhonenumber:1:8
+Function NormalizedPhonenumber(Byval aPhonenumber As String, Byval aDefaultInternationalAreaCode As String, Byval aDefaultAreaCode As String)
+	
+%REM
+	Function NormalizedPhonenumber
+	Description: Removes any non valid characters from aPhonenumber and 
+	             eventually applies aDefaultAreaCode and 
+	             aDefaultInternationalAreaCode.
+	             
+	             Example for return value:
+	             00491752455540
+	             
+	             Note: This routine does not guarantee neither validates the 
+				       given number. It just tries to make a feasible (i.e. 
+				       dialable) phonenumber suitable for dialing applications. 
+	             
+	 Parameters: aDefaultAreaCode (may have leading "0")
+	             aDefaultInternationalAreaCode (may have leading "00" or "+"
+%END REM
+	
+	On Error Goto doerror
+	
+	Dim t, result As String
+	Dim i As Long
+	Dim c As String
+	
+	result = aPhonenumber
+	
+	'---------------------------------------------------------------------------
+	'remove all forbidden characters
+	'---------------------------------------------------------------------------
+	t = result
+	result = ""
+	For i = 1 To Len(t)
+		c = Mid$(t, i, 1)
+		If Instr("+0123456789", c) >= 1 Then
+			result = result + c
+		End If
+	Next
+	
+	'---------------------------------------------------------------------------
+	'if "+" is first character, then replace "+" with "00", otherwise remove
+	'---------------------------------------------------------------------------
+	t = result
+	result = ""
+	For i = 1 To Len(t)
+		c = Mid$(t, i, 1)
+		If c = "+" Then
+			If (i = 1) Then
+				result = result + "00"				
+			End If
+		Else
+			result = result + c
+		End If
+	Next
+	
+	'---------------------------------------------------------------------------
+	'apply area code and international area code
+	'---------------------------------------------------------------------------
+	If result <> "" Then
+		If Instr(result, "00") <> 1 Then
+			'need to apply the default international area code
+			
+			If (Instr(result, "0") <> 1) Then
+				'need to apply default the area code (if defined)
+				
+				If aDefaultAreaCode <> "" Then
+					'ensure leading "0" in the default area code
+					If Instr(aDefaultAreaCode, "0") <> 1 Then
+						aDefaultAreaCode = "0" & aDefaultAreaCode
+					End If
+					
+					'apply the default area code
+					result = aDefaultAreaCode & result				
+				End If			
+			End If
+			
+			'we should have an area code now (supposing that aDefaultAreaCode 
+			'was reasonable) 
+			If Instr(result, "0") = 1 Then
+				'indeed we have an area code, so lets apply the default 
+				'international area code
+				
+				'remove leading "+" from the international area code
+				If Instr(aDefaultInternationalAreaCode, "+") = 1 Then
+					aDefaultInternationalAreaCode = Mid$(aDefaultInternationalAreaCode, 2)
+				End If
+				
+				'remove leading "00" from the international area code
+				If Instr(aDefaultInternationalAreaCode, "00") = 1 Then
+					aDefaultInternationalAreaCode = Mid$(aDefaultInternationalAreaCode, 3)
+				End If
+				
+				If aDefaultInternationalAreaCode <> "" Then
+					'ensure leading "00" in the international area code
+					If Instr(aDefaultInternationalAreaCode, "00") <> 1 Then
+						aDefaultInternationalAreaCode = "00" & aDefaultInternationalAreaCode
+					End If
+					
+					'apply the international area code and remove leading "0" 
+					'from the area code
+					result = aDefaultInternationalAreaCode & Mid$(result, 2)
+				End If
+			End If
+		End If
+	End If
+	
+	NormalizedPhonenumber = result
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("MISSMSFuncs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:StrReplaceCRLF_LF:1:8
+Function StrReplaceCRLF_LF(Byval source As String,repl As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Entfernt CRLF und danach einzelne LF (Linux): Unter Zuhilfenahme von Chr(27)
+	strReplaceCRLF_LF = strReplace(strReplace(strReplace(source, Chr(13) + Chr(10), Chr(27), 5), Chr(10), Chr(27), 5), Chr(27), repl, 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:BusinessDays:1:8
+Function BusinessDays(startDate As NotesdateTime, endDate As NotesDateTime, daysToExclude List As Integer, datesToExclude) As Long
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Eigene Script-Funktion, die Daten analog "@BusinessDays" liefert
+	
+	'Anzahl der gezählten, auszuschliessenden Wochen-Tage
+	Dim excludedWeekdaysCount As Long
+	
+	'Anzahl der gezählten, auszuschliessenden Tage
+	Dim excludedOtherCount As Long
+	
+	Dim i As Long
+	Dim CheckDate
+	Dim TageGesamt  As Long
+	
+	'INIT
+	BusinessDays = 0
+	excludedWeekdaysCount = 0
+	excludedOtherCount = 0
+	
+	'Pre-Check: sind alle Tage einer Woche ausgeschlossen, dann abbrechen
+	If Islist(daysToExclude) Then
+		For i = 1 To 7
+			If Iselement(daysToExclude(i)) Then 
+				excludedWeekdaysCount = excludedWeekdaysCount + 1
+			End If
+		Next i
+		If excludedWeekdaysCount = 7 Then Goto ende
+		excludedWeekdaysCount = 0
+	End If
+	
+	'Anzahl der tangierten Tage ermitteln
+	TageGesamt =  Datevalue(endDate.DateOnly) - Datevalue(startDate.DateOnly) +1
+	
+	CheckDate = Datevalue(startDate.DateOnly)
+	
+	For i = 1 To TageGesamt
+		
+		'Wochentage ausschliessen, wenn angewiesen
+		If Islist(daysToExclude) Then
+			If Iselement(daysToExclude(Weekday(checkDate))) Then 
+				excludedWeekdaysCount = excludedWeekdaysCount + 1
+				'an dieser Stelle ist eine FT-Prüfung nicht mehr erforderlich
+				Goto nextDay
+			End If
+		End If
+		
+		'auszuschliessende Daten - sofern notwendig
+		If Islist(datesToExclude) Then
+			If Iselement(datesToExclude(checkDate)) Then
+				excludedOtherCount = excludedOtherCount + 1
+			End If
+		End If
+		
+nextDay:
+		CheckDate = CheckDate + 1
+	Next i
+	
+	BusinessDays = TageGesamt - excludedWeekdaysCount - excludedOtherCount
+	
+	Goto ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:MakeValidFilename:1:8
+Function MakeValidFilename(Byval Filename As String) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Goto doerror
+	
+	Const NOT_ALLOWED = "\/:*?""<>|	"
+	
+	Dim i As Integer
+	Dim hlp As String
+	
+	For i = 1 To Len(NOT_ALLOWED)
+		hlp = Mid$(NOT_ALLOWED, i, 1)
+		filename = strReplace(Filename, hlp, "_", 5)
+	Next i
+	
+	MakeValidFilename = Trim(Filename)
+	
+	Goto ende
+
+'2019-04-05, dko: sollte aussteigen bei Fehlern	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+	
+	%REM
+doerror:
+	On Error Resume Next
+	Resume ende
+	
+ende:
+	%END REM
+	
+End Function
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:RemoveGlobalRuntimeParameter:1:8
+Sub RemoveGlobalRuntimeParameter(param As String)
+	
+	If IsElement(gl_GlobalRuntimeParameter(param)) Then Erase gl_GlobalRuntimeParameter(param)
+	
+End Sub

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="42e" sequence="4" unid="AB1C8D35EC99562CC1258A70003FDCD4">
+<created><datetime>20231123T123733,00+01</datetime></created>
+<modified><datetime dst="true">20240411T133556,40+02</datetime></modified>
+<revised><datetime>20231123T150124,96+01</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133556,39+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133556,39+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Niklas Der/OU=GF/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Niklas Der/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Niklas Der/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE" sign="true"><text>vcde.js</text></item>
+<item name="$Flags"><text>345CgQ</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<item name="$FileNames" sign="true"><text>vcde.js</text></item></note>

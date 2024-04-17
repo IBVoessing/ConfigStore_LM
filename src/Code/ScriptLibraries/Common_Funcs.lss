@@ -1,0 +1,4287 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+Option Public
+Option Explicit
+Use "Common_CoreFuncs"
+
+%REM
+Global gültige, oft benötgte Routinen
+
+2023-12-18, dko:
+	- Auflösung RegistryAPI: RegQueryKeyValue() + RegQueryKeyValueCore() übernommen, benutzt WScript.Shell zuum Lesen aus der Registry
+	-> 64bit Kompatibel
+
+2023-08-09, dko:
+	- TSimpleStatusManager + TSimpleStatusDefinition hinzugefügt
+
+2023-02-03, dko:
+	- ReplaceUnequalItemSingleValueNDC(): StampAll macht immer was, auch wenn nicht nötig, deshlab diese Hilfsfunktion
+
+2022-10-06, dko: 
+	- GetJavaCompatibleTimeStamp() wird nun mit inkrementierter MS-Angabe gebildet, um eindeutige Werte bei schnelelr Abfolge zu erhalten
+	
+2022-06-07, dko:
+	- Neu: Base64StringMimeToFile(), übernommen aus XML Shipment API
+
+2022-04-27, dko:
+	- db.Open() -> db.OpenWithFailover()
+
+2022-04-01, dko:
+	- EncodeURLParam
+
+2020-09-23, dko:
+	- GetCommonPoolNumber(): die nächste Nummer aus einem Pool-Nr-Kreis-Dokument abrufen
+	- GetIsACLRoleEnabled(): Prüfen, ob für den aktuellen Benutzer eine Rolle aktiviert ist
+
+2018-07-25, dko
+	- Bewegung aller Routinen, die direkt oder indirekt LS2J benutzen, in die Common_FileFuncs
+	
+	Direkte Verwendung von LS2J in:
+
+    Sub CleanupDirectory(Byval tdir As String, doDelDir As Integer)
+    Function CleanupTempDir(filemask As String, cutOffDateTime) As Long
+    Function GetTempDir() As String
+    Function ForceDirectory(Byval dirname As String) As Integer
+    Private Function MISKillFileApproved(filename As String, ByVal allowDir As String) As Boolean
+    Private Function Shell7z_internalGetProg() As String
+    Function Shell7zCompress(Byval SourceDir As String, optionList List, optNewZipFilename As String) As Integer
+    Function Shell7zExtract(zielverzeichnis As String, optionList List, optFilenameList List) As Integer
+
+	Indirekt betroffen in dieser Lib aufgrund der verwendung o.g. Routinen
+
+    Function ExtractGlobalTemplateFiles(vlName As String, optVersion As Integer) As String
+    Private Sub internal_RSKAufloesen(doc1 As NotesDocument)
+    Function MISKillTempFile(filename As String) As Integer
+    Function MISKill(filename As String) As Integer
+    Sub Replizierkonflikt_aufloesen()
+    Private Function FilenameReplaceUnicodeChars(ByVal aFSItemname As String, replaceBy As String) As String
+    Function Shell7zIsSupportedFileExt(ByVal extension As String) As Boolean
+
+2017-09-22, dko:
+	- CopyDocAccessRights(): Sicherstellen, dass die Ziel-Items (Authors, Readers, StdReaders) auch die richtigen Feld-Flags haben
+
+2016-11-16, dko:
+	- GetBackendConfig() übernommen aus RefDBFuncs, modifiziert
+
+2016-11-09, dko: 
+	- ReplaceUnequalItemSingleValue() übernommen aus Proj
+	
+2015-12-04, dko: 
+	- GetGlobalView(): TViewHandlerBase.GetView(): Nach erstmaligem Anbinden der View nun immer ein Refresh() ausführen
+
+2013-08-13, dko:
+	- MISKillFileApproved(): Readonly-Files: per LS2J Flag entfernen
+
+2013-01-24, dko:
+	- GetNotesRelease(): Subversion-Unterstützung: Rückgabe nun Double. Major.Minor: z.B. 8,533 für Release "8.5.3FP3"
+
+2013-01-02, dko:
+	- TViewHandlerBase: db.Server mit als internen Schlüssel verwenden
+
+2012-12-06, dko:
+	- Neu: DocumentGetLockHolders()
+	- Neu: DocumentGetLockMessage()
+
+2012-10-29/30, dko:
+	- Neu: DocumentIsLocked(), DocumentLock(), DocumentUnLock()
+	- Neu: CopyDocumentToDatabase(): Kapselt doc.CopyToDatabase(), entfernt jedoch $Writers-Felder
+	- Neu: CopyAllitemsToDocument(): Kapselt doc.CopyallItems(), entfernt jedoch $Writers-Felder
+	
+2012-05-21, dko:
+	- GetTempDir(): aus Win32API übernommen, umgestellt auf Environ()
+	- MISKillTempFile() aus Win32API übernommen, Unicode-fähig gemacht
+	- Private MISKillApproved(): Core für MISKill() und MISKilltempFile()
+	- CleanupTempDir() aus Win32API übernommen, Unicode-fähig gemacht
+	
+2012-05-15-18, dko:
+	- Einbindung von "javaCommon_LS2J"
+	- Umstellung CleanupDirectory() auf LS2J-Methode (Unicode-Support)
+	- Umstellung MISKill auf Streambasiertes Löschen (Unicode-Support)
+	- Umstellung ForceDirectory() auf LS2J-Methode (Unicode-Support)
+	
+	- Entfernung ShellPKZIPExtract() (OOD)
+	- Entfernung ShellPKZIPCompress() (OOD)
+
+2012-04-11, dko:
+	- CreateRedirLink(): ReDir immer verwenden, egal wie lang die Ursprungs-URL ist
+		-> ermöglicht "Obfuscation" aller URLs
+		-> einheitliche Länge/Aufbau der URLs in Mails
+	- CreateRedirLinkShortest(): wie ReDir, aber mit anderem Aufbau, Nutzung einer Ansicht als Lookup
+		-> <webserver>/rd.nsf/L/AXCD123456
+			-> AXCD123456 = eigenes System-Aktenzeichen im Format AXCD-123456
+			-> mehr als 50% kürzerer relativer URL-Part, besser für Smartphones geeignet
+			 
+2012-01-31, dko:
+	- Shell7zIsSupportedFileExt() hinzugefügt
+	- Shell7zExtract(): auch RAR-Files verarbeiten
+
+2011-11-24, dko:
+	- ForceDirectory: Subdir-Suche nun auch mit hidden+system in attribute mask
+
+2011-06-01, dko:
+	- PL (3) als neue Sprache hinzugefügt
+
+2011-02-17, dko:
+	- Replizierkonflikt_aufloesen(): Übernahme aus Agent
+
+2010-07-28, dko:
+	- FieldAddString(), FieldRemoveString() hinzugefügt
+
+2009-12-01, dko:
+	- GetFullURLForDoc() verwendet nun GetRelativeURLForDoc()
+
+2009-11-30, dko:
+	- TranslatedLocalString(): geändert zu TranslatedDBString(): Abgriff aus beliebiger DB
+	- TranslatedCommonString(): Abgriff aus commonConfig
+	- Unterstützung für commonConfig hinzugefügt
+
+2009-11-17, dko:
+	- TranslatedLocalString(): analog TranslatedString, jedoch mit Übergabe einer DB, aus der Ressourcen geholt werden sollen
+
+2009-10-02, dko:
+	- GetRelativeURLForDoc() (Übernahme GetURLForDocEx() aus MISFuncs)
+
+2009-09-24, dko:
+	- Übernahme OpenDB() und die dazugehörige globale Liste sowie OpenContainerDB() aus MISFuncs
+	- CreateContainerDocForCurrentWebuserEx() und CreateContainerDocForCurrentWebuser() übernommen
+
+2009-07-29, dko:
+	- CopyDocAccessRights(src, tar): Überträgt die Felder Authors, Readers, StdReaders von einem Quelldokument auf ein Ziel
+		-> Rückgabe: true, wenn etwas geändert wurde
+	- ReplaceUnequalItemValue(note, fieldname, newValue): Ersetzt den Inhalt eines Items (bzw. legt das Item an)
+		sofern der neue Wert sich vom aktuellen Wert unterscheidet, Rückgabe true oder false
+
+2009-07-21, dko:
+	- CreateNewDocument(db, Form): Erstellt ein Dokument (ungespeichert) und setzt initiale Felder ($ConflictAction)
+
+2009-06-12, dko:
+	- Übernahme ExtractGlobalTemplateFiles() und GetGlobalTemplateDoc() aus MISFuncs
+
+2009-04-21, dko:
+	- Übernahme der Funktionen von mpe
+
+2009-04-15, dko:
+	- GetUnmodifiedBackendDocByUNID(db, unid): Zugriff auf das noch nicht gespeicherte Backend-Dokument für Feldvergleiche
+		-> Auf Basis der Ansicht "($AllDocs)"
+
+2009-02-03/06, dko:
+	- Shell7z_*-Routinen, auch für Offline-Archive einsetzbar, Compress: 2-Pass-System für Archive
+
+2009-01-13, dko:
+	- Fix getView() des Globalen View-Handlers: Problem bestand, wenn db zwischenzeitlich geschlossen wurde
+
+2008-12-12, dko:
+	- ShellPKZipCompress(): Fix Dateiprüfung, LogError() eingebaut an mehreren Stellen
+
+2008-12-02, dko:
+	- AppendToDateList(): Initialisiert ein Datums-Mehrfachwertefeld und/oder hängt ein Datum an
+
+2008-11-17, dko:
+	- GetDBPath() / GetDBForDoc() / GetURLForDB() / GetURLForDoc() etc.: Umstellung auf Rückgabe des Pfads in UCASE
+
+2008-10-14, dko:
+	- ShellPKZIPCompress(): Path=Relative wird nun als Vorgabe verwendet
+
+2008-09-22, dko:
+	- isWebClient() hinzugefügt: True, wenn Scriptausführung aus dem Web-Clöient gestartet wurde
+
+2008-08-29, dko:
+	- Fix ExtractURLParam(): zu lange Strings lösen Fehler aus -> intern von Integer auf Long umgestellt
+
+2008-08-19, dko:
+	- GetServerVar() hinzugefügt und GetSystemVar()-verzweigung auf neue Funktion bei bestimmten Schlüsseln implementiert
+
+2008-06-12, dko:
+	- GetResourceString(): Core ausgelagert in Private Function GetDBResourceString() + GetGlobalView-Verwendung
+	- GetLocalResourceString(): Strings aus der aktuellen DB auslesen
+
+2008-06-10/11, dko:
+	- Übernahme der PKZIP25-Konstanten
+	- Bereitstellung ohne API-Aufrufe: ShellPKZIPExtract(), ShellPKZIPCompress()
+
+2008-04-08, dko:
+	- Übernahme der Routinen für Sprache und Ressourcenabgriff sowie Verallgemeinerung für gemeinsame Anwendung
+		-> RegisterLanguage(idx, "LG"): Neue Sprache "LG" als Sprach-Index "idx" registieren
+		-> GetLangIdx("lg"): Index der Sprache lg zurückgeben (Defaults to 0)
+		-> GetLang(idx): Sprache für Index idx zurückgeben (Defaults to idx=0)
+		-> GetRegisteredLanguages(): Liste der registrierten Sprachen zurückgeben (LG->IDX)
+		-> GetResourceString(): String-Ressource für eine übergebene Sprache (idx) ermitteln und opt. Tags ersetzen, Defaults to idx=0
+
+2008-04-07, dko:
+	- GetDocumentByUNID(db, unid): Kapselt den Abgriff zur Umgehung des Nothing-Problems / Fehlerbehandlung
+	- CreateRedirLink(): Übernahme aus MISFuncs (CreateRedirLinkDirect()) -> dort wird nun diese Methode intern verwendet
+
+2008-03-18, dko:
+	- Klasse TStringStream in Core Funcs ausgelagert
+
+2008-02-12, dko:
+	- Klasse TStringStream hinzugefügt
+
+2008-02-07, dko:
+	- globalen View-Handler hinzugefügt
+
+2008-02-06, dko:
+	- GetContainerDHTMLDoc(username): gibt ein neu erstelltes DurchgangsHTML-Containerdoc zurück
+
+2007-10-24, dko:
+	- Bugfix: Actions>500 werden nun nicht mehr protokolliert
+
+2007-05-02, dko:
+	- isEqualFile(f1, f2): vergleicht zwei Dateien, Rückgabe: true oder false
+
+2007-01-08, dko:
+	- Fehlerbehandlung verschoben in Common_CoreFuncs
+	- MISFuncs synced
+
+2006-09-15, dko:
+	- Vorbereitet zur Verwendung in NotesFuncs und NotesStrings
+
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class TViewHandlerBase
+Declare Class TViewHandler As TViewHandlerbase
+Declare Private Class TAppAccessData
+Declare Private Class TAppAccessStore
+Declare Class TSimpleStatusDefinition
+Declare Class TSimpleStatusManager
+Declare Sub Initialize
+Declare Sub Terminate
+Declare Function TranslatedCommonString(aResID As String, aLanguage As Integer) As String
+Declare Function AppendToDateList(itDat As NotesItem, Byval dateTimeValue) As Integer
+Declare Function CopyFieldIfNotEqual(aSourceDoc As NotesDocument, aSourceFieldName As String, aTargetDoc As NotesDocument, aTargetFieldName As String) As Boolean
+Declare Public Sub RaiseError(Byval aErrorCode As Integer, Byval aErrorDescription As String)
+Declare Function GetGlobalView(db As NotesDatabase, viewName As String) As NotesView
+Declare Function CopyDocumentToDatabase(sourceDoc As NotesDocument, destDB As NotesDatabase) As NotesDocument
+Declare Function Init_Field(note As notesDocument, Byval fieldname As String, value) As NotesItem
+Declare Function TranslatedDBString(db As NotesDatabase, aResID As String, aLanguage As Integer) As String
+Declare Function isWebSession() As Integer
+Declare Function FieldRemoveString(it As NotesItem, aStr As String, allOccurences As Integer) As Integer
+Declare Sub CopyAllItemsToDocument(sourceDoc As NotesDocument, destDoc As NotesDocument, doReplace As Boolean)
+Declare Public Function AddDocACForCurrentWebuser(aDocument As NotesDocument, aAccessControlFlags As Integer) As Boolean
+Declare Sub LogError(serror As String)
+Declare Function CreateNewDocument(targetDB As NotesDatabase, form As String) As Notesdocument
+Declare Function GetServerVar(entry As String, Byval server As String) As String
+Declare Function GetMatchingNDC(db As notesdatabase, SearchCondition As String) As NotesDocumentCollection
+Declare Function OpenDB(aDBFilePath As String) As NotesDatabase
+Declare Function GetJavaCompatibleTimeStamp(dtLocal As Variant) As Double
+Declare Public Function AddDocACReaders(aDocument As NotesDocument, aName As String) As Boolean
+Declare Function GetGlobalTemplateDoc(vlName As String, optVersion As Integer) As NotesDocument
+Declare Public Function AddDocACAuthorsForCurrentWebuser(aDocument As NotesDocument) As Boolean
+Declare Sub Maintainance_Reset_PermaLocks(db As notesDatabase)
+Declare Sub PrepareContainerDB()
+Declare Sub LogAction(action As String)
+Declare Sub UnbindGlobalView(v As NotesView)
+Declare Function DocumentGetLockHolders(doc As NotesDocument) As String
+Declare Function GetDBForDoc(doc As NotesDocument) As String
+Declare Function GetLangIdx(lgStr As String) As Integer
+Declare Function GetResourceString(tagName As String, TransList, spLang As Integer) As String
+Declare Function GetSystemVar(entry As String) As String
+Declare Sub EnableLog(flag As Integer)
+Declare Function GetFullURLForDoc(doc As NotesDocument)
+Declare Function GetRegisteredLanguages()
+Declare Function ReplaceUnequalItemSingleValue(note As NotesDocument, fieldname As String, value) As Integer
+Declare Function ReplaceUnequalItemSingleValueNDC(ndc As NotesDocumentCollection, fieldName As String, value) As Long
+Declare Public Sub RaiseErrorFromRes(aErrorCode As Integer, aErrorResID As String, aLanguage As Integer)
+Declare Function GetBackendConfig(db As NotesDatabase, strConfKey As String) As Variant
+Declare Function FieldAddString(it As NotesItem, aStr As String) As Integer
+Declare Public Function CreateContainerDocForCurrentWebuserEx(aSubtype As String, aAccessControlFlagsForCurrentWebuser As Integer) As NotesDocument		
+Declare Function OpenContainerDB() As NotesDatabase
+Declare Function IsACLRoleEnabled(r As String) As Integer
+Declare Public Sub CheckError(aCondition As Boolean, aErrorCode As Integer, aErrorDescription As String)
+Declare Function RegQueryKeyValue(rootName As String, sKeyName As String, sValueName As String) As Variant
+Declare Function GetClientUsername() As NotesName
+Declare Function GetURLForDB(db As NotesDatabase)
+Declare Sub WebErrOut(optionalText As Variant)
+Declare Public Sub CheckErrorFromRes(aCondition As Boolean, aErrorCode As Integer, aErrorResID As String, aLanguage As Integer)
+Declare Function GetUnmodifiedBackendDocByUNID(xdb As NotesDatabase, unid As String) As NotesDocument
+Declare Function GetDBPath(db As NotesDatabase) As String
+Declare Sub SendWithoutError(doc As notesdocument)
+Declare Function A_OLD_GetNotesRelease()
+Declare Function GetIsOnTestServer() As Boolean
+Declare Function CreateRedirLinkShortest(url As String) As String
+Declare Public Function CreateContainerDocForCurrentWebuser(aSubtype As String) As NotesDocument		
+Declare Function GetCommonPoolNumber(poolNrDB As NotesDatabase, nrKreis As String, optLog As String, warnTreshold As Integer) As String
+Declare Function GetAppAccessCredentialsByNr(key As String, nr As Integer) As String
+Declare Sub SetClientUsernameOverride(canonicalNameOverride As String)
+Declare Public Sub ClearTranslationParams() 
+Declare Public Function TranslatedString(aResID As String, aLanguage As Integer) As String
+Declare Function GetRelativeURLForDoc(doc As NotesDocument, view As String)
+Declare Sub CleanupContainerDB(daysCutoff As Integer)
+Declare Sub Dokumente_Vergleichen()
+Declare Sub InitLog(xdb As notesdatabase, sname As String)
+Declare Sub CloseLog()
+Declare Function isEqualFile(f1 As String, f2 As String) As Integer
+Declare Function ExtractURLParam(paramName As String, queryString As String) As String
+Declare Function GetUIBackendDocHasChanged(uiDoc As NotesUIDocument, doShowMessage As Boolean) As Boolean
+Declare Function DocumentIsLocked(doc As NotesDocument) As Boolean
+Declare Public Sub OpenDatabase(aNotesDatabase As NotesDatabase, aServerName As String, aDBFilePath As String) 
+Declare Function GetDocumentByKeyOfViewInCurrentDB(aViewName As String, aKey As Variant, aExactMatch As Boolean) As NotesDocument
+Declare Public Function AddDocACReadersForCurrentWebUser(aDocument As NotesDocument) As Boolean
+Declare Function GetFirstItemValue(nDoc As NotesDocument, Feld As String)
+Declare Public Function StoreDocACForCurrentWebuser(aDocument As NotesDocument, aAccessControlFlags As Integer) As Boolean
+Declare Function GetDocumentByUNID(db As NotesDatabase, unid As String) As NotesDocument
+Declare Function CreateRedirLink(url As String) As String
+Declare Sub Base64StringMimeToFile(Base64String As String, contentType As String, filePath As String)
+Declare Function CheckIsACLRoleEnabled(ByVal r As String) As Boolean
+Declare Private Sub DocumentLockRemoveItems(doc As NotesDocument, doSave As Boolean)
+Declare Function IsValidIntDINPhoneNumber(xnr As String) As Integer
+Declare Function GetURLForDoc(doc As NotesDocument)
+Declare Function RegQueryKeyValueCore(key As String) As Variant
+Declare Function ReplaceUnequalItemValue(note As NotesDocument, fieldname As String, value) As Integer
+Declare Function EncodeURLParam(strValue As String) As String
+Declare Sub DocumentUnlockAllSelected()
+Declare Public Sub AddTranslationParam(aName As String, aValue As String)
+Declare Function GetAppAccessCredentialsByName(key As String, propertyName As String) As String
+Declare Function RegisterLanguage(idx As Integer, lang As String) As Integer
+Declare Public Function AddDocACAuthors(aDocument As NotesDocument, aName As String) As Boolean
+Declare Private Function GetDBResourceString(db As NotesDatabase, tagName As String, TransList, spLang As Integer) As String
+Declare Public Function AddDocAC(aDocument As NotesDocument, aAccessControlFlags As Integer, aName As String) As Boolean
+Declare Sub ErrOut(optionalText As Variant)
+Declare Function DocumentGetLockMessage(doc As NotesDocument) As String
+Declare Function getContainerDoc(currentdb As notesdatabase, unid As String, user As String) As notesdocument
+Declare Function DocumentUnLock(doc As NotesDocument) As Boolean
+Declare Function GetLocalResourceString(tagName As String, TransList, spLang As Integer) As String
+Declare Function GetNotesRelease()
+Declare Private Sub PrepareRedir()
+Declare Function getContainerDHTMLDoc(username As String) As NotesDocument
+Declare Function CopyDocAccessRights(source As NoteSdocument, target As NotesDocument)
+Declare Function GetAllDocumentsByKeyOfViewInCurrentDB(aViewName As String, aKey As Variant, aExactMatch As Boolean) As NotesDocumentCollection
+Declare Function DocumentLock(doc As NotesDocument, provisional As Boolean) As Boolean
+Declare Function GetLang(idx As Integer) As String
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const SYS_DB = "config.nsf"
+
+'evtl. bald OOD
+Const PKZIP25_PROG = "PKZIP25.EXE"
+Const PKZIP25_EXTRACT = "PKZIP25.EXE -extract -overwrite -nofix ""%FILE%"" ""%DESTDIR%"""
+Const PKZIP25_COMPRESS = "PKZIP25.EXE -add -fast -recurse ""%DESTDIR%%FILE%"" ""%DESTDIR%*.*"""
+
+'Access control flags (needed for AddDocAC() and AddDocACForCurrentWebuser()):
+Public Const AC_NONE   = 0
+Public Const AC_READER = 1
+Public Const AC_AUTHOR = 2
+
+'ok
+Const PKZIP25_TIMEOUT = 400  'Sekunden
+
+Private session As NotesSession
+Private db As NotesDatabase
+Private g_nLog As NotesLog
+Private g_nLog_Username As String
+
+'Sprachrelevante Listen zur Verwaltung der unterstützten Sprachen
+Private gl_LangRes List As String
+Private gl_LangResIDX List As Integer
+Private gl_JavaCompatibleTimeStampMS As Integer
+
+Private globalCfgDB As NotesDatabase
+Private globalCommonCfgDB As NotesDatabase
+Private contDB As NotesDatabase
+
+Private rddb As NotesDatabase
+Private rdLookup As NotesView
+Private rdbOpenTried As Boolean
+
+Private sysdb As NotesDatabase
+Private sysvw As NotesView
+Private srvvw As NotesView
+Private syscfg As NotesDocument
+
+Private gl_CredDB As NotesDatabase
+Private gl_CredAppStore As TAppAccessStore
+
+Private gTemplateView As NotesView
+
+Private globalSysVars List As String
+Private gl_ServerVarNames List As Byte
+
+Private lastRedirTarget As String
+Private lastRedirURL As String
+Private lastRedirTargetShortest As String
+Private lastRedirURLShortest As String
+
+
+Private FTranslationParams List As String		'Used for text localization
+Private FOpenDBs List As NotesDatabase	'Used for OpenDB()
+
+Private glob_V As TViewhandler
+
+Private gl_clientNameOverride As String
+
+
+'Ansichten verwalten
+Class TViewHandlerBase
+	Private myViews List As NotesView
+	Private myViewsBound List As Integer
+	Private myViewsTried List As Integer
+	
+	Public Sub Unbind(v As NotesView)
+		If Not v Is Nothing Then
+			Call UnbindView(v.Parent, v.Name)
+		End If
+	End Sub
+	
+	Public Sub UnbindView(db As NotesDatabase, Byval viewName As String)
+		Dim key As String
+		
+		key = Lcase(db.Server & "/" & db.ReplicaID & "/" & viewName)
+		If Iselement(myViews(key)) Then
+			Erase myViews(key)
+			Erase myViewsBound(key)
+			Erase myViewsTried(key)
+		End If
+	End Sub
+	
+	
+	Public Function GetView(db As NotesDatabase, Byval viewName As String) As NotesView
+		On Error Goto doerror
+		
+		Dim key As String
+		
+		key = Lcase(db.Server & "/" & db.ReplicaID & "/" & viewName)
+		
+		'Init Element
+		If Not Iselement(myViews(key)) Then 
+			Set myViews(key) = Nothing
+			myViewsBound(key) = False
+			myViewsTried(key) = False
+		End If
+		
+		'Reset Bound Flag when view is not longer an object but was bound before
+		If myViews(key) Is Nothing And myViewsBound(key) Then
+			myViewsBound(key) = False
+			myViewsTried(key) = False
+		End If
+		
+		'Bind View
+		If myViews(key) Is Nothing And Not myViewsBound(key) Then
+			If Not myViewsTried(key) Then
+				Set myViews(key) = db.GetView(viewName)
+				myViewsTried(key) = True
+				
+				'2015-12-04, dko: Immer Refresh ausführen. Mir ist kein Fall bekannt, bei dem ich nach Zuweisung der View explizit
+				'keinen Refresh machen möchte!
+				Call myViews(key).Refresh()
+			End If
+		End If
+		
+		'Set Function Result
+		If Not myViews(key) Is Nothing Then
+			myViewsBound(key) = True
+			Set GetView = myViews(key)
+		End If
+		
+		Goto ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(Typename(Me))
+		On Error Goto 0
+		Raise
+		
+ende:
+	End Function
+	
+End Class
+
+Class TViewHandler As TViewHandlerbase
+	'für externe verwendung
+End Class
+%REM
+	Class TAppAccessData
+	Description: Comments for Class
+%END REM
+Private Class TAppAccessData
+	
+	Private data List As String
+	Private idx List As String
+	
+	Private key As String
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New(key As String, doc As NotesDocument)
+		
+		On Error GoTo doError
+		
+		Dim i As Integer
+		Dim propName As String, propvalue As String
+		
+		Me.key = key
+		
+		'Read
+		If Not doc Is Nothing Then
+			For i = 1 To 10
+				
+				propName = Trim(GetFirstItemValue(doc, "PropertyName_" & i))
+				propValue = GetFirstItemValue(doc, "PropertyValue_" & i)
+				
+				If propName <> "" Or propValue <> "" Then
+					
+					If propName = "" Then propName = CreateUniqueString()
+					
+					data(LCase(propName)) = propValue
+					idx(i) = propName
+					
+				End If
+				
+			Next i
+		End If
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Sub
+	
+	Function GetValueByName(propertyName As String) As String
+		
+		On Error GoTo doError
+		
+		If IsElement(data(LCase(propertyName))) Then
+			GetValueByName = data(LCase(propertyName))
+		End If 
+			
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Function
+	
+	Function GetValueByNr(nr As Integer) As String
+		
+		On Error GoTo doError
+		
+		If IsElement(idx(nr)) Then
+			GetValueByNr = data(LCase(idx(nr)))
+		End If 
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Function
+	
+End Class
+
+%REM
+	Class TAppAccessStore
+	Credentials-Abgriff
+%END REM
+Private Class TAppAccessStore
+
+	
+	Private view As NotesView
+	
+	Private data List As TAppAccessData
+	
+	%REM
+		Zugriff auf die Passwort-DB
+	%END REM
+	Sub New()
+		
+		On Error GoTo doError
+		
+		Dim A_DB As String
+		A_DB = GetSystemVar("APPACCESS_DB")
+		
+		On Error GoTo doError
+		Call gl_CredDB.OpenWithFailover(db.Server, A_DB)
+		On Error Resume Next
+	
+		If Not gl_CredDB.IsOpen Then
+			Dim hlpSrv As String
+			hlpSrv = session.CurrentDatabase.Server
+			If hlpSrv = "" Then
+				hlpSrv = session.CurrentDatabase.Acl.Administrationserver
+			End If
+			Call gl_CredDB.OpenWithFailover(hlpSrv, A_DB)
+		End If
+	
+		If gl_CredDB.Isopen Then Set view = GetGlobalView(gl_CredDB, "(LookupAppAccess)")
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Sub
+	
+	%REM
+		Sub ReadData
+		Description: Comments for Sub
+	%END REM
+	Function Retrieve(key As String) As Boolean
+		
+		On Error GoTo doError
+		
+		If Not view Is Nothing Then
+			Set data(LCase(key)) = New TAppAccessData(key, view.Getdocumentbykey(LCase(key), True))
+		End If
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Function GetPropertyByName
+		Description: Comments for Function
+	%END REM
+	Function GetValueByName(key As String, propertyName As String) As String
+		
+		On Error GoTo doError
+		
+		If Not IsElement(data(LCase(key))) Then Call Retrieve(key)
+		
+		If Not data(LCase(key)) Is Nothing Then
+			GetValueByName = data(LCase(key)).GetValueByName(propertyName)
+		End If
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Function GetValue
+		Description: Comments for Function
+	%END REM
+	Function GetValueByNr(key As String, nr As Integer) As String
+		
+		On Error GoTo doError
+		
+		If Not IsElement(data(LCase(key))) Then Call Retrieve(key)
+		
+		If Not data(LCase(key)) Is Nothing Then
+			GetValueByNr = data(LCase(key)).GetValueByNr(nr)
+		End If
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+
+ende:
+	End Function
+	
+End Class
+Class TSimpleStatusDefinition
+	
+	Private strId As String
+	Private strTxt As String
+	Private strPhase As String
+	
+	Private intSort As Integer
+	Private intIcon As Integer
+	
+	Private strNameSpace As String
+	
+	Private statusWasChanged As Boolean
+	Private phaseWasChanged As Boolean 
+	
+	
+	Sub New(id As String, txt As String, sort As Integer, phase As String, icon As Integer)
+		strNameSpace = "SimpleStatus"
+		strId = id
+		strTxt = txt
+		intSort = sort
+		strPhase = phase
+		intIcon = icon
+	End Sub
+	
+	Function ApplyToDocument(doc As NotesDocument) As Boolean
+	
+		On Error GoTo doError
+		
+		Dim needSave As Boolean
+		
+		'Backup der alten relevanten Werte: Status + Phase
+		Call doc.ReplaceItemValue(strNameSpace & "Old", GetFirstItemValue(doc, strNameSpace))
+		Call doc.ReplaceItemValue(strNameSpace & "PhaseOld", GetFirstItemValue(doc, strNameSpace & "Phase"))
+		
+		'Status-/Phasenwechsel feststellen
+		statusWasChanged = ReplaceUnequalItemSingleValue(doc, strNameSpace, strId)
+		phaseWasChanged = ReplaceUnequalItemSingleValue(doc, strNameSpace & "Phase", strPhase)
+		
+		'2020-09-11, dko: Statuswechsel-Timestamp hinzugefügt
+		If statusChanged Then
+			needSave = needSave Or ReplaceUnequalItemSingleValue(doc, strNameSpace & "Changed", Now())
+		End If
+		
+		'Setzen/Neuberechnen einiger Werte
+		needSave = statusWasChanged Or phaseWasChanged
+		needSave = needSave Or ReplaceUnequalItemSingleValue(doc, strNameSpace & "Text", strTxt)
+		needSave = needSave Or ReplaceUnequalItemSingleValue(doc, strNameSpace & "Sort", intSort)
+		needSave = needSave Or ReplaceUnequalItemSingleValue(doc, strNameSpace & "Icon", intIcon)
+		
+		ApplyToDocument = needSave
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	Property Get id As String
+		id = strId
+	End Property
+	
+	Property Get phase As String
+		phase = strPhase
+	End Property
+	
+	Property Get phaseChanged As Boolean
+		phaseChanged = phaseWasChanged
+	End Property
+	
+	Property Get statusChanged As Boolean
+		statusChanged = statusWasChanged
+	End Property
+	
+	Property Set nameSpace As String
+		strNameSpace = nameSpace
+	End Property
+	
+End Class
+
+Class TSimpleStatusManager
+	
+	Private nameSpace As String
+	Private WFStat List As TSimpleStatusDefinition
+	
+	Sub New(nameSpace As String)
+
+		If nameSpace = "" Then
+			Me.nameSpace = "SimpleStatus"
+		Else
+			Me.nameSpace = nameSpace
+		End If
+		
+	End Sub
+	
+	Sub RegisterStatus(statDef As TSimpleStatusDefinition)
+		statDef.nameSpace = Me.nameSpace
+		Set WFStat(statDef.id) = statDef
+	End Sub
+
+	Function SetStatusById(doc As NotesDocument, newStatId As String) As Boolean
+		
+		On Error GoTo doError
+		
+		If IsElement(WFStat(newStatId)) Then
+			SetStatusById = WFStat(newStatId).ApplyToDocument(doc) 
+		End If
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	Function SetStatus(doc As NotesDocument, newStat As TSimpleStatusDefinition) As Boolean
+		SetStatus = SetStatusById(doc, newStat.id)
+	End Function
+	
+	Function SetMessage(doc As NotesDocument, msg As String) As Boolean
+		
+		On Error GoTo doError
+		
+		SetMessage = ReplaceUnequalItemSingleValue(doc, nameSpace & "Msg", msg)
+		
+		GoTo ende
+
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+End Class
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	If session Is Nothing Then
+		Set session = New NotesSession
+		Set db = session.CurrentDatabase
+		
+		Set sysdb = New NotesDatabase("", "")
+		Set contDB = New NotesDatabase("", "")
+		Set rdDB = New NotesDatabase("", "")
+		Set globalCfgDB = New NotesDatabase("", "")
+		Set globalCommonCfgDB = New NotesDatabase("", "")
+		Set gl_CredDB = New NotesDatabase("", "")
+		
+		'register default supported languages
+		Call RegisterLanguage(0, "DE") 
+		Call RegisterLanguage(1, "EN") 
+		Call RegisterLanguage(2, "FR") 
+		Call RegisterLanguage(3, "PL")
+		
+		'die Namen der serverspezifische Variablen definieren
+		gl_ServerVarNames("HTTP_ROOT") = 1
+		gl_ServerVarNames("MAIL_DOMAIN") = 1
+		gl_ServerVarNames("MAIL_SIG") = 1
+		gl_ServerVarNames("TRANSFER_ROOT") = 1
+		
+	End If
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:Terminate:1:10
+Sub Terminate
+	
+	On Error Resume Next
+	
+	If sysDB.isOpen Then sysDB.Close
+	If contDB.isOpen Then contDB.Close
+	If rdDB.isOpen Then rdDB.Close
+	If globalCfgDB.IsOpen Then globalCfgDB.Close
+	If globalCommonCfgDB.IsOpen Then globalCfgDB.Close
+	If gl_CredDB.Isopen Then Call gl_CredDB.Close
+	
+	Call CloseLog()
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:TranslatedCommonString:1:8
+Function TranslatedCommonString(aResID As String, aLanguage As Integer) As String
+	
+	'String-Ressource aus der commonConfig abgreifen
+	
+	On Error Goto doerror
+	
+	'Öffnen der globalen Common-Konfig-DB bei Bedarf
+	If Not globalCommonCfgDB.IsOpen Then Call globalCommonCfgDB.OpenWithFailOver(db.Server, GetSystemVar("COMMONCONFIG_DB"))
+	
+	TranslatedCommonString = TranslatedDBString(globalCommonCfgDB, aResID, aLanguage)
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:AppendToDateList:1:8
+Function AppendToDateList(itDat As NotesItem, Byval dateTimeValue) As Integer
+	
+	On Error Goto doerror
+	
+	Dim newArr
+	
+	'Abbruchkriterium 1: übergebenes Argument ist kein Datumswert
+	If Not Typename(dateTimeValue) = "DATE" Then Goto ende
+	
+	'Abbruchkriterium 2: das Item ist nicht leer und hat an 1. Stelle einen Nicht-Datumswert stehen
+	If Typename(itDat.Values(0)) <> "DATE" And ("" & itDat.Values(0) <> "") Then Goto ende
+	
+	If Isdate(itDat.Values(0)) Then 
+		'Erster Eintrag ist schon ein Datum: Werte übernehmen und um 1 erweitern
+		newArr = itDat.Values
+		Redim Preserve newArr(Ubound(newArr)+1)
+	Else
+		'erster Eintrag ist kein Datum (assert: Leerstring)
+		'-> Wichtig: Nicht von it.values abgreifen, da der Typ später sonst TEXT ist
+		Redim newArr(0)
+	End If
+	newArr(Ubound(newArr)) = dateTimeValue
+	itDat.Values = newArr
+	
+	AppendToDateList = True
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:CopyFieldIfNotEqual:1:8
+Function CopyFieldIfNotEqual(aSourceDoc As NotesDocument, aSourceFieldName As String, aTargetDoc As NotesDocument, aTargetFieldName As String) As Boolean
+	
+	On Error Goto doerror
+	
+%REM
+	Function CopyFieldIfNotEqual
+	Description: Compares both fields and copies aSource to aTarget if not 
+	equal. Returns true if the field was actually copied (i.e. if aTarget was
+	changed), so you might determine, if document saving is appropriate. 
+%END REM
+	
+	Dim source_item As NotesItem
+	Dim target_item As NotesItem
+	
+	'Define error handling -------------------------------------------------
+	
+	'Run code --------------------------------------------------------------
+	CopyFieldIfNotEqual = False
+	
+	'Check for valid params 
+	If aSourceDoc Is Nothing Then Exit Function
+	If aSourceFieldName = "" Then Exit Function
+	If aTargetDoc Is Nothing Then Exit Function
+	If aTargetFieldName = "" Then Exit Function
+	
+	'Get source item
+	Set source_item = aSourceDoc.GetFirstItem(aSourceFieldName)
+	If source_item Is Nothing Then Exit Function
+	
+	'Get target item
+	Set target_item = aTargetDoc.GetFirstItem(aTargetFieldName)
+	If target_item Is Nothing Then
+		'If no target item, copy from source and exit
+		Set target_item  = aTargetDoc.CopyItem(source_item, aTargetFieldName)
+		CopyFieldIfNotEqual = True
+	Else
+		'Otherwise copy source item
+		If (Not IsEqual(source_item.Values, target_item.Values)) Then
+			target_item.Values = source_item.Values
+			CopyFieldIfNotEqual = True
+		End If
+	End If
+	
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:RaiseError:1:8
+Public Sub RaiseError(Byval aErrorCode As Integer, Byval aErrorDescription As String)
+	'################################################################################
+	'Raises an error with the given error code and error description. If error code 
+	'is < 1000, then error code will be changed to ERROR_DEFAULT (=1000). If error 
+	'description is an empty string, it's changed to a standard term.
+	'################################################################################
+	
+	If aErrorCode < 1000 Then
+		aErrorCode = ERROR_DEFAULT
+	End If
+	
+	aErrorDescription = Trim(aErrorDescription)
+	
+	If aErrorDescription = "" Then
+		aErrorDescription = "Unknown error"
+	End If
+	
+	Error aErrorCode, aErrorDescription 
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetGlobalView:1:8
+Function GetGlobalView(db As NotesDatabase, viewName As String) As NotesView
+	'WRAPPER FUNC
+	
+	If glob_V Is Nothing Then Set glob_V = New TViewHandler
+	Set GetGlobalView = glob_V.GetView(db, viewname)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CopyDocumentToDatabase:2:8
+'Kapselt doc.CopyToDatabase(), entfernt dabei ungewollt mit kopierte Items wie $Writers
+Function CopyDocumentToDatabase(sourceDoc As NotesDocument, destDB As NotesDatabase) As NotesDocument
+	
+	On Error GoTo doError
+
+	Set CopyDocumentToDatabase = sourceDoc.Copytodatabase(destDB)
+	
+	'Entfernen aller Lock-Felder, aber nciht speichern
+	Call DocumentLockRemoveItems(CopyDocumentToDatabase, True)
+		
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:Init_Field:1:8
+Function Init_Field(note As notesDocument, Byval fieldname As String, value) As NotesItem
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'2001-12-11, dko: gibt das Feld mit spez. Namen zurück oder erstellt und initialisiert dieses
+	On Error Goto doerror
+	
+	Set Init_Field = note.GetFirstItem(fieldname)
+	
+	If Init_Field Is Nothing Then
+		Call note.ReplaceItemvalue(fieldname, value)
+		Set Init_Field = note.GetFirstItem(fieldname)
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:TranslatedDBString:1:8
+Function TranslatedDBString(db As NotesDatabase, aResID As String, aLanguage As Integer) As String
+	'Note, that list FTranslationParams will be cleared after calling this 
+	'method!
+	
+	On Error Goto doerror
+	
+	TranslatedDBString = GetDBResourceString(db, aResID, FTranslationParams, aLanguage)
+	
+	Call ClearTranslationParams()
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:isWebSession:1:8
+Function isWebSession() As Integer
+	
+	On Error Resume Next
+	Dim hlpArr
+	
+	hlpArr = Evaluate("@ClientType")
+	
+	isWebSession= (Lcase(hlpArr(0)) = "web") And session.IsOnServer
+	
+End Function
+
+'++LotusScript Development Environment:2:1:FieldRemoveString:1:8
+Function FieldRemoveString(it As NotesItem, aStr As String, allOccurences As Integer) As Integer
+	
+	'String aus einem Feld entfernen und TRUE zurückgeben, wenn etwas entfernt wurde
+	'-> löscht ggf. auch alle Vorkommen
+	'-> ACHTUNG: entfernt immer auch leere Elemente!
+	
+	On Error Goto doerror
+	
+	Dim hlpArr
+	Dim i As Integer
+	
+	hlpArr = it.Values
+	
+	For i=Lbound(hlpArr) To Ubound(hlpArr)
+		If isEqual("" & hlpArr(i), aStr) Then
+			hlpArr(i) = ""
+			FieldRemoveString = True
+			If Not allOccurences Then Exit For
+		End If 
+	Next i
+	
+	'wurde etwas als zu entfernen markiert, dann nun alle leeren Elemente aus dem Array entfernen und Ergebnis dem Item als value zuweisen
+	If FieldRemoveString Then it.Values = cnvVarArray(hlpArr, True)
+	
+	Goto ende
+	
+doError:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:CopyAllItemsToDocument:2:8
+'Kapselt doc.CopyAllItems(), entfernt dabei ungewollt mit kopierte Items wie $Writers
+Sub CopyAllItemsToDocument(sourceDoc As NotesDocument, destDoc As NotesDocument, doReplace As Boolean)
+	
+	On Error GoTo doError
+
+	Call sourceDoc.Copyallitems(destDoc, doReplace)
+	
+	'Entfernen aller Lock-Felder, aber nciht speichern
+	Call DocumentLockRemoveItems(destDoc, false)
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:AddDocACForCurrentWebuser:1:8
+Public Function AddDocACForCurrentWebuser(aDocument As NotesDocument, aAccessControlFlags As Integer) As Boolean
+	'################################################################################
+	'Adds the name of the current web user to the Readers or Authors fields of the 
+	'given document (depending on value of aAccessControlFlags), thus the current web 
+	'user will be granted reader or author access control for the document. The 
+	'function returns false, when the current web user already had the access controls.
+	'
+	'For aAccessControlFlags	use a combination of AC_XXXXXX flags.
+	'Exmaple: AC_READER Or AC_AUTHOR.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	AddDocACForCurrentWebuser = AddDocAC(aDocument, aAccessControlFlags, CurrentWebuserNotesName().Abbreviated)
+End Function
+
+'++LotusScript Development Environment:2:2:LogError:1:8
+Sub LogError(serror As String)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	
+	Dim hlp As String, hlpInfo As String
+	
+	If g_nLog Is Nothing Then Call InitLog(db, "LogError")
+	
+	hlp = serror & g_nLog_Username
+	hlpInfo = Getthreadinfo(THREADINFO_CALLPROC) & " [" & Getthreadinfo(THREADINFO_CALLMODULE) & "]"
+	
+	If g_nLog.numErrors = 50 Then
+		Call g_nLog.LogError(262144, "Errorcount = 50, weitere Fehler werden nicht protokolliert; (" & hlpInfo & ")")
+	Elseif g_nLog.numErrors < 50 Then
+		Call g_nLog.LogError(262144, hlp & "; (" & hlpInfo & ")")
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:CreateNewDocument:1:8
+Function CreateNewDocument(targetDB As NotesDatabase, form As String) As Notesdocument
+	
+	'Erzeugt ein neues Dokument und setzt das Feld "Form" sowie $ConflictAction (auf Merge Conflicts)
+	'-> DB muss bereits geöffnet sein
+	'-> Dokument ist noch nicht gespeichert
+	
+	On Error Goto doerror
+	
+	Dim hlp As NotesDocument
+	
+	If IsSomething(targetDB) Then
+		If targetDB.IsOpen Then
+			Set hlp = New NotesDocument(targetDB)
+			hlp.Form = form
+			hlp.~$ConflictAction = "1"
+		End If
+	End If
+	
+	Set CreateNewDocument = hlp
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetServerVar:1:8
+Function GetServerVar(entry As String, Byval server As String) As String
+	
+	Dim key As String
+	Dim srvcfg As NotesDocument
+	Dim hlpName As NotesName
+	
+	key = Ucase(entry)
+	
+	'Server bestimmen
+	If server="" Then
+		'aktuellen Server verwenden
+		If session.IsOnServer Then
+			'Session.UserName verwenden, wenn der Agent auf dem Server läuft
+			server = session.CommonUserName
+		Else
+			'Benutzerausführung: db.Server verwenden
+			Set hlpName = New NotesName(session.CurrentDatabase.Server)
+			server = hlpName.Common
+		End If
+	End If
+	
+	'kleingeschrieben + common nachschlagen
+	Set hlpName = New NotesName(server)
+	server = hlpName.Common
+	server = LCase(server)
+		
+	'Cache prüfen
+	If Not Iselement(globalSysVars(server & ":" & key)) Then
+		
+		'Ansicht anbinden
+		If srvvw Is Nothing Then
+			If Not sysdb.IsOpen Then
+				Dim hlpSrv As String
+				hlpSrv = session.CurrentDatabase.Server
+				If hlpSrv = "" Then
+					hlpSrv = session.CurrentDatabase.Acl.Administrationserver
+				End If
+				Call sysdb.OpenWithFailover(hlpSrv, SYS_DB)
+			End if
+			Set srvvw = sysdb.GetView("LookupServerConfig")
+		End If
+		
+		If Not srvvw Is Nothing Then
+			
+			Set srvcfg = srvvw.GetDocumentByKey(server, True)
+			If srvcfg Is Nothing Then
+				'Fallback auf -default-, aber für Schlüssel weiterhin server verwenden
+				Set srvcfg = srvvw.GetDocumentByKey("-default-", True)
+			End If
+			
+			If Not srvcfg Is Nothing Then
+				
+				If srvcfg.HasItem("_" + entry) Then
+					GetServerVar = srvcfg.GetItemValue("_" + entry)(0)
+					
+					If key = "TRANSFER_ROOT" And Not session.IsOnServer Then
+						'Override: bei lokaler Ausführung wird Laufwerk "C" angenommen
+						GetServerVar = "C:\Transfer"
+					End If
+					
+				Else
+					Call LogError("Specified Server Config not found, requesting " + entry & " for Server " & server)
+				End If
+			Else
+				Call LogError("Specified Server Config not found, requesting " + entry & " for Server " & server)
+			End If
+			
+		Else
+			Call LogError("Error Lookup Server Config in config.nsf")
+		End If
+		
+		'im Cache ablegen (den Systemvariablen-Cache benutzen, aber server mit in key aufnehmen)
+		globalSysVars(server & ":" & key) = GetServerVar
+	Else
+		GetServerVar = globalSysVars(server & ":" & key)
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetMatchingNDC:1:8
+Function GetMatchingNDC(db As notesdatabase, SearchCondition As String) As NotesDocumentCollection
+	
+	On Error Goto doerror
+	
+%REM
+
+  2001-04-23, dk:
+    - Funktion ermittelt alle Dokumente als NotesDocumentCollection, die einem Suchkriterium entsprechen
+%END REM
+	
+	Dim ndc As NotesDocumentcollection
+	
+	Set ndc = db.search(searchcondition, Nothing, 0)
+     'Print ndc.Count & " matches"
+	
+	Set GetMatchingNDC = ndc
+	
+	Goto ende
+	
+doError:
+	On Error Resume Next 
+	Call ErrStack("Common_Funcs")
+	Resume Ende
+	
+ende:
+	
+	
+End Function
+
+'++LotusScript Development Environment:2:1:OpenDB:1:8
+Function OpenDB(aDBFilePath As String) As NotesDatabase
+	'################################################################################
+	'Open the given db and return the opened DB. We need to keep the result 
+	'persistent, if we want to use other objects having a reference to the resulting 
+	'object (i.e. a NotesDocument of the given DB) in outer context, otherwise the 
+	'reference would become illegal. So we store (and cache) the result in a global 
+	'private list var, identified by server name and file path.
+	'################################################################################
+	
+	On Error Goto do_error		
+	
+	Dim server_name As String
+	Dim key         As String
+	
+	server_name = CurrentServer()
+	
+	'Construct key to identify database in list
+	key = server_name & "." & aDBFilePath
+	
+	'Check, if database is already in list, otherwise add it to list
+	If Not Iselement(FOpenDBs(key)) Then
+		Set FOpenDBs(key) = New NotesDatabase("", "")		
+	End If
+	
+	'Return database from list
+	Set OpenDB = FOpenDBs(key)
+	
+	'Open the database
+	Call OpenDatabase(OpenDB, server_name, aDBFilePath)
+	
+	'That's All Folks!
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+'++LotusScript Development Environment:2:1:GetJavaCompatibleTimeStamp:1:8
+Function GetJavaCompatibleTimeStamp(dtLocal As Variant) As Double
+	
+	Dim a1170 As NotesDateTime, j As NotesDateTime
+	Dim offsetSecond As Integer
+	
+	'Vergleichszeit: 1.1.1970 00:00:00 Uhr, allerdings +1 Sekunde, da ohne Zeit sonst keine Zeitzone angesetzt wird
+	Set a1170 = New NotesDateTime(CStr(DateNumber(1970, 1, 1) + TimeNumber(0,0,1)))
+	
+	'analog bilden: NotesDateTime für übergebenes Datum/Zeit
+	Set j = New NotesDateTime(CStr(dtLocal))
+	Call j.Adjustsecond(1, False)
+	
+	'verhindern, dass gerade 0:00:00 Uhr rauskommt->dann noch eine Sekunde dazunehmen
+	If Hour(j.Lslocaltime) = 0 And Minute(j.Lslocaltime) And Second(j.Lslocaltime) = 0 Then
+		Call j.Adjustsecond(1, False)
+		offsetSecond = 1
+	End If
+	
+	'Die Auflösung liegt bei 1s, d.h. der millisekunden-Bereich ist außen vor, was bei schneller Wiederholung keine eindeutigen Werte erzeugt
+	'-> deshalb addieren wir eine eigene ms-Angabe dazu, inkrement von 1, d.h. wir können pro Sekunde 999 Calls machen die unterschiedliche IDs zurückliefern
+	gl_JavaCompatibleTimeStampMS = gl_JavaCompatibleTimeStampMS + 1
+	If gl_JavaCompatibleTimeStampMS >= 1000 Then gl_JavaCompatibleTimeStampMS = 0
+	
+	
+	'es wird immer GMTTime - LocalTime gerechnet, was unabhängig von j.isDST korrekt berechnet
+	GetJavaCompatibleTimeStamp = ((j.LsGMTTime-a1170.LsLocalTime-offsetSecond)*86400) * 1000 + gl_JavaCompatibleTimeStampMS
+	
+		
+	%REM
+	'Liegt die Vergleichszeit im DST-Bereich, muss eine Korrektur erfolgen, indem von der Basiszeit (Winterzeit) die GMTZeit angesetzt wird
+	If j.Isdst Then
+		GetJavaCompatibleTimeStamp = ((j.LsGMTTime-a1170.LsLocalTime-offsetSecond)*86400) * 1000
+	else
+		'Bei Argument immer die GMTZeit verwenden
+		'j.Lslocaltime = j.Lsgmttime
+		GetJavaCompatibleTimeStamp = ((j.LsGMTTime-a1170.LsLocalTime-offsetSecond)*86400) * 1000
+		'GetJavaCompatibleTimeStamp = ((j.Lslocaltime-a1170.LsLocalTime-offsetSecond)*86400) * 1000
+	End If
+%END REM
+
+End Function
+
+'++LotusScript Development Environment:2:1:AddDocACReaders:1:8
+Public Function AddDocACReaders(aDocument As NotesDocument, aName As String) As Boolean
+	'################################################################################
+	'Adds the given name to the Readers field of the given document, thus the user 
+	'will be granted reader access control for the document. The function returns 
+	'false, when the user already had the access control.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	Dim notes_item As NotesItem
+	
+	AddDocACReaders = False
+	
+	Set notes_item = aDocument.GetFirstItem("Readers")
+	If notes_item Is Nothing Then 
+		Set notes_item = New NotesItem(aDocument, "Readers", "", READERS)
+	End If
+	
+	If Not notes_item.Contains(aName) Then
+		Call notes_item.AppendToTextList(aName)
+		AddDocACReaders = True
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetGlobalTemplateDoc:1:8
+Function GetGlobalTemplateDoc(vlName As String, optVersion As Integer) As NotesDocument
+	
+	'gibt ein Vorlagendokument aus der globalen Konfig zurück
+	'-> Versionnummer=0: Vorlage mit der höchster Versionsnummer wird geliefert
+	
+	'2008-08-22, dko: Fix Angabe optVersion: nicht CStr, sondern Numerischen Wert anwenden
+	
+	On Error Goto doerror
+	
+	Dim session As New NotesSession
+	Dim db As NotesDatabase
+	Dim karr()
+	
+	Set db = session.CurrentDatabase
+	
+	'Vorlagenansicht anbinden
+	If gTemplateView Is Nothing Then
+		If Not globalCfgDB.IsOpen Then Call globalCfgDB.OpenWithFailover(db.Server, GetSystemVar("CFG_DB"))	
+		Set gTemplateView = 	globalCfgDB.GetView("(Vorlagen)")
+	End If
+	
+	Redim kArr(0)
+	kArr(0) = vlName
+	
+	'Optional ist die Vorlagenversion
+	If optVersion>0 Then
+		Redim Preserve kArr(1)
+		kArr(1) = optVersion
+	End If
+	
+	Set GetGlobalTemplateDoc = gTemplateView.GetDocumentByKey(kArr, True)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("MISFuncs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:AddDocACAuthorsForCurrentWebuser:1:8
+Public Function AddDocACAuthorsForCurrentWebuser(aDocument As NotesDocument) As Boolean
+	'################################################################################
+	'Adds the name of the current web user to the Authors field of the given 
+	'document, thus the current web user will be granted author access control for 
+	'the document. The function returns false, when the current web user already had 
+	'the access control.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	AddDocACAuthorsForCurrentWebuser = AddDocACAuthors(aDocument, CurrentWebuserNotesName().Abbreviated)
+	
+	'Will be done by ComputeWithForm(): Call AddDocACAuthors(aDocument, "LocalDomainServers")
+	'Will be done by ComputeWithForm(): Call AddDocACAuthors(aDocument, "[Administration]")
+End Function
+
+'++LotusScript Development Environment:2:2:Maintainance_Reset_PermaLocks:5:8
+%REM
+	Sub Maintainance_Reset_PermaLocks
+	Description: Comments for Sub
+%END REM
+Sub Maintainance_Reset_PermaLocks(db As notesDatabase)
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	'Unlock permanent Locks
+	If db.Isdocumentlockingenabled Then
+		Set ndc = getMatchingNDC(db, "@IsAvailable($Writers)")
+		Set doc = ndc.Getfirstdocument()
+		While Not doc Is Nothing
+			If doc.Lockholders(0) <> "" Then
+				Call LogError("WARN: Reset Perma-Lock: " & doc.Universalid & ", " & doc.Form(0) & ", " & Join(doc.LockHolders, ","))
+				Call doc.Unlock()
+			End If
+			Set doc = ndc.GetNextdocument(doc)
+		Wend
+	End If
+	
+	GoTo ende
+	
+doerror:
+	'hier: silent - do not escalate
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:PrepareContainerDB:1:8
+Sub PrepareContainerDB()
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	If Not contDB.isopen Then Call contDB.OpenWithFailover(db.server, GetSystemVar("CONT_DB"))
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:LogAction:1:8
+Sub LogAction(action As String)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	
+	Dim hlp As String, hlpInfo As String
+	
+	If g_nLog Is Nothing Then Call InitLog(db, "LogAction")
+	
+	hlp = action & g_nLog_Username
+	hlpInfo = Getthreadinfo(THREADINFO_CALLPROC) & " [" & Getthreadinfo(THREADINFO_CALLMODULE) & "]"
+	
+	If g_nLog.numActions = 500 Then
+		Call g_nLog.LogAction("Actioncount = 500, weitere Actions werden nicht protokolliert; (" & hlpInfo & ")")
+	Elseif g_nLog.numActions < 500 Then
+		Call g_nLog.LogAction(hlp & "; (" & hlpInfo & + ")" )
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:UnbindGlobalView:1:8
+Sub UnbindGlobalView(v As NotesView)
+	
+	'WRAPPER FUNC
+	If Not glob_V Is Nothing Then 
+		Call glob_V.Unbind(v)
+	End If
+	
+End Sub
+
+
+
+
+'++LotusScript Development Environment:2:1:DocumentGetLockHolders:2:8
+'Prüfen, ob gesperrt, Rückgabe der Lockholders als Semikolon-separiertem Text
+Function DocumentGetLockHolders(doc As NotesDocument) As String
+	
+	On Error GoTo doError
+	
+	If doc.Parentdatabase.Isdocumentlockingenabled Then
+		DocumentGetLockHolders = Join(doc.Lockholders, ";")
+	End If
+		
+	GoTo ende
+		
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+		
+ende:
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetDBForDoc:1:8
+Function GetDBForDoc(doc As NotesDocument) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	'2008-11-17, dko: Force UCase on Path (PMS/Cookie Pfad Problematik)
+	
+	GetDBForDoc = GetDBPath(doc.ParentDatabase)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetLangIdx:1:8
+Function GetLangIdx(lgStr As String) As Integer
+	
+	'Index der Sprache zurückgeben
+	
+	'Default=0 (Fallback DE)
+	
+	'Sprachindex zurückgeben
+	If Iselement(gl_LangResIDX(Ucase(lgStr))) Then
+		GetLangIdx = gl_LangResIDX(Ucase(lgStr))
+	Else
+		GetLangIdx = 0
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetResourceString:1:8
+Function GetResourceString(tagName As String, TransList, spLang As Integer) As String
+	
+%REM
+	'Abgeleitet aus MISFuncs: GetGlobalString(), verallgemeinert für die gemeinsame Benutzung
+
+	Routine ermittelt aus der globalen Konfiguration den Sprachstring und führt Ersetzung der tag-Liste
+	durch. Ggf. wird bei Ungereimtheiten ein LogAction abgesetzt
+
+	Ist eine Sprache nicht vorhanden, wird ein Fallback auf Deutsch (STD) durchgeführt
+%END REM
+	
+	On Error Goto doerror
+	
+	Dim doc As Notesdocument
+	Dim lg As Integer
+	Dim itTxt As NotesItem
+	Dim txt As String
+	Dim xTag As String
+	
+	'Öffnen der globalen Konfig-DB bei Bedarf
+	If Not globalCfgDB.IsOpen Then Call globalCfgDB.OpenWithFailover(db.Server, GetSystemVar("CFG_DB"))
+	
+	GetResourceString= GetDBResourceString(globalCfgDB, tagName, TransList, spLang)
+	
+	Goto ende
+	
+doerror: 
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetSystemVar:1:8
+Function GetSystemVar(entry As String) As String
+	
+	'2008-08-19, dko: System/ServerVar-Differenzierung
+	'2007-10-31, dko: cachedAccess
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Gibt eine Einstellung aus der globalen System-Konfiguration (config.nsf) zurück
+	Dim key As String
+	
+	key = Ucase(entry)
+	
+	If Iselement(gl_ServerVarNames(key)) Then
+		'es ist eine serverspezifische Variable
+		'-> hier den aktuellen Server abfragen (Leerstring übergeben)
+		GetSystemVar = GetServerVar(key, "")
+	Else	
+		'es ist eine serverunabhängige Systemvariable
+		If Not Iselement(globalSysVars(key)) Then
+			
+			If sysvw Is Nothing Then
+				If Not sysdb.IsOpen Then
+					Dim hlpSrv As String
+					hlpSrv = session.CurrentDatabase.Server
+					If hlpSrv = "" Then
+						hlpSrv = session.CurrentDatabase.Acl.Administrationserver
+					End If
+					Call sysdb.OpenWithFailover(hlpSrv, SYS_DB)
+				End If
+				Set sysvw = sysdb.GetView("LookupSystemConfig")
+			End If
+			
+			If Not sysvw Is Nothing Then
+				If syscfg Is Nothing Then Set syscfg = sysvw.GetFirstDocument
+				
+				If syscfg.HasItem("_" + entry) Then
+					GetSystemVar = syscfg.GetItemValue("_" + entry)(0)
+					
+%REM					
+					If key = "TRANSFER_ROOT" And Not session.IsOnServer Then
+						'Override: bei lokaler Ausführung wird Laufwerk "C" angenommen
+						GetSystemVar = "C:\Transfer"
+					End If
+%END REM
+					
+				Else
+					Call LogError("Specified System Config not found, requesting " + entry)
+				End If
+				
+			Else
+				Call LogError("Error Lookup System Config in config.nsf")
+			End If
+			
+			'im Cache ablegen
+			globalSysVars(key) = GetSystemVar
+		Else
+			GetSystemVar = globalSysVars(key)
+		End If
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:EnableLog:1:8
+Sub EnableLog(flag As Integer)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	If Not g_nLog Is Nothing Then
+		g_nLog.LogActions = flag
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetFullURLForDoc:1:8
+Function GetFullURLForDoc(doc As NotesDocument)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Volle URL zum übergebenen Dokument zusammenstellen
+	'2009-12-01, dko: GetRelativeURLForDoc() verwenden: explizit mit "0", da bisher immer so gebildet
+	GetFullURLForDoc = GetRelativeURLForDoc(doc, "0")
+	GetFullURLForDoc = GetSystemVar("HTTP_ROOT") + strReplace(GetFullURLForDoc, " ", "+", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetRegisteredLanguages:1:8
+Function GetRegisteredLanguages()
+	
+	'Die Liste der registrierten Sprachen zurückgeben (LG->IDX)
+	
+	GetRegisteredLanguages = gl_LangRes
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ReplaceUnequalItemSingleValue:1:8
+Function ReplaceUnequalItemSingleValue(note As NotesDocument, fieldname As String, value) As Integer
+	
+	'setzt den Wert eines Feldes neu, wenn er sich vom Ã¼bergebenen Wert unterscheidet, und gibt dann true zurÃ¼ck
+	
+	On Error GoTo doerror	
+	
+	If Not note Is Nothing Then
+		If Not isEqualValues(note.GetItemValue(fieldname)(0), value) Then
+			Call note.ReplaceItemValue(fieldname, value)
+			ReplaceUnequalItemSingleValue = True
+		End If
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:ReplaceUnequalItemSingleValueNDC:1:8
+Function ReplaceUnequalItemSingleValueNDC(ndc As NotesDocumentCollection, fieldName As String, value) As Long
+	
+	On Error GoTo doError
+	
+	Dim doc As NotesDocument
+	Dim c As Long
+	
+	Set doc = ndc.Getfirstdocument()
+	While Not doc Is Nothing
+		If ReplaceUnequalItemSingleValue(doc, fieldName, value) Then
+			c = c + 1
+			Call doc.Save(True, False)
+		End If
+		Set doc = ndc.Getnextdocument(doc)
+	Wend
+	
+	ReplaceUnequalItemSingleValueNDC = c
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:RaiseErrorFromRes:1:8
+Public Sub RaiseErrorFromRes(aErrorCode As Integer, aErrorResID As String, aLanguage As Integer)
+	'################################################################################
+	'Raises an error with the given error code and error description taken from the 
+	'given resource. 
+	'################################################################################
+	
+	Call RaiseError(aErrorCode, TranslatedString(aErrorResID, aLanguage))
+End Sub
+
+'++LotusScript Development Environment:2:1:GetBackendConfig:1:8
+Function GetBackendConfig(db As NotesDatabase, strConfKey As String) As Variant
+	
+	On Error GoTo doerror
+	
+	Dim vConf As NotesView
+	Dim docConf As NotesDocument
+	
+	Dim strPersDBPath As String 
+	Dim strServer As String 
+	Dim strViewName As String
+	Dim strJSONCol As String 
+	Dim strArrDBName() As String 
+
+	ReDim strArrDBName(3)
+	
+	Set vConf = GetGlobalView(db, "(LookUpBackEndConfig)")
+	Set docConf = vConf.Getdocumentbykey(strConfKey, True)
+	If Not docConf Is Nothing Then
+		strArrDBName(0) = docConf.Getitemvalue("serverName")(0)
+		strArrDBName(1) = docConf.Getitemvalue("dbName")(0)
+		strArrDBName(2) = docConf.Getitemvalue("viewName")(0)
+		strArrDBName(3) = docConf.Getitemvalue("columnIndex")(0)
+	End If
+	
+	'no server = Same Server
+	If strArrDBName(0) = "" Then strArrDBName(0) = db.Server
+	
+	'no database = same database
+	If strArrDBName(1) = "" Then strArrDBName(1) = db.Filepath
+	
+	GetBackendConfig = strArrDBName
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+
+ende:
+
+End Function
+
+'++LotusScript Development Environment:2:1:FieldAddString:1:8
+Function FieldAddString(it As NotesItem, aStr As String) As Integer
+	
+	'String an Feld anfügen und TRUE zurückgeben, wenn durchgeführt
+	
+	On Error Goto doerror
+	
+	If Not it.Contains(aStr) Then
+		Call it.AppendToTextList(aStr)
+		FieldAddString = True
+	End If
+	
+	Goto ende
+	
+doError:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CreateContainerDocForCurrentWebuserEx:1:8
+Public Function CreateContainerDocForCurrentWebuserEx(aSubtype As String, aAccessControlFlagsForCurrentWebuser As Integer) As NotesDocument		
+	'################################################################################
+	'Returns existing container document with the given UNID. If access control flags
+	'given (AC_NONE, AC_READER, AC_AUTHOR), they will be set within the container 
+	'document.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	Dim current_canonical As String
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	current_canonical = CurrentWebuserNotesName().Canonical
+	
+	Set CreateContainerDocForCurrentWebuserEx = New Notesdocument(OpenContainerDB())
+	Call CheckError(Not (CreateContainerDocForCurrentWebuserex Is Nothing), 0, "Couldn't create container document!")
+	
+	'Set default values
+	With CreateContainerDocForCurrentWebuserEx
+		.Form    = "ContainerDoc"
+		.Subtype = aSubtype
+		.User    = current_canonical
+	End With
+	
+	'Set default readers
+	Call AddDocACReaders(CreateContainerDocForCurrentWebuserEx, "LocalDomainServers")
+	
+	'Set default authors
+	Call AddDocACAuthors(CreateContainerDocForCurrentWebuserEx, "LocalDomainServers")
+	Call AddDocACAuthors(CreateContainerDocForCurrentWebuserEx, "[Administration]")
+	
+	'Store author access control permissions in container document for current web 
+	'user (as canonical name), according to older routine getContainerDoc().
+	Call AddDocACAuthors(CreateContainerDocForCurrentWebuserEx, current_canonical)
+	
+	'Store given access control permissions in container document for current web 
+	'user.
+	Call StoreDocACForCurrentWebuser(CreateContainerDocForCurrentWebuserEx, aAccessControlFlagsForCurrentWebuser) 
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+'++LotusScript Development Environment:2:1:OpenContainerDB:1:8
+Function OpenContainerDB() As NotesDatabase
+	'################################################################################
+	'Open and return the container DB.
+	'################################################################################
+	
+	On Error Goto do_error		
+	
+	Set OpenContainerDB = OpenDB(GetSystemVar("CONT_DB"))
+	
+	'That's All Folks!
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+	
+End Function
+
+'++LotusScript Development Environment:2:1:IsACLRoleEnabled:1:8
+Function IsACLRoleEnabled(r As String) As Integer
+	
+     '2000-09-05, dk: prüft, ob eine Rolle verfügbar ist oder nicht mit Ausgabe einer Meldung
+     'Rollen: funktioniert für Gruppen und Nutzer, wenn jedoch ein Mitglied einer Gruppe mit eingeschalteter Rolle nochmals explizit in der ACL ohne Rolle aufgelistet wird, wird die  Rolle nicht erkannt
+	
+	Dim i As Integer
+	
+	IsACLRoleEnabled = CheckIsACLRoleEnabled(r)
+	If Not IsACLRoleEnabled Then i = MsgBox ("Sie benötigen die Rolle ""[" + r + "]"", um diese Funktion auszuführen" , 0, "Hinweis")
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:CheckError:1:8
+Public Sub CheckError(aCondition As Boolean, aErrorCode As Integer, aErrorDescription As String)
+	'################################################################################
+	'If aCondition is not true, a error with the given description will be raised.
+	'################################################################################
+	
+	If Not aCondition Then
+		Call RaiseError(aErrorCode, aErrorDescription)			
+	End If
+End Sub
+
+'++LotusScript Development Environment:2:1:RegQueryKeyValue:1:8
+Function RegQueryKeyValue(rootName As String, sKeyName As String, sValueName As String) As Variant
+	RegQueryKeyValue = RegQueryKeyValueCore(rootName + "\" + sKeyName + "\" + sValueName)
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetClientUsername:1:8
+Function GetClientUsername() As NotesName
+	
+	On Error GoTo doerror
+	
+	If gl_clientNameOverride <> "" Then
+		Set GetClientUsername = New NotesName(gl_clientNameOverride)
+	Else
+		
+		'Default = EffectiveUsername
+		Set GetClientUsername = New NotesName(session.Effectiveusername)
+		
+		'Bei Web-Access: ersetzen durch Remote_User(0), sofern belegt
+		'2021-09-19, dk: Übernommen aus BM-DB
+		If session.IsOnServer Then
+			
+			If isSomething(session.DocumentContext) Then
+				If CurrentWebUser()<>"" Then
+					Set GetClientUsername = CurrentWebUserNotesName()
+				End If
+			End If
+			
+		End If
+		
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Set GetClientUsername = New NotesName(session.Username)
+	Call Errstack("")
+	Call Errstack("on Server: " & session.IsOnServer)
+	Call Errstack("username/effective: " & session.UserName & ", " & session.Effectiveusername)
+	Call ErrStack("CurrentWebUser: " & CurrentWebUser())
+	
+	On Error GoTo 0
+	raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetURLForDB:1:8
+Function GetURLForDB(db As NotesDatabase)
+	
+	'relative URL zum übergebenen Dokument zusammenstellen
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	'2008-11-17, dko: Force UCase (PMS/Cookie Pfad Problematik)
+	
+	GetURLForDB = "/" & GetDBPath(db)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:WebErrOut:1:8
+Sub WebErrOut(optionalText As Variant)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Call LogAction("OOD Function Call - WebErrOut() - use ErrStack()")
+	Call ErrStack(optionalText)
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:CheckErrorFromRes:1:8
+Public Sub CheckErrorFromRes(aCondition As Boolean, aErrorCode As Integer, aErrorResID As String, aLanguage As Integer)
+	'################################################################################
+	'If aCondition is not true, an error with the description taken from the given 
+	'resource will be raised.
+	'################################################################################
+	
+	If Not aCondition Then
+		Call RaiseErrorFromRes(aErrorCode, aErrorResID, aLanguage)
+	End If
+End Sub
+
+'++LotusScript Development Environment:2:1:GetUnmodifiedBackendDocByUNID:1:8
+Function GetUnmodifiedBackendDocByUNID(xdb As NotesDatabase, unid As String) As NotesDocument
+	
+	'diese Methode ermöglicht den Zugriff auf das noch nicht gespeicherte Backend-Dokument
+	'-> speziell für Operationen an Web-Dokumenten (Änderungsprüfung)
+	
+	On Error Goto doerror
+	
+	Dim v As NotesView
+	
+	Set v = GetGlobalView(xdb, "($AllDocs)")
+	Call v.Refresh()
+	
+	Set GetUnmodifiedBackendDocByUNID = v.GetDocumentByKey(unid, True)
+	
+	Goto ende
+	
+doError:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetDBPath:1:8
+Function GetDBPath(db As NotesDatabase) As String
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	'2008-11-17, dko: Force UCase (PMS/Cookie Pfad Problematik)
+	
+	'check to see if the database is in a directory and swap the slash directions
+	Dim path As String     
+	
+	path = ExtractFilePath(db.filePath)
+	If path <> "" Then path = strAddSlash(path)
+	
+	GetDBPath = strReplace(Ucase(path) & db.FileName, "\", "/", 5)
+	GetDBPath = strReplace(GetDBPath, " ", "+", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:SendWithoutError:1:8
+Sub SendWithoutError(doc As notesdocument)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'2001-10-10, dko: doc.send schlägt fehl, wenn Mail-Server unerreichbar ist. 
+	'Die Mail wird in diesem Fall aber in der mailbox zur späteren Replikation behalten, so dass
+	' kein Fehler ausgelöst werden muss.
+	On Error Resume Next
+	Call doc.Send(False)
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:A_OLD_GetNotesRelease:1:8
+Function A_OLD_GetNotesRelease()
+
+	On Error GoTo doError
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'Beispiele:
+	'Release 8.5.3FP2 HF390|December 10, 2012
+	'Build V90_CD6_12072012|December 07, 2012
+	
+	Dim session As New NotesSession
+	Dim vString As String
+	Dim major As String, minor As String, result As String, c As String
+	Dim i As Integer
+
+	vString = session.NotesVersion
+
+	vString = Left(vString, Instr(vString, "|") -1)	'Ersten Teil verwendne
+	vString = FullTrim(Mid(vString, InStr(vString, " ") + 1) & ".0")	'"Release " entfernen: Rest z.B. "8.5.3FP3"
+	
+	'Test 1. Zeichen
+	If IsNumeric(Left(vString, 1)) then
+		major = Left(vString, InStr(vString, ".") - 1)	'"8"
+		minor = Mid(vString, InStr(vString, ".") + 1)	'"5.3FP3"
+	Else
+		'Vxx
+		major = Mid$(vString, 2, InStr(vString, "_") - 2)	'"90"
+		minor = "0"
+	End If
+	
+	'Nur Nummern ausparsen
+	result = ""
+	For i = 1 To Len(minor)
+		c = Mid$(minor, i, 1)
+		If InStr("0123456789", c) > 0 Then
+			result = result & c
+		End If
+	Next i
+	
+	On Error GoTo typeError1
+	A_OLD_GetNotesRelease = CDbl(major & session.International.Decimalsep & result)
+	
+	Set session = Nothing
+	
+	goto ende
+	
+typeError1:
+	On Error GoTo doError
+	Call LogError("WARN: typeError1: " & vString & ";#" & major & "#" & session.International.Decimalsep & "#" & result)
+	A_OLD_GetNotesRelease = CDbl(major)
+	Resume ende
+	
+doError:
+	On Error Resume next
+	Call ErrStack("")
+	Call ErrStack(vString & ";" & major & "#" & session.International.Decimalsep & "#" & result)
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetIsOnTestServer:5:8
+%REM
+	Function GetIsOnTestServer
+	True, wenn Servername der akt. DB "TEN-KO" enthält
+%END REM
+Function GetIsOnTestServer() As Boolean
+	GetIsOnTestServer = InStr(1, db.Server, "TEN-KO", 5) > 0
+End Function
+
+'++LotusScript Development Environment:2:1:CreateRedirLinkShortest:1:8
+Function CreateRedirLinkShortest(url As String) As String
+	
+	'Erstellt den kürzesten möglichen Redirect-Eintrag und gibt die volle URL darauf zurück
+	
+	On Error GoTo doerror
+	
+	Dim doc As NotesDocument
+	
+	CreateRedirLinkShortest = url
+
+	If StrCompare(lastRedirTargetShortest, url, 5) = 0 Then
+		'Warnung: der letzte Aufruf hat bereits diesen Link erzeugt: direkt zurückgeben
+		CreateRedirLinkShortest = lastRedirURLShortest
+		GoTo ende
+	End If
+	
+	lastRedirTargetShortest = ""
+	lastRedirURLShortest = ""
+	
+	Call PrepareRedir()
+	
+	If Not rdLookup Is Nothing Then
+		'Wenn bereits ein Redir mit dem exakten Ziel exisitiert, dann kein neues anlegen
+		Set doc = rdLookup.GetDocumentByKey(LCase(url), True)
+		If doc Is Nothing Then
+			Set doc = New NotesDocument(rdDB)
+			doc.Form = "Redir"
+			doc.TargetDirect = url
+			doc.LookupKey = strReplace(CreateUniqueString(), "-", "", 5)
+			Call doc.Save(True, False)
+		ElseIf Not doc.HasItem("LookupKey") Then
+			'Wiederverwenden einer per CreateRedirLink()-erzeugten Redir-URL: Lookup-Key hinzufügen
+			doc.LookupKey = strReplace(CreateUniqueString(), "-", "", 5)
+			Call doc.Save(True, False)
+		End If
+
+		CreateRedirLinkShortest = strReplace("/" + GetDBForDoc(doc) + "/L/" + doc.LookupKey(0), "\", "/", 5)
+		CreateRedirLinkShortest = GetSystemVar("HTTP_ROOT") + strReplace(CreateRedirLinkShortest, " ", "+", 5)
+
+		lastRedirURLShortest = CreateRedirLinkShortest
+		lastRedirTargetShortest = url
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CreateContainerDocForCurrentWebuser:1:8
+Public Function CreateContainerDocForCurrentWebuser(aSubtype As String) As NotesDocument		
+	'################################################################################
+	'Creates container document and sets access control to Readers and Autors für 
+	'current web user.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error Goto do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	Set CreateContainerDocForCurrentWebuser = CreateContainerDocForCurrentWebuserEx(aSubtype, AC_READER Or AC_AUTHOR)
+	
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Function
+
+'++LotusScript Development Environment:2:1:GetCommonPoolNumber:5:8
+%REM
+	GetCommonPoolNumber
+	Gibt eine neue Nummer aus einem Pooldokument zurück
+%END REM
+Function GetCommonPoolNumber(poolNrDB As NotesDatabase, nrKreis As String, optLog As String, warnTreshold As Integer) As String
+	
+	On Error GoTo doerror
+	
+	Dim v As NotesView
+
+	Dim targetDB As NotesDatabase
+	Dim doc As NotesDocument
+	Dim it As NotesItem, itLog As NotesItem
+	
+	Dim needClose As Boolean
+	
+	'Default = leer, d.h. keine Nummer vergeben
+	GetCommonPoolNumber = ""
+	
+	'Sicherstellen, dass die Datenbank auf dem Admin-Server geöffnet wird
+	'-> jedoch nicht, wenn Test-db lokal verwendet wird
+	If Not IsEqual(LCase(poolNrDb.Acl.Administrationserver), LCase(poolNrDb.Server)) And Not(poolNrDb.Server="" And Not session.Isonserver) Then
+		
+		Set targetDB = New NotesDatabase("", "")
+		On Error Resume Next
+		Call targetDB.Openbyreplicaid(poolNrDB.Acl.Administrationserver, poolNrDB.Replicaid)
+		On Error GoTo doError
+		
+		needClose = True
+	Else
+		
+		'bereits der richtige Server
+		Set targetDB = poolNrDB
+		
+	End If
+
+	If targetDB.Isopen Then
+		
+		Set v = GetGlobalView(targetDB, "(LookupCommonPoolNumber)")
+
+		'Pool-Kreis ermitteln
+		Set doc = v.GetDocumentByKey(nrKreis, True)
+		If Not doc Is Nothing Then
+			
+			Dim nrFormat As String
+			nrFormat = GetFirstItemvalue(doc, "NrFormat")
+			
+			If InStr(1, nrFormat, "%NR%", 5) > 0 Then
+				'Vergabe nach Nummernformat
+				
+				Dim nrNext
+				
+				nrNext = GetFirstItemValue(doc, "NrNext")
+				If IsNumeric(nrNext) Then
+					
+					Dim nrMax
+					
+					nrMax = GetFirstItemValue(doc, "NrMax")
+					If Not IsNumeric(nrMax) Then nrMax = -1
+					
+					If nrNext + 1 > nrMax And nrMax > -1 Then
+						Call LogError("CommonPoolNumber-Format-Konfig """ & nrKreis & """ Maximum erreicht")
+					Else
+						
+						'Warnung absetzen, wenn weniger als 51 verbleiben
+						If nrMax > -1 Then
+							If nrMax - nrNext <= warnTreshold Then
+								Call LogError("WARN: CommonPoolNumber-Format-Konfig """ & nrKreis & """ Restnummern gehen zur Neige (verbleibend: " & (nrMax - nrNext) & ")")
+							End If
+						End if
+						
+						'aktuelle Nummer als reserviert kennzeichnen
+						Call doc.ReplaceItemValue("NrNext", nrNext+1)
+						
+						'Optionale Protokollierung
+						If optLog <> "" Then
+							Set itLog = Init_Field(doc, "NrLog", "")
+							Call itLog.Appendtotextlist(optLog)
+						End If
+						
+						Call doc.Save(True, False)
+						
+						'aktuelle Nummer verwenden/formatieren
+						nrNext = CStr(nrNext)
+						
+						Dim nrLen
+						
+						nrLen = GetFirstItemValue(doc, "NrLeadingZeros")
+						If Not IsNumeric(nrMax) Then nrLen = 0
+						
+						'Ist eine Nummernlänge vorgegeben und ist die Länge der Nummer nicht bereits größer als die vorgegebene Länge, dann mit Nullen auffüllen
+						If nrlen > 0 And Len(nrNext) < nrlen Then
+							nrNext = Right(strReplace(Space(nrLen), " ", "0", 5) & nrNext, nrLen)
+						End If
+						
+						GetCommonPoolNumber = strReplace(nrFormat, "%NR%", nrNext, 5)
+						
+					End If
+					
+				Else
+					Call LogError("CommonPoolNumber-Format-Konfig """ & nrKreis & """ keine nächste Nummer konfiguriert")
+				End If
+				
+			Else
+				'Vergabe nach Pool
+				
+				Dim hlpArr, hlpArr2
+				
+				hlpArr = doc.NrPool
+				If hlpArr(0) <> "" Then
+
+					'freie Nummer abgreifen
+					GetCommonPoolNumber = hlpArr(0)
+					
+					'vergebene Nummer löschen
+					hlpArr(0) = ""
+					hlpArr2 = cnvVarArray(hlpArr, True)
+					
+					'Warnung absetzen, wenn weniger als 51 verbleiben
+					If UBound(hlpArr2) <= warnTreshold Then
+						Call LogError("WARN: CommonPoolNumber-Pool-Konfig """ & nrKreis & """ Nummernpool geht zur Neige (verbleibend: " & (UBound(hlpArr2)+1) & ")")
+					End If
+					
+					'Speichern des Pool-Dokuments
+					doc.NrPool = hlpArr2
+					
+					'Optionale Protokollierung
+					If optLog <> "" Then
+						Set itLog = Init_Field(doc, "NrLog", "")
+						Call itLog.Appendtotextlist(optLog)
+					End If
+					
+					Call doc.Save(True, False)
+					
+				Else
+					Call LogError("CommonPoolNumber-Pool-Konfig """ & nrKreis & """ Nummernpool ist leer")
+				End If
+				
+			End if
+			
+		Else
+			Call LogError("CommonPoolNumber-Konfig """ & nrKreis & """ ist nicht definiert")
+		End If
+		
+		If needClose Then Call targetDB.Close()
+	Else
+		Call LogError("CommonPoolNumber-Datenbank konnte nicht auf " & targetDB.Acl.Administrationserver & " geöffnet werden")
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+		
+ende:
+	End Function
+
+'++LotusScript Development Environment:2:1:GetAppAccessCredentialsByNr:5:8
+%REM
+	Function GetAppAccessCredentialsByNr
+	Description: Comments for Function
+%END REM
+Function GetAppAccessCredentialsByNr(key As String, nr As Integer) As String
+	
+	On Error GoTo doError
+	
+	If gl_CredAppStore Is Nothing Then Set gl_CredAppStore = New TAppAccessStore
+	GetAppAccessCredentialsByNr = gl_CredAppStore.GetValueByNr(key, nr)
+	
+	GoTo Ende
+	
+doError:	
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+
+Ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:SetClientUsernameOverride:1:8
+Sub SetClientUsernameOverride(canonicalNameOverride As String)
+	gl_clientNameOverride = canonicalNameOverride
+End Sub
+
+
+
+'++LotusScript Development Environment:2:2:ClearTranslationParams:1:8
+Public Sub ClearTranslationParams() 
+	
+	'Die Übersetzungsparameterliste löschen, die in TranslatedString() verwendet wird
+	Erase FTranslationParams
+	
+End Sub
+
+
+
+'++LotusScript Development Environment:2:1:TranslatedString:1:8
+Public Function TranslatedString(aResID As String, aLanguage As Integer) As String
+	'Note, that list FTranslationParams will be cleared after calling this 
+	'method!
+	
+	On Error Goto doerror
+	
+	TranslatedString = GetResourceString(aResID, FTranslationParams, aLanguage)
+	
+	Call ClearTranslationParams()
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetRelativeURLForDoc:1:8
+Function GetRelativeURLForDoc(doc As NotesDocument, view As String)
+	
+	Dim hlp As String
+	
+	'Fallback 1: Returnview oder expliziter View
+	If view = "" Then hlp = doc.return_View(0) Else hlp = view
+	
+	'Fallback 2: kein View -> 0
+	If hlp = "" Then hlp = "0" 
+	
+	'relative URL zum übergebenen Dokument zusammenstellen, mit einbindung des Ansichtsnamens
+	GetRelativeURLForDoc = strReplace("/" + GetDBForDoc(doc) + "/" + hlp + "/" + doc.UniversalID, "\", "/", 5)
+	GetRelativeURLForDoc = strReplace(GetRelativeURLForDoc, " ", "+", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:CleanupContainerDB:1:8
+Sub CleanupContainerDB(daysCutoff As Integer)
+
+	'Alte Einträge aus der DB entfernen
+	
+	On Error GoTo doerror
+
+	Dim ndc As NotesDocumentCollection
+
+	'PRECHECK kann ContainerDB geöffnet werden ?
+	Call PrepareContainerDB()
+	
+	'Alle Einträge älter als x Tage löschen
+	Set ndc = contDB.Search("Form=""ContainerDoc"" & @Adjust(@Created; 0;0;" & daysCutoff & ";0;0;0) <= @Date(@Today)", Nothing, 0)
+	Call ndc.RemoveAll(True)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Dokumente_Vergleichen:1:8
+Sub Dokumente_Vergleichen()
+
+	On Error Resume Next
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc1 As NotesDocument
+	Dim doc2 As NotesDocument
+	Dim emb As NotesEmbeddedObject, emb1 As NotesEmbeddedObject
+	Dim richtext_item As NotesRichTextItem
+	Dim j As NotesItem
+	Dim newline As String
+	Dim Doc2unid As String
+	Dim Empfehlung As String
+	Dim aFilename As String
+	Dim attDoc1, attDoc2, doc1AttMissing, doc2AttMissing, dateH, dateK
+	Dim anlRemoved List As Byte
+	
+
+	Set ndc = db.UnprocessedDocuments
+	Set doc1 = ndc.GetFirstDocument
+	
+	If Doc1 Is Nothing Then GoTo ende
+
+	newline = Chr(13) + Chr(10)
+
+	
+	'Set doc1= db.unprocesseddocuments.getfirstdocument
+	
+	Doc2unid = InputBox("UNID des zu vergleichenden Dokuments", "Doc2 UNID wählen", "")
+	If Doc2unid ="" Then Exit Sub
+
+	
+	Set doc2 = db.getdocumentbyunid(Doc2Unid)
+	If doc2 Is Nothing Then
+		MsgBox("Abbruch: Doc2 nicht gefunden")
+		Exit Sub
+	End If
+	
+	If doc1.UniversalID = doc2.UniversalID Then
+		MsgBox("Abbruch: Doc2 ist mit Doc1 identisch")
+		Exit Sub
+	Else
+		MsgBox "FORM: " & doc1.Form(0) & "/" & doc2.Form(0) & Chr(13) & Chr(13) +_
+			"Info: Vergleich Zeitstempel Doc1 / Doc2" & Chr(13) +_
+			"Erstellt: " & doc1.Created & "/" & doc2.Created & Chr(13) &_
+			"Geändert: " & doc1.LastModified & "/" & doc2.LastModified
+	End If
+	
+	ForAll i In doc1.items
+
+		Empfehlung = ""
+		
+		If Not Left(i.name,1) = "$" Then
+			If doc2.hasitem(i.name) Then 
+				Set j=doc2.getfirstitem(i.name)
+				If Not j.text = i.text Then 
+					
+					On Error GoTo Fehler3
+					
+					If i.text <> "" And j.text = "" Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld in Doc2 ist leer."
+					End If
+					Print Empfehlung
+Fehler3:
+					Resume weiter3
+
+					
+weiter3:
+					On Error GoTo Fehler4
+					If i.text = "" And j.text <> "" Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld in Doc1 ist leer."
+					End If
+					Print Empfehlung
+Fehler4:
+					Resume weiter4
+weiter4:
+					On Error GoTo Fehler5
+					'nicht mit null überschreiben, nur weil null neuer ist
+					If i.values(0) <> 0 And j.values(0) = 0 Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld in Doc2 ist 0."
+					End If
+					Print Empfehlung
+Fehler5:
+					Resume weiter5
+weiter5:
+					On Error GoTo Fehler6
+					If i.values(0) = 0 And j.values(0) <> 0 Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld in Doc1 ist 0."
+					End If
+					Print Empfehlung
+Fehler6:
+					Resume weiter6
+weiter6:
+					On Error Resume Next                         
+
+					MsgBox("Das Item " + i.name + " stimmt nicht überein: "  + newline + newline+_
+							 "Doc1: " + i.text + " (" + CStr(i.LASTMODIFIED) +")" + newline +_
+							 "Doc2: " + j.text + " (" + CStr(j.LASTMODIFIED) +")" + newline + newline +_
+							 Empfehlung)	
+				End If
+			Else
+				'Msgbox "Das Item " + i.name + " fehlt im Hauptdokument und wurde dort hinzugefügt:" + Chr(13) + Chr(10)  + i.text
+				Empfehlung = "Info: Item zum Originaldokument hinzufügen (abwägen!)"
+				
+				On Error Resume Next                         
+				MsgBox("Das Item " + i.name + " FEHLT: "  + newline + newline+_
+						"Doc1: " + i.text +" (" + CStr(i.LASTMODIFIED) +")" + newline + newline +_
+						Empfehlung)
+			End If
+		End If
+		
+	End ForAll
+	
+	'2011-10-11, dko: Anlagen gesondert abgleichen
+
+	'zunächst das Vorhandensein ener Anlage prüfen
+	attDoc1=Evaluate("@Sort(@Lowercase(@AttachmentNames))", doc1)
+	attDoc2=Evaluate("@Sort(@LowerCase(@AttachmentNames))", doc2)
+	
+	If Not isEqual(attDoc1, attDoc2) Then
+		doc1AttMissing = Replace(attDoc2, attDoc1, "", 1, -1, 0)
+		doc2AttMissing = Replace(attDoc1, attDoc2, "", 1, -1, 0)
+		
+		'Anlagen prüfen, die im Hauptdokument fehlen
+		If doc2AttMissing(0) <> "" Then
+			Empfehlung = "Empfehlung: Anlage zum Hauptdokument hinzufügen (abwägen!)"
+
+			ForAll anl In doc2AttMissing
+				
+				On Error Resume Next                         
+				MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" & newline &_
+						"Die ANLAGE " + anl + " FEHLT" + newline + newline +_
+						 Empfehlung)
+						
+			End ForAll
+		End If
+
+		'Anlagen prüfen, die im Konflikt fehlen, aber im Hauptdokument vorhanden sind
+		Empfehlung = "Empfehlung: Anlage im Hauptdokument belassen (abwägen!)"
+		
+		If doc1AttMissing(0) <> "" Then
+			ForAll anl In doc1AttMissing
+				
+				On Error Resume Next                         
+					MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" &_
+					 "Die ANLAGE " + anl + " fehlt im Konflikt" + newline + newline+_
+					 Empfehlung)
+			End ForAll
+		End If
+	End If
+	
+	'Anlagengröße prüfen: Hierzu ausgehend vom Hauptdokument die Anlagen im Konflikt prüfen
+	'-> es reicht hierbei, die ursprünglich im Hauptdokument bestehenden Anlagen zu prüfen.
+	ForAll anl In attDoc2
+		If Not IsElement(anlRemoved(anl)) Then
+			'diese Anlage wurde vorher nicht gerade aus dem Hauptdokument gelöscht			
+
+			Set emb = doc2.GetAttachment(anl)
+			Set emb1 = doc1.GetAttachment(anl)
+			If Not emb1 Is Nothing And Not emb Is Nothing Then
+				'beide Anlagen sind vorhanden
+				If emb.Filesize <> emb1.Filesize Then
+					
+					aFilename = strAddSlash(GetSystemvar("TRANSFER_ROOT")) & emb.Name
+					
+					Call emb.Extractfile(aFilename & ".haupt")
+					Call emb1.Extractfile(aFilename)
+					
+					'Entscheidung auf Basis des Dateidatumsausmachen
+					dateH = FileDateTime(aFilename & ".haupt")
+					dateK = FileDateTime(aFilename)
+					
+					If dateH >= dateK Then
+						Empfehlung = "Empfehlung: Anlage im Hauptdokument unverändert lassen"
+
+					Else
+						Empfehlung = "Empfehlung: Anlage im Hauptdokument ersetzen"
+					End If
+					
+					On Error Resume Next
+					MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" &_
+					 			"Die ANLAGE " + anl + " hat verschiedene Größen." + newline +_
+								"Original: " & dateH & "/" & emb.FileSize & " Bytes" & Chr(13) &_
+								"Konflikt: " & dateK & "/" & emb1.Filesize & " Bytes" & Chr(13) &_
+								Chr(13) + Chr(10) + Empfehlung)
+									
+				End If
+			End If
+		End If
+	End ForAll
+	
+	'TODO: Später mal: ModifiedTimes vergleichen
+	
+	
+	
+Ende:	
+End Sub
+
+'++LotusScript Development Environment:2:2:InitLog:1:8
+Sub InitLog(xdb As notesdatabase, sname As String)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	
+	Dim lName As String
+	
+	If Not g_nLog Is Nothing Then Call CloseLog()
+	If xdb Is Nothing Then Exit Sub
+	
+	g_nLog_Username = ""
+	If Not session.DocumentContext Is Nothing Then
+		'akt. User als zusatzinfo
+		If session.DocumentContext.Remote_User(0) <> "" Then
+			g_nLog_Username = "; remote_user=" + session.DocumentContext.Remote_User(0) + ";"
+		End If
+	End If
+	
+	lName = sName
+	If sName = "LogAction" Or sName = "LogError" Or sName = "Error-Out" Or sName = "WebError-Out" Then
+		'Get Agent Name directly if present
+		If Not session.CurrentAgent Is Nothing Then lName = session.CurrentAgent.Name
+	End If
+	
+	If session.IsOnServer Then
+		Set g_nLog = New NotesLog(session.Username + "\" + xdb.title + "\" + lname)
+	Else
+		Set g_nLog = New NotesLog(xdb.server + "\" + xdb.title + "\" + lname)
+	End If
+	
+	Call g_nLog.OpenNotesLog(xdb.server, "AgentLog.nsf")
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:CloseLog:1:8
+Sub CloseLog()
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	Call g_nLog.Close()
+	Set g_nLog = Nothing
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:isEqualFile:1:8
+Function isEqualFile(f1 As String, f2 As String) As Integer
+	
+	On Error Goto doerror
+	
+	Dim a As Integer, b As Integer
+	Dim length As Long, BufferSize As Long
+	Dim aStr As String
+	Dim bStr As String
+	
+	If Filelen(f1) <> Filelen(f2) Then
+		'Unterschiedliche Länge -> kann nicht gleich sein
+		Goto ende
+	End If
+	
+	'Ignore Error "Input Past end of File"
+	On Error 62 Resume Next
+	
+	'gute perfomance: 16K-Blöcke lesen
+	BufferSize = 16384
+	
+	'Beide Dateien öffnen: Sequentiell, zum Lesen, Shared
+	a = Freefile()
+	Open f1 For Input Access Read Shared As #a
+	
+	b = Freefile()
+	Open f2 For Input Access Read Shared As #b
+	
+	Length = Lof(a)
+	While Not Eof(a)
+		
+		If Length < BufferSize Then
+			'Letzter Block kann kleiner sein -> Rest
+			BufferSize = Length
+		End If
+		
+		aStr = Input(BufferSize, a)
+		bStr = Input(BufferSize, b)
+		
+'		Print d, BufferSize, Len(aStr), "#" & Right(aStr, 10) & "#"
+		
+		'genauer Vergleich
+		If Strcompare(aStr, bStr, 0) <> 0 Then
+			Goto ende
+		End If
+		
+		Length = Length - BufferSize
+	Wend
+	
+	isEqualFile = True
+	
+	Goto ende
+	
+Cleanup:
+	On Error Resume Next
+	Close a
+	Close b
+	Return
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	Gosub Cleanup
+	On Error Goto 0
+	raise
+	
+ende:
+	On Error Resume Next
+	Gosub Cleanup
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:ExtractURLParam:1:8
+Function ExtractURLParam(paramName As String, queryString As String) As String
+	
+	On Error Goto doerror
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'extrahiert einen URL-Parameter-Wert aus einem Query_String
+	
+	Dim posStart As Long
+	Dim posEnde As Long
+	
+	ExtractURLParam = ""
+	
+	'&-Param-Argument davorsetzen, falls nicht mit übergeben
+	If Left(paramname, 1) <> "&" Then paramname = "&" + paramname
+	
+	'=-Param-Argument anhängen, falls nicht mit übergeben	
+	If Right(paramname, 1) <> "=" Then paramname = paramname + "="
+	
+	'Startpostion des Parameter-Werts ermitteln
+	PosStart = Instr(1, queryString, paramname, 5)
+	If PosStart = 0 Then Exit Function
+	posStart = PosStart + + Len(paramname)
+	
+	'Endpostion des Parameter-Werts ermitteln
+	PosEnde = Instr(PosStart, queryString, "&", 5)
+	If PosEnde = 0 Then PosEnde = Len(queryString) + 1
+	
+	ExtractURLParam=Mid(queryString,PosStart,posEnde- PosStart)
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetUIBackendDocHasChanged:1:8
+Function GetUIBackendDocHasChanged(uiDoc As NotesUIDocument, doShowMessage As Boolean) As Boolean
+	
+	On Error GoTo doError
+	
+	'Exit Conditions
+	If uiDoc Is Nothing Then GoTo ende
+	If uiDoc.Document Is Nothing Then GoTo ende
+	If uiDoc.Document.IsNewNote Then GoTo ende
+	
+	'2014-10-16, dko: Zuerest prüfen, ob Dokument im Hintergrund geändert wurde, oder direkt das Hintergrunddokument nehmen
+	If GetUnmodifiedBackendDocByUNID(uiDoc.Document.Parentdatabase, uiDoc.Document.Universalid).Lastmodified <> uiDoc.Document.Lastmodified Then
+		GetUIBackendDocHasChanged = True
+		If doShowMessage Then 
+			MessageBox "Dieses Dokument wurde zwischenzeitlich geändert. Bitte schließen und öffnen Sie es erneut, um alle aktualisierten Daten anzuzeigen.", 48, "Hinweis"
+		End If
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:DocumentIsLocked:2:8
+'Prüfen, ob ein Dokument gesperrt ist
+Function DocumentIsLocked(doc As NotesDocument) As Boolean
+	
+	On Error GoTo doError
+	
+	DocumentIsLocked = doc.Lockholders(0) <> ""
+
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:OpenDatabase:1:8
+Public Sub OpenDatabase(aNotesDatabase As NotesDatabase, aServerName As String, aDBFilePath As String) 
+	'################################################################################
+	'Open the given database if not open already. Raise error, if opening was not 
+	'successful.
+	'################################################################################
+	
+	On Error Goto do_error		
+	
+	Call CheckError(IsSomething(aNotesDatabase), 0, "Illegal database reference")
+	
+	If Not aNotesDatabase.IsOpen Then
+		Call CheckError(aNotesDatabase.OpenWithFailover(aServerName, aDBFilePath), 0, "Database """ & aDBFilePath & """ does not exist on server """ & aServerName & """.")
+	End If
+	
+	Call CheckError(aNotesDatabase.IsOpen = True, 0, "Failed to open database """ & aDBFilePath & """ on server """ & aServerName & """.")
+	
+	'That's All Folks!
+	Exit Sub
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error Goto 0
+	Raise
+End Sub
+
+'++LotusScript Development Environment:2:1:GetDocumentByKeyOfViewInCurrentDB:1:8
+Function GetDocumentByKeyOfViewInCurrentDB(aViewName As String, aKey As Variant, aExactMatch As Boolean) As NotesDocument
+	
+	On Error Goto doerror
+	
+%REM
+	Function GetDocumentByKeyOfViewInCurrentDB
+	Description: Searches for Key (stri ng or array) in given view of current
+	database and returns document if found.
+%END REM
+	
+	Set GetDocumentByKeyOfViewInCurrentDB = Nothing
+	
+	Dim view As NotesView
+	Dim doc  As NotesDocument 
+	
+	Set view = GetGlobalView(CurrentDatabase(), aViewName)
+	Call view.Refresh()
+	Set doc = view.GetDocumentByKey(aKey, aExactMatch)
+	
+	Set GetDocumentByKeyOfViewInCurrentDB = doc
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+
+
+
+
+'++LotusScript Development Environment:2:1:AddDocACReadersForCurrentWebUser:1:8
+Public Function AddDocACReadersForCurrentWebUser(aDocument As NotesDocument) As Boolean
+	'################################################################################
+	'Adds the name of the current web user to the Readers field of the given 
+	'document, thus the current web user will be granted reader access control for 
+	'the document. The function returns false, when the current web user already had 
+	'the access control.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	AddDocACReadersForCurrentWebuser = AddDocACReaders(aDocument, CurrentWebuserNotesName().Abbreviated)
+	
+	'Must be done by ComputeWithForm(): Call AddDocACReaders(aDocument, "LocalDomainServers")
+End Function
+
+'++LotusScript Development Environment:2:1:GetFirstItemValue:1:8
+Function GetFirstItemValue(nDoc As NotesDocument, Feld As String)
+	
+	'2006-04-03, dko: Modified (Error 184 detection)
+     '2003-03-20, dko: Falls Dokument nicht gelesen werden kann, wird Error 4000 abgefangen
+     '19.09.2000, dk: ermittelt den ersten Feldwert für das angegebene Notes-Server-Dokument; oder "", wenn Feld nicht vorhanden
+	
+	On Error 184 Goto doerror184
+	On Error 4000 Goto NoAccess
+	
+	If nDoc.HasItem(Feld) Then
+		GetFirstItemValue = nDoc.GetItemValue(Feld)(0)
+	Else 
+		GetFirstItemValue = ""
+	End If
+	
+	Goto ende
+	
+doerror184:
+	'@Incorrect Datatype/@Error-Fehler ist im Feld gespeichert
+	GetFirstItemValue = ""
+	Resume ende
+'	On Error Resume Next
+'	Call ErrStack("UNID=" & nDoc.UniversalID & ", Feldname=" & Feld)
+'	On Error Goto 0
+'	Raise
+	
+NoAccess:
+	GetFirstItemValue = ""
+	Resume ende 
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:StoreDocACForCurrentWebuser:1:8
+Public Function StoreDocACForCurrentWebuser(aDocument As NotesDocument, aAccessControlFlags As Integer) As Boolean
+	'################################################################################
+	'Add then given access control permissions in given document for current web 
+	'user and save changes in given document.
+	'
+	'When the function returns true, then changes were made to the document.
+	'################################################################################
+	
+	StoreDocACForCurrentWebuser = False
+	
+	If AddDocACForCurrentWebuser(aDocument, aAccessControlFlags) Then
+		Call aDocument.ComputeWithForm(False, True)
+		Call aDocument.Save(True, True)
+		
+		StoreDocACForCurrentWebuser = True
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetDocumentByUNID:1:8
+Function GetDocumentByUNID(db As NotesDatabase, unid As String) As NotesDocument
+	
+	'Kapseln der Funktion db.GetDocumentByUNID() bzgl. Fehler / Rückgabe
+	
+	On Error Resume Next
+	
+	Set GetDocumentByUNID = db.GetDocumentByUNID(unid)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CreateRedirLink:1:8
+Function CreateRedirLink(url As String) As String
+	
+	'Erstellt einen Redirect-Eintrag und gibt die volle URL darauf zurück
+	
+	On Error Goto doerror
+	
+	Dim doc As notesDocument
+	
+	CreateRedirLink = url
+	
+	'2012-04-11, dko: ReDir immer verwenden, egal wie lang die Ursprungs-URL ist
+	'-> ermöglicht "Obfuscation" aller URLs
+	'-> einheitliche Länge/Aufbau der URls in Mails
+	'Max Len = 72: darüber ein Redir-Dok anlegen, sonst direkt-Link so verwenden
+	'If Len(url) <= 72 Then Goto ende
+	
+	If Strcompare(lastRedirTarget, url, 5) = 0 Then
+		'Warnung: der letzte Aufruf hat bereits diesen Link erzeugt: direkt zurückgeben
+		CreateRedirLink = lastRedirURL
+		Goto ende
+	End If
+	
+	lastRedirTarget = ""
+	lastRedirURL = ""
+	
+	Call PrepareRedir()
+	
+	If Not rdLookup Is Nothing Then
+		'Wenn bereits ein Redir mit dem exakten Ziel exisitiert, dann kein neues anlegen
+		Set doc = rdLookup.GetDocumentByKey(Lcase(url), True)
+		If doc Is Nothing Then
+			Set doc = New NotesDocument(rdDB)
+			doc.Form = "Redir"
+			doc.TargetDirect = url
+			Call doc.Save(True, False)
+		End If
+		CreateRedirLink = GetFullURLForDoc(doc)
+		lastRedirURL = CreateRedirLink
+		lastRedirTarget = url
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:Base64StringMimeToFile:1:8
+Sub Base64StringMimeToFile(Base64String As String, contentType As String, filePath As String)
+
+	On Error GoTo doerror
+	
+	Dim mimeSession As New NotesSession
+	Dim doc As NotesDocument
+	
+	Dim fileMime As NotesMIMEEntity
+	Dim headerDisposition As NotesMIMEHeader, headerType As NotesMIMEHeader
+	Dim bufferStream As NotesStream
+	
+	mimeSession.Convertmime = False
+	
+	Set doc = New NotesDocument(db)
+	
+	Set bufferStream = session.CreateStream
+	Call bufferStream.WriteText(Base64String, EOL_NONE)
+
+	Set fileMime = doc.CreateMIMEEntity("FileData")
+
+	Set headerDisposition = fileMime.createHeader("Content-Disposition")
+	Call headerDisposition.setHeaderVal({attachment; filename="} & ExtractFilename(filePath) & {"})
+	
+	Set headerType = fileMime.createHeader("Content-Type")
+	Call headerType.setHeaderVal(contentType)
+	Call fileMime.SetContentFromText(bufferStream, "", ENC_BASE64)
+
+	Call bufferStream.Close
+	
+	'Encode to Base64
+	Set bufferStream = session.CreateStream
+	Call bufferStream.Open(filePath, "Binary")
+	Call bufferStream.Truncate()
+	Call fileMime.Getcontentasbytes(bufferStream, True)
+	Call fileMime.Remove()	
+	Call bufferStream.Close
+	
+	mimeSession.Convertmime = True
+
+	GoTo ende
+		
+doError:
+	mimeSession.Convertmime = True
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+		
+ende:
+	On Error Resume Next
+	mimeSession.Convertmime = True
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:CheckIsACLRoleEnabled:1:8
+Function CheckIsACLRoleEnabled(ByVal r As String) As Boolean
+	
+	Dim roles As Variant
+	
+	roles = Evaluate("@UserRoles")
+	
+	If IsArray(roles) Then
+		If Not strBegins(r, "[", 5) Then r = "[" & r & "]"
+		CheckIsACLRoleEnabled = Not IsNull(ArrayGetIndex(roles, r, 5))
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:2:DocumentLockRemoveItems:2:8
+'Felder $Writers und $WritersDate entfernen
+Private Sub DocumentLockRemoveItems(doc As NotesDocument, doSave As Boolean)
+	
+	On Error GoTo doError
+
+	If doc.HasItem("$Writers") then
+		Call doc.RemoveItem("$Writers")
+		Call doc.RemoveItem("$WritersDate")
+		If doSave Then Call doc.Save(True, false)
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:IsValidIntDINPhoneNumber:1:8
+Function IsValidIntDINPhoneNumber(xnr As String) As Integer
+	
+	On Error Goto doerror
+	
+	'int phone number with call-through and brackets
+%REM
+mögliche Eingabe-Formate: 
+'Klammern sind zulässing und werden als Gruppe interpretiert
+'führende 0 werden bei Vorwahl und Landesvorwahl entfernt, fehlendes + wird ergänzt
+'Die Hauptnummer muss an Stelle 3 beginnen (bei Klammersetzung zählen Leerzeichen in der Klammer nicht mit)
+'Die Hauptnummer (alle Stellen ab 3) wird bei Bedarf zusammengefasst
+
+
++49 211 93449-39
++49 (211) 93449-39
+
++49 (02 11) 9 34 49-39
+0049 (0211) ...
+usw...
+%END REM
+	
+	'Zerlegen der Nummer in einzelne Bestandteile, dabei logisch vorgehen und mehrere Trenner unterstützen
+	
+	'Trenner sind: Leerzeichen, Bindestrich und Klammern
+	'+ darf am Anfang stehen als Einleitung für Int. Nummern
+	
+	Dim NrArr
+	Dim p1, p2
+	Dim hlpStr As String, hlpStr2
+	Dim i As Integer
+	Dim c As String
+	Dim mArr
+	Dim nr As String
+	
+	nr = Trim(xnr)
+	
+	If nr="" Then
+		xnr = nr
+		IsValidIntDINPhoneNumber = True
+		Goto ende
+	End If
+	
+	'gf. gesetzte Klammern, +  ersetzen durch Leerzeichen
+	nr = strReplace(nr, "+", " ", 5)
+	
+	'Idee: Die Klammern sind ein Gruppiermerkmal und sollten daher vor dem Entfernen verarbeitet werden
+	p1 = Instr(1, nr, "(", 5)
+	p2 = Instr(1, nr, ")", 5)
+	
+	If p2>p1 And p1>0 Then
+		'beide Klammern wurden gefunden: Den Teil dazwischen extrahieren
+		hlpStr = Mid$(nr, p1, p2-p1)
+		
+		'Daraus nur 0..9 extrahieren
+		hlpStr2 = TrimToNumber(hlpStr)
+		
+		nr = Left(nr, p1) & hlpStr2 & Mid$(nr, p2)
+	End If
+	
+	'Alle Klammern nun entfernen
+	nr = strReplace(nr, "(", " ", 5)
+	nr = strReplace(nr, ")", " ", 5)
+	
+	'Whitespaces am Beginn und Ende sowie doppelte Leerzeichen etc entfernen
+	nr = Fulltrim(nr)
+	
+	'die Nummer kann nun in die Bestandteile zerlegt werden
+	nrArr = string2Array(nr, " ", True)
+	
+	'Array auf ein Minimum von 3 Elementen vergrößern bei Bedarf
+	If Ubound(nrArr)<2 Then
+		Redim Preserve nrArr(2)
+	End If
+	
+	For i=0 To 2
+		If Typename(nrArr(i)) <> "STRING" Then
+			nrArr(i) = ""
+		End If
+	Next
+	
+	
+	'wir gehen davon aus, dass die Landesvorwahl nicht weiter separiert ist, also im ersten Block steht
+	'->sie muss mit + beginnen (ggf. hinzufügen)
+	'->sie darf nach dem + nicht mit 0 beginnen
+	'-->> nur numerische Bestandteile extrahieren und Num/Text-Konvertierung vornehmen, + davorsetzen
+	hlpStr2 = TrimToNumber(nrArr(0))
+	nrArr(0) = "+" & Cdbl("0" & hlpStr2)
+	
+	'Nächster Bestandteil sollte die Vorwahl sein. Problematisch, wenn sie durch mehrere Leerzeichen getrennt ist
+	'->sie darf nicht mit 0 beginnen
+	hlpStr2 = TrimToNumber(nrArr(1))
+	nrArr(1) = "" & Cdbl("0" & hlpStr2)
+	
+	'Die Positionen ab 2 zusammenfassen in 2
+	For i=3 To Ubound(nrArr)
+		nrArr(2) = nrArr(2) & nrArr(i)
+	Next i
+	
+	nrArr(2) = Fulltrim(nrArr(2))
+	
+	'Max. 3 Elemente-rest entfernen
+	Redim Preserve nrArr(2)
+	
+	'Die Hauptnummer kann evtl. eine Durchwahl getrennt durch "-" enthalten
+	'->meherere Bindestriche sind unzulässig, ggf. verdichten!
+	'->es sind nur Nummern und "-" zulässig
+	hlpStr = nrArr(2)
+	mArr = String2Array(hlpStr, "-", True)
+	
+	'nur den letzten Bindestrich verwenden
+	'-> Alle Elemente vor dem letzten Element dem letzen Element voranstellen
+	If Ubound(mArr) > 0 Then
+		mArr(Ubound(mArr)) = "-" & TrimToNumber(mArr(Ubound(mArr)))
+		For i=Ubound(mArr)-1 To 0 Step -1
+			mArr(Ubound(mArr)) = TrimToNumber(mArr(i)) & mArr(Ubound(mArr))
+		Next i
+	Else
+		mArr(0) = TrimToNumber(mArr(0))
+	End If
+	
+	'zurück ins Array schreiben
+	nrArr(2) = mArr(Ubound(mArr))
+	
+	'zurück als String konvertieren
+	nr = Array2String(nrArr, " ", True)
+	
+	'Validierung
+	
+	'Landesvorwahl muss inkl. + mehr als 1 Zeichen lang sein
+	If Len(nrArr(0)) > 1 Then
+		
+		'Ortsvorwahl muss mind. 1 Zeichen lang sein
+		If Len(nrArr(1)) > 0 Then
+			
+			'Auch die Rufnumer ist nicht optional!
+			If Len(nrArr(2)) > 0 Then
+				
+				xnr = nr
+				IsValidIntDINPhoneNumber = True
+				
+			End If
+			
+		End If
+		
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetURLForDoc:1:8
+Function GetURLForDoc(doc As NotesDocument)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'relative URL zum übergebenen Dokument zusammenstellen
+	GetURLForDoc = strReplace("/" + GetDBForDoc(doc) + "/0/" + doc.UniversalID, "\", "/", 5)
+	GetURLForDoc = strReplace(GetURLForDoc, " ", "+", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:1:RegQueryKeyValueCore:5:8
+%REM
+	Function RegQueryKeyValueCore
+	Description: Comments for Function
+%END REM
+Function RegQueryKeyValueCore(key As String) As Variant
+	
+	On Error GoTo doSilentError
+
+	Dim objWS
+	
+	Set objWS = CreateObject("WScript.Shell")
+	
+	RegQueryKeyValueCore = objWS.RegRead(key)
+	
+	GoTo Ende
+	
+doSilentError:
+	RegQueryKeyValueCore = ""
+	Resume Ende
+
+ende:
+End Function
+
+'++LotusScript Development Environment:2:1:ReplaceUnequalItemValue:1:8
+Function ReplaceUnequalItemValue(note As NotesDocument, fieldname As String, value) As Integer
+	
+	'setzt den Wert eines Feldes neu, wenn er sich vom übergebenen Wert unterscheidet, und gibt dann true zurück
+	
+	On Error Goto doerror	
+	
+	If Not note Is Nothing Then
+		If Not isEqualValues(note.GetItemValue(fieldname), value) Then
+			Call note.ReplaceItemValue(fieldname, value)
+			ReplaceUnequalItemValue = True
+		End If
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:EncodeURLParam:5:8
+%REM
+	Function EncodeURLParam
+	Description: Comments for Function
+%END REM
+Function EncodeURLParam(strValue As String) As String
+	
+	Dim hlpArr
+	Dim doc As NotesDocument
+	
+	Set doc = New NotesDocument(db)
+	
+	doc.dummyField = strValue
+	
+	hlpArr = Evaluate("@URLEncode(""UTF-8""; dummyField)", doc)
+	
+	'Fix 0D0A->00 Problem bei URLEncode
+	EncodeURLParam = strReplace(hlpArr(0), "%00", "%0A", 5)
+	
+End Function
+
+'++LotusScript Development Environment:2:2:DocumentUnlockAllSelected:2:8
+'Für Ansict Admin\Locks
+Sub DocumentUnlockAllSelected()
+	
+	On Error GoTo doError
+	
+	Dim ndc As NotesDocumentCollection
+	Dim doc As NotesDocument
+	
+	Set ndc = db.UnprocessedDocuments
+	Set doc = ndc.GetFirstDocument
+	While Not doc Is Nothing
+		Call DocumentUnLock(Doc)
+		Set doc = ndc.GetNextDocument(doc)
+	Wend
+	
+	Dim w As New NotesUIWorkspace
+	Call w.Viewrefresh()
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+ende:
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:AddTranslationParam:1:8
+Public Sub AddTranslationParam(aName As String, aValue As String)
+	
+	'Einen Übersetzungsparameter zur Liste hinzufügen, die später bei TranslatedString() verwendet wird
+	FTranslationParams(aName) = aValue
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetAppAccessCredentialsByName:5:8
+%REM
+	Function GetAppAccessCredentialsByName
+	Description: Comments for Function
+%END REM
+Function GetAppAccessCredentialsByName(key As String, propertyName As String) As String
+
+	On Error GoTo doError
+	
+	If gl_CredAppStore Is Nothing Then Set gl_CredAppStore = New TAppAccessStore
+	GetAppAccessCredentialsByName = gl_CredAppStore.GetValueByName(key, propertyName)
+	
+	GoTo Ende
+	
+doError:	
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+
+Ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:RegisterLanguage:1:8
+Function RegisterLanguage(idx As Integer, lang As String) As Integer
+	
+	'Sprache zu den Listen der definierten Sprachen hinzufügen, sofern idx und lang noch nicht registriert sind
+	'True zurückgeben bei erfolgreicher Registrierung
+	
+	If Not Iselement(gl_LangRes(idx)) And Not Iselement(gl_LangResIdx(Ucase(lang))) Then
+		gl_LangRes(idx) = Ucase(lang)
+		gl_LangResIdx(Ucase(lang)) = idx
+		RegisterLanguage = True
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:AddDocACAuthors:1:8
+Public Function AddDocACAuthors(aDocument As NotesDocument, aName As String) As Boolean
+	'################################################################################
+	'Adds the given name to the Authors field of the given document, thus the user 
+	'will be granted author access control for the document. The function returns 
+	'false, when the user already had the access control.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	Dim notes_item As NotesItem
+	
+	AddDocACAuthors = False
+	
+	Set notes_item = aDocument.GetFirstItem("Authors")
+	If notes_item Is Nothing Then 
+		Set notes_item = New NotesItem(aDocument, "Authors", "", AUTHORS)
+	End If
+	
+	If Not notes_item.Contains(aName) Then
+		Call notes_item.AppendToTextList(aName)
+		AddDocACAuthors = True
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetDBResourceString:1:8
+Private Function GetDBResourceString(db As NotesDatabase, tagName As String, TransList, spLang As Integer) As String
+	
+%REM
+	Routine ermittelt aus der übergebenen Datenbank den abgeforderten Sprachstring und führt Ersetzung der tag-Liste
+	durch. Ggf. wird bei Ungereimtheiten ein LogAction abgesetzt
+
+	Ist eine Sprache nicht vorhanden, wird ein Fallback auf Deutsch (STD) durchgeführt
+%END REM
+	
+	On Error Goto doerror
+	
+	Dim doc As Notesdocument
+	Dim lg As Integer
+	Dim itTxt As NotesItem
+	Dim txt As String
+	Dim xTag As String
+	Dim dbStringView As NotesView
+	
+	xTag = tagName
+	
+	'Standard-Erweiterung, sofern nicht vorhanden
+	If Instr(xTag, "/") = 0 Then xTag = xTag + "/Allgemein"
+	If Instr(Instr(xTag, "/")+1, xTag, "/", 5) = 0 Then xTag = xTag + "/STD"
+	
+	xTag = Lcase(xTag)
+	
+	'Anbinden der View und Öffnen der DB bei Bedarf
+	Set dbStringView = GetGlobalView(db, "(LookupStringRes)")
+	
+	'Default-Sprache verwenden, wenn Sprache nicht explizit übergeben wurde (=-1) oder ungültig
+	If Not Iselement(gl_LangRes(spLang)) Then
+		lg = 0
+	Else
+		lg = spLang
+	End If
+	
+	'gewünschten String abgreifen
+	Set doc = dbStringView.GetDocumentByKey(Lcase(xTag), True)
+	If Not doc Is Nothing Then
+		
+		Set itTxt = doc.GetFirstItem( gl_LangRes(lg)+"TxtRes" )
+		
+		If Not itTxt Is Nothing Then
+			txt = itTxt.Values(0)
+			
+			If Islist(TransList) Then
+				Forall tags In Translist
+					If Instr(1, txt, "<[$" + Listtag(tags) + "$]>", 5) > 0 Then
+						txt = strReplace(txt, "<[$" + Listtag(tags) + "$]>", ""&tags, 5)  'Auto-Konvert
+					Else
+						'Hier nur "Warnen", dass Ersetzungsliste zuviele unnötige Werte bereithält
+						Call LogAction("STR_RES <" + xTag + "> / " + gl_LangRes(lg) + ": Tag ""<[$" + Ucase(Listtag(tags)) + "$]>"" wird ignoriert (nicht in Stringressource vorhanden)")
+					End If
+				End Forall
+			End If
+			
+			'Sind nach Ersetzung noch Ersetzungstags vorhanden, ist das nicht gut!
+			If Instr(1, txt, "<[$", 5) > 0 Then
+				Call LogError("STR_RES <" + xTag + "> / " + gl_LangRes(lg) + ": Ersetzung unvollständig: """ + txt + """")
+			End If
+			
+		Else
+			Call LogError("STR_RES <" + xTag + ">: LG-Feld """ + gl_LangRes(lg) + """ nicht gefunden, Sprache Param/Used: " & spLang & "/" & lg)
+		End If
+		
+		'Monitoring-Option
+		If doc.Monitor_use(0) = "01" Then Call LogAction("MONITOR: Using STR_RES <" & xTag & ">")
+	Else
+		'Nur loggen, wenn xTag nicht mit "/VIEW" endet
+		If Ucase(Right(xTag, 5)) <> "/VIEW" Then
+			Call LogError("STR_RES <" + xTag + ">: Key nicht gefunden")
+		End If
+	End If
+	
+	GetDBResourceString= txt
+	
+	Goto ende
+	
+doerror: 
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:AddDocAC:1:8
+Public Function AddDocAC(aDocument As NotesDocument, aAccessControlFlags As Integer, aName As String) As Boolean
+	'################################################################################
+	'Adds the given name to the Readers or Authors fields of the given document 
+	'(depending on value of aAccessControlFlags), thus the user will be granted 
+	'reader or author access control for the document. The function returns false, 
+	'when the user already had the access controls.
+	'
+	'For aAccessControlFlags	use a combination of AC_XXXXXX flags.
+	'Exmaple: AC_READER Or AC_AUTHOR.
+	'
+	'When the function returns true (i.e. the document was changed), it's needed to 
+	'call ComputeWithForm() and Save() for the document.
+	'################################################################################
+	
+	AddDocAC = False
+	
+	'Set reader access control in document to user
+	If (aAccessControlFlags And AC_READER) <> 0 Then
+		AddDocAC = AddDocAC Or AddDocACReaders(aDocument, aName)
+	End If
+	
+	'Set author access control in document to user
+	If (aAccessControlFlags And AC_AUTHOR) <> 0 Then
+		AddDocAC = AddDocAC Or AddDocACAuthors(aDocument, aName)
+	End If
+	
+End Function
+
+'++LotusScript Development Environment:2:2:ErrOut:1:8
+Sub ErrOut(optionalText As Variant)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Call LogAction("OOD Function Call - ErrOut() - use ErrStack()")
+	Call ErrStack(optionalText)
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:DocumentGetLockMessage:1:8
+Function DocumentGetLockMessage(doc As NotesDocument) As String
+
+	On Error GoTo doError
+	
+	Dim locks As String
+	Dim hlpStr As String
+	Dim hlpName As NotesName
+	
+	locks = DocumentGetLockHolders(doc)
+	If locks <> "" Then
+
+		If InStr(1, locks, session.Username, 5) > 0 Then
+			'MA hat Datensatz selbst zum Bearbeiten offen
+			hlpStr = "Sie haben ein Dokument in der Datenbank """ & doc.Parentdatabase.Title & """ in Bearbeitung, welches aktualisiert werden muss." & GetCRLF(2)
+			hlpStr = hlpStr & "Schließen Sie das betreffende Dokument, bevor Sie mit dem Speichern fortfahren."
+		Else
+			'ein anderer MA hat den Datensatz zum Bearbeiten offen
+			Set hlpName = New NotesName(locks)
+			hlpStr = "Derzeit bearbeitet """ & hlpname.Common & """ ein Dokument in der Datenbank """ & doc.Parentdatabase.Title & """, welches aktualisiert werden muss." & GetCRLF(2)
+			hlpStr = hlpStr & "Bevor Sie mit dem Speichern fortfahren können, muß der aktuelle Bearbeiter das betreffende Dokument schließen." 
+		End If
+		
+		DocumentGetLockMessage = hlpStr
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+End Function
+
+'++LotusScript Development Environment:2:1:getContainerDoc:1:8
+Function getContainerDoc(currentdb As notesdatabase, unid As String, user As String) As notesdocument
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	'holt sich das referenzierte ContainerDoc oder erstellt ein neues 
+	
+	On Error Goto fehler
+	
+	'Dim contDB As notesdatabase
+	Dim v As notesview
+	Dim hlpname As New notesname(user)
+	Dim it As notesitem
+	
+	If hlpName.Common="" Then
+		Set hlpName = New NotesName("anonymous")
+	End If
+	
+	'PRECHECK kann ContainerDB geöffnet werden ?
+	Call PrepareContainerDB()
+	
+	'Containerdokument des Benutzers ermitteln
+	If Not unid = "" Then
+		Set GetContainerDoc = contDB.Getdocumentbyunid(unid)
+	End If
+	
+	If GetContainerDoc Is Nothing Then 
+		
+		'ggf. ein neues Dokument erzeugen
+		Set GetContainerDoc = New Notesdocument(ContDB)
+		GetContainerDoc.Form = "ContainerDoc"
+		GetContainerDoc.User = hlpname.Canonical
+		Set it = New NotesItem(GetContainerDoc, "Authors", hlpName.Canonical, AUTHORS)
+	End If
+	
+	'Leser setzen
+	Set it =GetContainerDoc.getfirstitem("readers")
+	If it Is Nothing Then Set it = New notesitem (GetContainerDoc, "Readers", "", READERS)
+	Call it.appendtotextlist(hlpname.abbreviated)
+	Call it.appendtotextlist("LocalDomainServers")
+	
+	'Autoren setzen
+	Set it = GetContainerDoc.getfirstitem("authors")
+	If it Is Nothing Then Set it = New notesitem (GetContainerDoc, "Authors", "", AUTHORS)
+	Call it.appendtotextlist(hlpname.abbreviated)
+	Call it.appendtotextlist("LocalDomainServers")
+	Call it.appendtotextlist("[Administration]")
+	
+	Call GetContainerDoc.Save(True, True)
+	
+'	logaction "Containerdoc erstellt"
+	
+	Goto Ende
+	
+	
+Fehler:	
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	Resume Ende
+	
+	
+Ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:DocumentUnLock:2:8
+'Dokument entsperren, true, wenn OK
+Function DocumentUnLock(doc As NotesDocument) As Boolean
+	
+	On Error GoTo doError
+	
+	If doc.Parentdatabase.Isdocumentlockingenabled Then
+		On Error GoTo noUnlock
+		Call doc.Unlock()
+	End If
+
+	DocumentUnLock = True
+	
+	GoTo ende
+	
+noUnlock:
+	Resume ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetLocalResourceString:1:8
+Function GetLocalResourceString(tagName As String, TransList, spLang As Integer) As String
+	
+%REM
+Abgreifen von String-Ressourcen der aktuellen Datenbank
+%END REM
+	
+	On Error Goto doerror
+	
+	Dim doc As Notesdocument
+	Dim lg As Integer
+	Dim itTxt As NotesItem
+	Dim txt As String
+	Dim xTag As String
+	
+	GetLocalResourceString= GetDBResourceString(db, tagName, TransList, spLang)
+	
+	Goto ende
+	
+doerror: 
+	On Error Resume Next
+	Call ErrStack("Common_Funcs")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetNotesRelease:1:8
+Function GetNotesRelease()
+
+	On Error GoTo doError
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	'2015-02-18, dko: Fix unerklärlicher, sporadischer Typkonvertierungsfehler: alternative berechnung CDbl()
+	
+	'Beispiele:
+	'Release 8.5.3FP2 HF390|December 10, 2012
+	'Build V90_CD6_12072012|December 07, 2012
+	
+	Dim session As New NotesSession
+	Dim vString As String
+	Dim major As String, minor As String, result As String, c As String
+	Dim i As Integer
+	Dim msg List As String
+
+	vString = session.NotesVersion
+	msg("session.NotesVersion") = vString 
+
+	vString = Left(vString, InStr(vString, "|") -1)	'Ersten Teil verwendne
+	vString = FullTrim(Mid(vString, InStr(vString, " ") + 1) & ".0")	'"Release " entfernen: Rest z.B. "8.5.3FP3"
+	msg("vString") = vString
+	
+	'Test 1. Zeichen
+	If IsNumeric(Left(vString, 1)) Then
+		major = Mid$(vString, 1, InStr(vString, ".") - 1)	'"8" oder 10 bei 10.1.1.0
+		minor = Mid$(vString, InStr(vString, ".") + 1)	'"5.3FP3"
+	Else
+		'Vxx: nicht ganz korrekt, es wird von 2 Zeichen Major ausgegangen
+		major = Mid$(vString, 2, InStr(vString, "_") - 2)	'"90"
+		minor = "0"
+	End If
+	
+	'Nur Nummern ausparsen
+	result = ""
+	For i = 1 To Len(minor)
+		c = Mid$(minor, i, 1)
+		If InStr("0123456789", c) > 0 Then
+			result = result & c
+		End If
+	Next i
+	
+	On Error GoTo typeError1
+	GetNotesRelease = CDbl(major & session.International.Decimalsep & result)
+	
+	Set session = Nothing
+	
+	GoTo ende
+	
+typeError1:
+	Resume tryAlternate1
+	
+typeError2:
+	Resume tryAlternate2
+	
+tryAlternate1:
+	On Error GoTo typeError2
+	GetNotesRelease = CDbl(Major) + 1/10^Len(result) * CDbl(result)
+	'Print "Dbg done, Alt=1", GetNotesRelease
+	GoTo ende
+	
+tryAlternate2:
+	On Error Resume Next
+	GetNotesRelease = CDbl(major)
+	'Print "Dbg done, Alt=2", GetNotesRelease
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Call ErrStack(vString & ";" & major & "#" & session.International.Decimalsep & "#" & result)
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:2:PrepareRedir:1:8
+Private Sub PrepareRedir()
+	On Error Resume Next
+	
+	If Not rdbOpenTried Then
+		Call rdDB.OpenWithFailover(db.server, GetSystemVar("RD_DB"))
+		If rdDB.IsOpen Then Set rdLookup = GetGlobalView(rdDB, "(LookupRedirects)")
+		rdbOpenTried = True
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:getContainerDHTMLDoc:1:8
+Function getContainerDHTMLDoc(username As String) As NotesDocument
+	
+	'spezielles User-Profile vom Typ DurchgangsHTML vorbereiten
+	
+	Dim s As notessession
+	Dim Richstyle As NotesRichtextStyle
+	Dim RTItem As NotesRichtextItem
+	Dim DHTMLDoc As notesdocument 
+	
+	Set s = New NotesSession
+	
+	'Prepare Container Doc - Subtype DHTML
+	Set richStyle = s.CreateRichTextStyle
+	richStyle.PassThruHTML = True
+	
+	'
+	Set DHTMLDoc = getContainerDoc(Nothing, "", username)
+	DHTMLDoc.Subtype = "DHTML"
+	
+	Set RTItem = New NotesRichtextItem(DHTMLDoc, "DHTML")
+	Call RTItem.Appendstyle(richStyle)
+	
+	Call DHTMLDoc.Save(True, False)
+	
+	Set getContainerDHTMLDoc = DHTMLDoc
+	
+End Function
+
+'++LotusScript Development Environment:2:1:CopyDocAccessRights:1:8
+Function CopyDocAccessRights(source As NoteSdocument, target As NotesDocument)
+	
+	'kopiert die Zugriffsrechte (AUTHORS, READERS, STDREADERS) von einem Dokument in ein anderes
+	'->überschreibt vorhandene
+	'-> Rückgabe true, wenn etwas geändert wurde
+	
+	On Error Goto doerror
+
+	Dim it As NotesItem
+	
+	'init
+	CopyDocAccessRights = False
+	
+	If IsSomething(source) And isSomething(target) Then
+		CopyDocAccessRights = CopyDocAccessRights Or ReplaceUnequalItemValue(target, "Authors", source.getItemValue("Authors"))
+		CopyDocAccessRights = CopyDocAccessRights Or ReplaceUnequalItemValue(target, "Readers", source.getItemValue("Readers"))		
+		CopyDocAccessRights = CopyDocAccessRights Or ReplaceUnequalItemValue(target, "StdReaders", source.getItemValue("StdReaders"))
+		
+		'2017-09-22, dko: Sicherstellen der Feld-Flags im Ziel-Dokument
+		Set it = target.Getfirstitem("Authors")
+		If Not it Is Nothing Then
+			If Not it.Isauthors Then
+				it.Isauthors = True
+				CopyDocAccessRights = True
+			End If	
+		End If
+		
+		Set it = target.Getfirstitem("Readers")
+		If Not it Is Nothing Then
+			If Not it.Isreaders Then
+				it.Isreaders = True
+				CopyDocAccessRights = True
+			End If
+		End If
+		
+		Set it = target.Getfirstitem("StdReaders")
+		If Not it Is Nothing Then
+			If Not it.Isreaders Then
+				it.Isreaders = True
+				CopyDocAccessRights = True
+			End If
+		End If
+		
+	End If
+	
+	Goto ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetAllDocumentsByKeyOfViewInCurrentDB:1:8
+Function GetAllDocumentsByKeyOfViewInCurrentDB(aViewName As String, aKey As Variant, aExactMatch As Boolean) As NotesDocumentCollection
+	
+	On Error Goto doerror
+	
+%REM
+	Function GetAllDocumentByKeyOfViewInCurrentDB
+	Description: Comments for Function
+%END REM
+	
+	Set GetAllDocumentsByKeyOfViewInCurrentDB = Nothing
+	
+	Dim view As NotesView
+	Dim docs As NotesDocumentCollection  
+	
+	Set view = GetGlobalView(CurrentDatabase(), aViewName)
+	Call view.Refresh()
+	Set docs = view.GetAllDocumentsByKey(aKey, aExactMatch)
+	
+	Set GetAllDocumentsByKeyOfViewInCurrentDB = docs
+	
+	Goto ende
+	
+doerror:
+	On Error Goto doerror
+	Call Errstack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:DocumentLock:2:8
+'Dokument sperren, true, wenn OK
+Function DocumentLock(doc As NotesDocument, provisional As Boolean) As Boolean
+	
+	On Error GoTo doError
+	
+	Dim hlpArr(0) As String
+	
+	If doc.Parentdatabase.Isdocumentlockingenabled Then
+		hlpArr(0) = session.Username
+		DocumentLock = doc.Lock(hlpArr, provisional)
+	Else
+		DocumentLock = true
+	End If
+
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetLang:1:8
+Function GetLang(idx As Integer) As String
+	
+	'Return Language (in Uppercase) for given index or FallBack="DE"
+	
+	'Sprachindex zurückgeben
+	If Iselement(gl_LangRes(idx)) Then
+		GetLang = gl_LangRes(idx)
+	Else
+		GetLang = gl_LangRes(0)
+	End If
+	
+End Function
+
+
+
+
+
+
+
+
+
+
+
+

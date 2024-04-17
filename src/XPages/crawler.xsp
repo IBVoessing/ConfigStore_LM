@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xp:view xmlns:xp="http://www.ibm.com/xsp/core" xmlns:xe="http://www.ibm.com/xsp/coreex"
+	rendered="false" viewState="nostate">
+
+	<xp:this.beforeRenderResponse>
+		<![CDATA[#{javascript:com.voessing.vcde.endpoints.vrh.crawler.CrawlerReqHandler.handleRequest();}]]>
+	</xp:this.beforeRenderResponse>
+
+</xp:view>

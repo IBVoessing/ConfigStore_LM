@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<note class='view' xmlns='http://www.lotus.com/dxl' version='12.0' maintenanceversion='2.2'
+ replicaid='C1258AFC00296AAF'>
+<noteinfo noteid='1aa' unid='3C603EA16860F116C1258ADF004CAAEF' sequence='2'>
+<created><datetime>20240313T145724,95+01</datetime></created>
+<modified><datetime dst='true'>20240411T133550,54+02</datetime></modified>
+<revised><datetime>20240313T145726,99+01</datetime></revised>
+<lastaccessed><datetime dst='true'>20240411T133550,53+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T133550,53+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name='$FormatNote' summary='true' sign='true'>
+<rawitemdata type='4'>
+AQDGaewJF6a9oGibRAA6aCXB
+</rawitemdata></item>
+<item name='$FormulaClass' sign='true'><text>1</text></item>
+<item name='$TITLE' sign='true'><text>(vrh)\relations\timOfTi</text></item>
+<item name='$Index' sign='true'><text/></item>
+<item name='$Formula' summary='true' sign='true'><formula compiled='true'>
+jAAFACYAIQACABAACQBUb29sSW5zdGFuY2VVTklEJENvbmZsaWN0AAQABAAAAE4ABQAEAEZvcm0B
+ABYAVG9vbEluc3RhbmNlTWVtYmVyc2hpcAoCBQAOACRpc1NvZnRkZWxldGVkAAAAAAAAAADwPwoC
+BAAeARwCAwAHABIADAAJTDFTNFM1UzhTOVM=
+</formula></item>
+<item name='$Collation' summary='true'>
+<rawitemdata type='2'>
+HQABAABEgGYAAAAQAFRvb2xJbnN0YW5jZVVOSUQ=
+</rawitemdata></item>
+<item name='$ViewFormat' summary='true' sign='true'>
+<rawitemdata type='5'>
+AQABABcACgAAAFZDAQAQAAgAAAAAAAABBQAACAAAAAAAAAAAAAICAAAAVG9vbEluc3RhbmNlVU5J
+RHBhcmVudElkJgABAAAAAQEACQEAAAoBAQ4KAAABAK0rAQABAAEAAAAAAAAAAABXQwYBAAkAAAAA
+AAAAAAAAAAAAAAAAAAAEAAAAAAD//wAAAAAAAAAAAAAAAAAAQgAAAAAAAQD///8ABQD///8AAQAA
+AAAAAAAAAAAAAAABAP///wABAP///wAAAAEAAAAAAAEAgICAAAEAAAAAAAAACAAAAAAAAQA=
+</rawitemdata></item>
+<item name='$Fonts' sign='true'><textlist><text>5</text><text>53</text><text
+>Consolas</text><text>6</text><text>53</text><text>Consolas</text></textlist></item>
+<item name='$Comment' sign='true'><text/></item>
+<item name='$DesignerVersion'><text>8.5.3</text></item>
+<item name='$V5ACTIONS' sign='true'>
+<rawitemdata type='1'>
+vRwPAAAAAQABAAAAAAAAAAAAAAAAAAAACAAAAHn/bAABAMDAwAABAAAAAAAJAAAAAAABANTQyAAA
+AB8AAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAPz/OgAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAEAAAAAAAAAAAAAAAAAAAC+/yoAAAAFAAAAnQEAAA8AAAAAAAAAX0thdGVnb3Jpc2ll
+cmVuCwEATny+/y4AAAAFAAAAnQEAABQAAAAAAAAARG9rdW1lbnQgX2JlYXJiZWl0ZW4CAAIKvv8s
+AAAABQAAAJ0BAAARAAAAAAAAAERva3VtZW50ICBfc2VuZGVuAAMAAwq+/ygAAAAFAAAAnQEAAA0A
+AAAAAAAAX1dlaXRlcmxlaXRlbgAEAAQKvv80AAAABQAAAJ0BAAAZAAAAAAAAAF9JbiBPcmRuZXIg
+dmVyc2NoaWViZW4uLi4ABQA9fL7/MAAAAAUAAACdAQAAFQAAAAAAAABfQXVzIE9yZG5lciBlbnRm
+ZXJuZW4ABgA+fA==
+</rawitemdata></item>
+<item name='$ACTIONS' sign='true'>
+<rawitemdata type='1'>
+vRwPAAAAAQABAAAAAAAAAAAAAAAAAAAACAAAAL7/KgAAAAUAAACdAQAADwAAAAAAAABfS2F0ZWdv
+cmlzaWVyZW4EAQBOfL7/LgAAAAUAAACdAQAAFAAAAAAAAABEb2t1bWVudCBfYmVhcmJlaXRlbgIA
+Agq+/ywAAAAFAAAAnQEAABEAAAAAAAAARG9rdW1lbnQgIF9zZW5kZW4AAwADCr7/KAAAAAUAAACd
+AQAADQAAAAAAAABfV2VpdGVybGVpdGVu/wQABAq+/zQAAAAFAAAAnQEAABkAAAAAAAAAX0luIE9y
+ZG5lciB2ZXJzY2hpZWJlbi4uLgEFAD18vv8wAAAABQAAAJ0BAAAVAAAAAAAAAF9BdXMgT3JkbmVy
+IGVudGZlcm5lbgAGAD58
+</rawitemdata></item>
+<item name='$Flags'><text>Y</text></item></note>
+

@@ -1,0 +1,1956 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library Common_NotesFileFuncs
+	Created Oct 13, 2022 by Denis Kopprasch/IT/Duesseldorf/IBV/DE
+	
+	Zur Umgehung der LS2J-Problematik wurden die LS-Funktionen Stand 2011 reaktiviert - mit den bekannten Einschränkungen
+	
+%END REM
+Option Public
+Option Declare
+Use "Common_Funcs"
+
+%REM
+
+2024-03-15, dko:
+	- Shell_Run_PowershellScript_UTF8() generalisiert übernommen aus BMFuncs
+			
+2023-01-19, dko:
+	- Shell_Run_PowershellScript() generalisiert übernommen
+	
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Private Class TRecursiveDirScan
+Declare Function GetFilesOfDirectoryLS(ByVal workDir As String, includeSubDirs As Boolean)
+Declare Sub RS_K_aufloesen()
+Declare Private Sub CleanupDirectoryInternal(ByVal tdir As String, doDelDir As Boolean)
+Declare Function GetFilesOfDirectoryExLS(ByVal workDir As String, fileMask As String, includeSubDirs As Boolean)
+Declare Function DirectoryExistsLS(aDirectoryName As String) As Boolean
+Declare Function ExtractGlobalTemplateFilesLS(vlName As String, optVersion As Integer) As String
+Declare Function FileRenameOrMoveLS(aSource As String, aDest As String) As Boolean
+Declare Public Function ChangeFileExtLS(ByVal aName As String, ByVal aNewFileExt As String) As String
+Declare Function MISKillTempFileLS(filename As String) As Boolean
+Declare Function GetTransferTempDirLS() As String
+Declare Private Sub internal_RSKAufloesen(doc1 As NotesDocument)
+Declare Function MISKillLS(filename As String) As Boolean
+Declare Function ValidPathnameLS(aPathname As String) As String
+Declare Private Function MISKillFileApprovedInternal(filename As String, ByVal allowDir As String) As Boolean
+Declare Function ExclusiveFilenameLS(aFilename As String) As String
+Declare Function FileExistsExLS(aFileName As String, aAttributes As Integer) As Boolean
+Declare Function GetTempDirLS() As String
+Declare Function ForceDirectoryLS(ByVal dirname As String) As Boolean
+Declare Function FileExistsLS(aFileName As String) As Boolean
+Declare Sub Shell_Run_PowershellScript(ByVal psScriptFilePath As String, ByVal optOutputPath As String, paramList List, ByVal timeOutSeconds As Integer, retCode As Integer, retText As String, outputText As String)
+Declare Private Function ValidFSItemname(aFSItemname As String, aNotAllowedCharacters, aReplacementCharacter) As String
+Declare Function GetUniqueTempDirLS() As String
+Declare Function ValidFilenameLS(aFilename As String) As String
+Declare Sub CleanupDirectoryLS(ByVal tdir As String, doDelDir As Boolean)
+Declare Function ExtractFileNameStubLS(ByVal aName As String) As String
+Declare Sub Shell_Run_PowershellScript_UTF8(ByVal psScriptFilePath As String, ByVal optOutputPath As String, paramList List, ByVal timeOutSeconds As Integer, keepCmdFile As Boolean, retCode As Integer, retText As String, outputText As String)
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private Const ATTR_FNORMAL    =  0
+Private Const ATTR_FHIDDEN    =  2
+Private Const ATTR_FSYSTEM    =  4
+Private Const ATTR_FVOLUME    =  8
+Private Const ATTR_FDIRECTORY = 16
+Private Class TRecursiveDirScan
+	
+	Private ResultDirList List As String
+	Private ResultFileList List As String
+	
+	%REM
+		Sub ReInit
+		Description: Comments for Sub
+	%END REM
+	Private Sub ReInit()
+		'Print "Start"
+		Erase ResultDirList
+		Erase ResultFileList
+	End Sub
+	
+	%REM
+		Function GetDirectoryExists
+		Description: Comments for Function
+	%END REM
+	Function GetDirectoryExists(ByVal checkDir As String) As Boolean
+		
+		On Error GoTo doerror
+		
+		Dim path As String
+		
+		checkDir = strDelSlash(checkDir)
+		
+		path = Dir(checkDir, ATTR_FDIRECTORY)
+		
+		GetDirectoryExists = path <> ""
+		 
+		%REM
+		Call GetFilesOfDirectoryEx(checkDir, "xx-dummy-xx", False)
+		
+		'nur ein Ergebnis
+		ForAll x In ResultDirList
+			Print ListTag(x), x
+			If LCase(checkDir) = LCase(ListTag(x)) Then
+				GetDirectoryExists = True
+			End If
+		End ForAll
+		%END REM
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	Function GetFilesOfDirectoryEx(ByVal workDir As String, fileMask As String, includeSubDirs As Boolean)
+		
+		On Error GoTo doerror
+		
+		Dim xL List As String
+		
+		Call Reinit()
+		
+		'Init Result = empty List
+		GetFilesOfDirectoryEx = XL
+		
+		workDir = strDelSlash(WorkDir)
+
+		'Zuerst die zu scannenden Verzeichnisse ermitteln, unabhängig von den wildcards
+		Call Me.ScanDirsOnly(workDir, includeSubDirs)
+
+		'danach die Dateien pro Vz. mit wildcards scannen
+		ForAll d In ResultDirList
+			Call Me.ScanFilesOnly(ListTag(d), fileMask)
+		End ForAll
+
+%REM
+		ForAll d In ResultDirList
+			Print "DIR", ListTag(d), d
+		End ForAll
+
+		ForAll f In ResultFileList
+			Print "FILE", ListTag(f), f
+		End ForAll
+%END REM
+
+		'Return File List
+		GetFilesOfDirectoryEx = ResultFileList
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	Private Sub ScanFilesOnly(ByVal path As String, fileMask As String)
+
+		On Error GoTo doError
+		On Error 53 GoTo silentError
+		On Error 76 GoTo silentError
+
+		Dim filename As String
+		Dim filepath As String
+		
+		If path <> "" Then
+			
+			filepath = strAddSlash(path)
+			
+			'Print "## Scan: " & filepath & fileMask
+			
+			path = filePath & fileMask
+			
+			filename = Dir(path, ATTR_FDIRECTORY)
+			While filename <> ""
+				
+				If filename <> "." And filename <> ".." Then
+					If (GetFileAttr(filePath & filename) And ATTR_FDIRECTORY) = 0 Then
+						ResultFileList(filePath & filename) = filename
+					End If
+				End If
+				
+				filename = Dir
+			Wend
+			
+		End If
+		
+		GoTo ende
+		
+silentError:
+		'Path/File not found: Dann silent beenden
+		Resume ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	
+	Private Sub ScanDirsOnly(ByVal path As String, includeSubDirs As Boolean)
+
+		On Error GoTo doError
+		On Error 53 GoTo silentError
+		On Error 76 GoTo silentError
+
+		Dim DirList As Variant
+		Dim filename As String
+		Dim filepath As String
+		
+		If path <> "" Then
+			
+			'Print "## Scan DIR: " & path
+			
+			'aufnehmen in die Result-DirList
+			ResultDirList(path) = ExtractFileName(path)
+
+			ReDim DirList(0)
+			
+			filepath = strAddSlash(path)
+
+			path = filePath
+			
+			filename = Dir(path, ATTR_FDIRECTORY)
+			While filename <> ""
+				If filename <> "." And filename <> ".." Then
+					If (GetFileAttr(filePath & filename) And ATTR_FDIRECTORY) > 0 Then
+						DirList = ArrayAppend(DirList, filePath & filename)
+					End If
+				End If
+				filename = Dir
+			Wend
+			
+			If includeSubDirs Then
+				
+				DirList = FullTrim(DirList)
+				
+				ForAll dirpath In DirList
+					Call ScanDirsOnly("" & dirpath, includeSubDirs)
+				End ForAll
+			End If
+			
+		End If
+		
+		GoTo ende
+		
+silentError:
+		'Path/File not found: Dann silent beenden
+		Resume ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	'Einfach alles ohne Wildcards
+	Function GetFilesOfDirectory(ByVal workDir As String, includeSubDirs As Boolean)
+		
+		On Error GoTo doError
+		
+		Dim xL List As String
+		
+		Call Reinit()
+		
+		'Init Result = empty List
+		GetFilesOfDirectory = XL
+		
+		workDir = strDelSlash(WorkDir)
+
+		Call Me.ScanDirs(workDir, includeSubDirs)
+
+%REM
+		ForAll d In ResultDirList
+			Print "DIR", ListTag(d), d
+		End ForAll
+
+		ForAll f In ResultFileList
+			Print "FILE", ListTag(f), f
+		End ForAll
+%END REM
+
+		'Return File List
+		GetFilesOfDirectory = ResultFileList
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	Private Sub ScanDirs(ByVal path As String, includeSubDirs As Boolean)
+
+		On Error GoTo doError
+		On Error 53 GoTo silentError
+		On Error 76 GoTo silentError
+
+		Dim DirList As Variant
+		Dim filename As String
+		Dim filepath As String
+		
+		If path <> "" Then
+
+			ReDim DirList(0)
+			
+			filepath = strAddSlash(path)
+
+			path = filePath
+			
+			filename = Dir(path, ATTR_FDIRECTORY)
+			While filename <> ""
+				If filename <> "." And filename <> ".." Then
+
+					If (GetFileAttr(filePath & filename) And ATTR_FDIRECTORY) > 0 Then
+						DirList = ArrayAppend(DirList, filePath & filename)
+
+					Else
+						' PERFORM DESIRED CHECK/OPERATION
+						' ON filepath & sep & filename
+						' OR filename (as desired)
+						ResultFileList(filePath & filename) = filename
+					End If
+				End If
+				
+				filename = Dir
+			Wend
+			
+			If includeSubDirs Then
+				DirList = FullTrim(DirList)
+				
+				ForAll dirpath In DirList
+					Call ScanDirs("" & dirpath, includeSubDirs)
+				End ForAll
+			End If
+			
+			'aufnehmen in die Result-DirList
+			ResultDirList(path) = ExtractFileName(path)
+			
+		End If
+		
+		GoTo ende
+		
+silentError:
+		'Path/File not found: Dann silent beenden
+		Resume ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+End Class
+
+'++LotusScript Development Environment:2:1:GetFilesOfDirectoryLS:1:8
+Function GetFilesOfDirectoryLS(ByVal workDir As String, includeSubDirs As Boolean)
+	
+	On Error GoTo doerror
+	
+	Dim scanner As New TRecursiveDirScan
+	
+	'Return File List
+	GetFilesOfDirectoryLS = scanner.GetFilesOfDirectory(workDir, includeSubDirs)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:RS_K_aufloesen:1:8
+Sub RS_K_aufloesen()
+	
+	%REM
+
+2006-05-03, dko: MultiSelect-Unterstützung: Abfragen jedoch für jedes einzelne Dokument
+2005-03-11, dko: Moved to Global Template
+2004-07-ATTR_FDIRECTORY, dko: Verbesserte Methode aus IBV-Notes übernommen
+
+	%END REM
+	
+	Dim session As New NotesSession
+	Dim ndc As NotesDocumentCollection
+	Dim doc1 As NotesDocument, docX As NotesDocument
+	
+	Set ndc = session.CurrentDatabase.UnprocessedDocuments
+	Set doc1 = ndc.GetFirstDocument
+	While Not doc1 Is Nothing
+		Set docX = ndc.GetNextDocument(doc1)
+		Call internal_RSKAufloesen(doc1)
+		Set doc1 = docX
+	Wend
+	
+	Dim w As New NotesUIWorkspace
+	Call w.Viewrefresh()
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:CleanupDirectoryInternal:1:8
+Private Sub CleanupDirectoryInternal(ByVal tdir As String, doDelDir As Boolean)
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	
+	Dim xL List As String
+	Dim xD() As String
+	
+	Dim baseDir As String
+	Dim hlp As String
+	Dim c As Double
+	
+	If Trim(tDir)="" Then GoTo ende
+	
+	tdir = strAddSlash(tDir)
+	baseDir = tDir
+	
+	'Erstes Verzeichnis ist das Ausgangsverzeichnis selbst
+	c = 0
+	ReDim xD(c)
+	xD(c) = baseDir
+	
+	While tDir <> ""
+		
+		'Files
+		hlp = Dir(strAddSlash(tDir) + "*.*")
+		While Not hlp = ""
+			xL(tDir + hlp) = "1"
+			hlp = Dir()
+		Wend
+		
+		'Directories
+		hlp = Dir(tDir + "*.*", ATTR_FDIRECTORY)
+		While Not hlp = ""
+			If StrCompare(hlp, ".", 5) <> 0 And StrCompare(hlp, "..", 5) <> 0 Then
+				If Not IsElement(xL(tDir + hlp)) Then
+					'Als Verzeichnis hinzufügen, wenn es nicht als Datei bereits erkannt wurde
+					ReDim Preserve xD(UBound(xD)+1)
+					xD(UBound(xD)) = tDir + hlp
+				End If
+			End If
+			hlp = Dir()
+		Wend
+		
+		'nächstes Vz.
+		c = c + 1
+		tDir = ""
+		If c <= UBound(xD) Then
+			'nächstes Vz. der Gesamtliste vornehmen
+			tDir = strAddSlash(xD(c))
+		End If
+		
+	Wend
+	
+	'hier angekommen, wurden alle Verzeichnisse und Subverzeichnisse durchlaufen
+	ForAll x In xL
+		Call MISKillLS(ListTag(x))
+	End ForAll
+	
+	For c = UBound(xD) To 1 Step -1
+		RmDir xD(c)
+	Next c
+	
+	'Remove BaseDir
+	If doDelDir Then RmDir baseDir
+	
+	GoTo ende
+	
+ende:
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:GetFilesOfDirectoryExLS:5:8
+%REM
+	Function GetFilesOfDirectoryExLS
+	Description: Comments for Function
+%END REM
+Function GetFilesOfDirectoryExLS(ByVal workDir As String, fileMask As String, includeSubDirs As Boolean)
+	
+	On Error GoTo doerror
+	
+	Dim scanner As New TRecursiveDirScan
+	
+	'Return File List
+	GetFilesOfDirectoryExLS = scanner.GetFilesOfDirectoryEx(workDir, fileMask, includeSubDirs)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:DirectoryExistsLS:1:8
+Function DirectoryExistsLS(aDirectoryName As String) As Boolean
+
+	On Error GoTo doerror
+	
+	Dim scanner As New TRecursiveDirScan
+	
+	DirectoryExistsLS = scanner.GetDirectoryExists(aDirectoryName)
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:ExtractGlobalTemplateFilesLS:1:8
+Function ExtractGlobalTemplateFilesLS(vlName As String, optVersion As Integer) As String
+	
+	'Löst die Dateien der genannten Vorlage in ein Verzeichnis unterhalb der Transfer-Root/Temp ab
+	'und gibt den PFAD zurück bzw. Leerstring, wenn etwas schiefgeht oder keine Dateien enthalten sind
+	
+	On Error GoTo doerror
+	
+	Dim dummyDoc As NotesDocument
+	Dim hlpArr
+	Dim neo As NotesEmbeddedObject
+	Dim filename As String
+	Dim fPath As String, dirname As String
+	Dim i As Integer
+	
+	'Vorlagendokument holen
+	Set dummyDoc = GetGlobalTemplateDoc(vlName, optVersion)
+	
+	If Not dummyDoc Is Nothing Then
+		
+		'Anlagen ermitteln
+		hlpArr = Evaluate("@AttachmentNames", dummydoc)
+		
+		If hlpArr(0) <> "" Then
+			
+			'Verzeichnisnamen festlegen
+			dirname = Format(Date(), "yyyymmdd") + StrReplace(Time(), ":", "", 5) + dummyDoc.NoteID
+			fPath = strAddSlash( getSystemVar("TRANSFER_ROOT") )
+			fPath = strAddSlash( fPath + "Temp" )
+			fPath = strAddSlash( fPath + "Templates" )
+			fPath = strAddSlash( fPath + dirname )
+			
+			'Verzeichnis erstellen
+			If ForceDirectoryLS(fPath) Then
+				For i=0 To UBound(hlpArr)
+					Set neo = dummyDoc.GetAttachment(hlpArr(i))
+					If Not neo Is Nothing Then
+						filename  = fPath + neo.Name
+						Call neo.ExtractFile( filename )
+					End If
+				Next i
+			End If
+			
+		End If
+		
+	End If
+	
+	ExtractGlobalTemplateFilesLS = fPath
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call ErrStack("MISFuncs")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:FileRenameOrMoveLS:5:8
+%REM
+	Function RenameOrMoveFileLS
+	Description: Comments for Function
+%END REM
+Function FileRenameOrMoveLS(aSource As String, aDest As String) As Boolean
+	
+	On Error GoTo doError
+	
+	'Quelle muss existieren, Ziel darf nicht existieren
+	If FileExistsLS(aSource) And Not FileExistsLS(aDest) Then
+		
+		'Umbenennung bzw. Move durchführen
+		Name aSource As aDest
+		
+		'Ziel muss existieren
+		FileRenameOrMoveLS = FileExistsLS(aDest)
+			
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume next
+	Call Errstack("Error Rename: #" & aSource & "# -> #" & aDest)
+	On Error GoTo 0
+	Raise
+	
+ende:
+		
+End Function
+
+'++LotusScript Development Environment:2:1:ChangeFileExtLS:1:8
+Public Function ChangeFileExtLS(ByVal aName As String, ByVal aNewFileExt As String) As String
+	'################################################################################
+	'Changes the file extension of the given file name.
+	'################################################################################
+	
+	
+	'################################################################################
+	'Define error handling
+	'################################################################################
+	
+	On Error GoTo do_error
+	
+	
+	'################################################################################
+	'Declare local vars
+	'################################################################################
+	
+	Dim stub As String
+	
+	
+	'################################################################################
+	'Run code
+	'################################################################################
+	
+	aName       = Trim(aName)
+	aNewFileExt = Trim(aNewFileExt)
+	
+	If (Len(aNewFileExt) > 0) Then
+		If (Left$(aNewFileExt, 1) <> ".") Then
+			aNewFileExt = "." + aNewFileExt
+		End If
+	End If
+	
+	If aNewFileExt = "." Then aNewFileExt = ""
+	
+	ChangeFileExtLS = ExtractFilePath(aName) & ExtractFileNameStubLS(aName) & aNewFileExt
+	
+	'################################################################################
+	'That's All Folks!
+	'################################################################################
+	
+	Exit Function
+	
+	
+	'################################################################################
+	'Error handling
+	'################################################################################
+	
+do_error:
+	On Error Resume Next
+	
+	'Remember error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+End Function
+
+
+'++LotusScript Development Environment:2:1:MISKillTempFileLS:1:8
+Function MISKillTempFileLS(filename As String) As Boolean
+	
+	'Diese Funktion löscht die angegebene Datei, wenn diese sich im temp. Verzeichnisses befindet
+	On Error GoTo doerror
+
+	'nur im Transfer_root erlauben
+	MISKillTempFileLS = MISKillFileApprovedInternal(fileName, GetTempDirLS())
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Resume ende
+	
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetTransferTempDirLS:1:8
+Function GetTransferTempDirLS() As String
+	'################################################################################
+	'Returns the name of the base temp dir of the server, wherein yo may create 
+	'subdirs for your own purpose. Needed by routine UniqueTempDir().
+	'################################################################################
+	
+	GetTransferTempDirLS = strAddSlash(GetSystemVar("TRANSFER_ROOT")) + "Temp"
+End Function
+
+
+'++LotusScript Development Environment:2:2:internal_RSKAufloesen:1:8
+Private Sub internal_RSKAufloesen(doc1 As NotesDocument)
+	
+	On Error Resume Next
+	
+	Dim doc2 As NotesDocument
+	Dim emb As NotesEmbeddedObject, emb1 As NotesEmbeddedObject
+	Dim richtext_item As NotesRichTextItem
+	Dim Antwort As Integer
+	Dim result As String
+	Dim j As NotesItem
+	Dim newline As String
+	Dim defToAll As Integer
+	Dim Parentunid As String
+	Dim Empfehlung As String
+	Dim aFilename As String
+	Dim attDoc1, attDoc2, doc1AttMissing, doc2AttMissing, dateH, dateK
+	Dim defButton, Defaultbutton
+	Dim anlRemoved List As Byte
+	Dim Path As String
+	
+	newline = Chr(13) + Chr(10)
+	
+	'	Set doc1= db.unprocesseddocuments.getfirstdocument
+	
+	Parentunid = InputBox("Orginaldokument des Konflikts (Vorgabe=Elterndokument): ", "Orginal wählen", doc1.parentdocumentunid)
+	If Parentunid ="" Then GoTo ende
+	
+	If Parentunid <> doc1.parentdocumentunid Then
+		defToAll = False
+	Else
+		defToAll = MsgBox("Vorschläge ohne Nachfrage annehmen?", 3 + 32 + 256, "Automatische Verarbeitung")
+		If defToAll = 2 Then GoTo ende
+		defToAll = (defToAll=6)
+	End If
+	
+	Set doc2 = doc1.parentDatabase.getdocumentbyunid(parentUnid)
+	
+	
+	
+	If Not doc1.hasitem("$Conflict") Then
+		MsgBox "Das gewählte Dokument ist kein Konfliktdokument. Der Vorgang wird abgebrochen."
+		GoTo ende
+	ElseIf doc1.UniversalID = doc2.UniversalID Then
+		If defToAll Then
+			Antwort=6
+		Else
+			Antwort = MsgBox("WARNUNG: Rekursive Verknüpfung: Das gewählte Dokument ist sein eigenes Konfliktdokument. Soll des Konfliktkennzeichen entfernt werden?", 20, "Rekursiver Konflikt gefunden")
+		End If
+		If  Antwort = 6 Then
+			Call doc1.RemoveItem("$REF")
+			Call doc1.RemoveItem("$CONFLICT")
+			Call doc1.Save(True, False)
+		End If
+		GoTo ende
+	Else
+		If Not defToAll Then
+			MsgBox "FORM: " & doc1.Form(0) & "/" & doc2.Form(0) & Chr(13) & Chr(13) +_
+"Info: Vergleich Zeitstempel Konfliktdokument / Original " & Chr(13) +_
+"Erstellt: " & doc1.Created & "/" & doc2.Created & Chr(13) &_
+"Geändert: " & doc1.LastModified & "/" & doc2.LastModified
+		End If
+		
+	End If
+	
+	ForAll i In doc1.items
+		If Not Left(i.name,1) = "$" Then
+			If doc2.hasitem(i.name) Then 
+				Set j=doc2.getfirstitem(i.name)
+				If Not j.text = i.text Then 
+					
+					'älter oder neuer?
+					On Error GoTo Fehler1
+					If i.LASTMODIFIED > j.LASTMODIFIED Then 
+						Empfehlung = "Empfehlung: Wert des Konfliktdokumentes übernehmen, da er NEUER ist."
+						Defaultbutton = 0
+					ElseIf i.LASTMODIFIED <= j.LASTMODIFIED Then
+						Empfehlung = "Empfehlung: Wert des Konfliktdokumentes NICHT übernehmen, da er ÄLTER ist."
+						Defaultbutton = 256
+					End If
+					Print Empfehlung
+Fehler1:
+					
+	%REM
+					Resume weiter1
+weiter1:
+					On Error Goto Fehler2
+					If i.LASTMODIFIED < j.LASTMODIFIED Then 
+						Empfehlung = "Es wird empfohlen, den Wert des Konfliktdokumentes NICHT zu übernehmen, da er älter ist."
+						Defaultbutton = 256
+					End If
+					Print Empfehlung
+Fehler2:
+	%END REM
+					
+					Resume weiter2
+weiter2:
+					On Error GoTo Fehler3
+					
+					'nicht mit leer überschreiben, nur weil leer neuer ist
+					'2004-03-01, dko: das kann auch eine Fehlerquelle sein, denn leer kommt schon mal vor!
+					If i.text <> "" And j.text = "" Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld im Originaldokument ist leer."
+						'Default-Button von der Erst-Empfehlung nicht ändern: Defaultbutton = 0
+					End If
+					Print Empfehlung
+Fehler3:
+					Resume weiter3
+weiter3:
+					On Error GoTo Fehler4
+					If i.text = "" And j.text <> "" Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld im Konfliktdokument ist leer."
+						'Default-Button von der Erst-Empfehlung nicht ändern: Defaultbutton = 256
+					End If
+					Print Empfehlung
+Fehler4:
+					Resume weiter4
+weiter4:
+					On Error GoTo Fehler5
+					'nicht mit null überschreiben, nur weil null neuer ist
+					If i.values(0) <> 0 And j.values(0) = 0 Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld im Originaldokument ist 0."
+						'Default-Button von der Erst-Empfehlung nicht ändern: Defaultbutton = 0
+					End If
+					Print Empfehlung
+Fehler5:
+					Resume weiter5
+weiter5:
+					On Error GoTo Fehler6
+					If i.values(0) = 0 And j.values(0) <> 0 Then 
+						Empfehlung = Empfehlung + newline + "INFO: Das Feld im Konfliktdokument ist 0."
+						'Default-Button von der Erst-Empfehlung nicht ändern: Defaultbutton = 256
+					End If
+					Print Empfehlung
+Fehler6:
+					Resume weiter6
+weiter6:
+					On Error Resume Next                         
+					If defToAll Then
+						'Antwort=6
+						If defButton=0 Then Antwort=6
+						If defButton=256 Then Antwort=7
+						If defButton=512 Then Antwort=2
+					Else
+						Antwort = MsgBox("Das Item " + i.name + " stimmt nicht überein: "  + newline+newline+ "Konfliktdokument: " + i.text +" (" + CStr(i.LASTMODIFIED) +")" + Chr(13) + Chr(10) + "Originaldokument: " + j.text + " (" + CStr(j.LASTMODIFIED) +")" + Chr(13) + Chr(10) + Chr(13) + Chr(10) + Empfehlung  + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Soll das Originaldokument den Wert des Konfliktdokumentes annehmen?", 35 + defaultbutton, "Konflikt gefunden")	
+					End If
+					If Antwort = 2 Then GoTo ende
+					If  Antwort = 6 Then
+						Call j.remove
+						Call i.copyitemtodocument(doc2, i.name)
+					End If
+				End If
+			Else
+				'Msgbox "Das Item " + i.name + " fehlt im Hauptdokument und wurde dort hinzugefügt:" + Chr(13) + Chr(10)  + i.text
+				Empfehlung = "Empfehlung: Item zum Hauptdokument hinzufügen (abwägen!)"
+				Defaultbutton = 0
+				
+				On Error Resume Next                         
+				If defToAll Then
+					Antwort=6
+				Else
+					Antwort = MsgBox("Das Item " + i.name + " FEHLT: "  + newline+newline+ "Konfliktdokument: " + i.text +" (" + CStr(i.LASTMODIFIED) +")" + Chr(13) + Chr(10) + Chr(13) + Chr(10) + Empfehlung  + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Soll das Originaldokument den Wert des Konfliktdokumentes annehmen?", 35 + defaultbutton, "Konflikt gefunden")
+				End If
+				If Antwort = 2 Then GoTo ende
+				If  Antwort = 6 Then
+					Call i.copyitemtodocument(doc2, i.name)
+				End If
+				
+			End If
+		End If
+		
+	End ForAll
+	
+'2011-10-11, dko: Anlagen gesondert abgleichen
+
+	'zunächst das Vorhandensein ener Anlage prüfen
+	attDoc1=Evaluate("@Sort(@Lowercase(@AttachmentNames))", doc1)
+	attDoc2=Evaluate("@Sort(@LowerCase(@AttachmentNames))", doc2)
+	
+	If Not isEqual(attDoc1, attDoc2) Then
+		doc1AttMissing = Replace(attDoc2, attDoc1, "", 1, -1, 0)
+		doc2AttMissing = Replace(attDoc1, attDoc2, "", 1, -1, 0)
+		
+		'Anlagen prüfen, die im Hauptdokument fehlen
+		If doc2AttMissing(0) <> "" Then
+			Empfehlung = "Empfehlung: Anlage zum Hauptdokument hinzufügen (abwägen!)"
+			Defaultbutton = 0
+			ForAll anl In doc2AttMissing
+				
+				On Error Resume Next                         
+				If defToAll Then
+					Antwort=6
+				Else
+					Antwort = MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" & Chr(13) & Chr(10) & "Die ANLAGE " + anl + " FEHLT" + Chr(13) + Chr(10) + Chr(13) + Chr(10) + Empfehlung  + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Soll das Originaldokument die Anlage aus dem Konfliktdokumentes übernehmen?", 35 + defaultbutton, "Konflikt gefunden")
+				End If
+				If Antwort = 2 Then GoTo ende
+				If  Antwort = 6 Then
+					'Anlage hinzufügen
+					
+					'Get richttext item to store attachment
+					If richtext_item Is Nothing Then
+						If Doc2.HasItem("FileContainerBody") Then
+							Set richtext_item = doc2.GetFirstItem("FileContainerBody")
+						Else
+							Set richtext_item = New NotesRichTextItem(doc2, "FileContainerBody")
+						End If
+					End If
+					
+					Set emb = doc1.Getattachment(anl)
+					If Path = "" Then
+						Path = strAddSlash(strAddSlash(GetSystemvar("TRANSFER_ROOT")) & "RSK-" & CreateUniqueString())
+						Call ForceDirectoryLS(Path)
+					End If
+					aFilename = Path & emb.Name
+					Call emb.Extractfile( aFilename )
+					Set emb = richtext_item.EmbedObject(EMBED_ATTACHMENT, "", aFileName)
+
+				End If
+				
+			End ForAll
+		End If
+
+		'Anlagen prüfen, die im Konflikt fehlen, aber im Hauptdokument vorhanden sind
+		Empfehlung = "Empfehlung: Anlage im Hauptdokument belassen (abwägen!)"
+		Defaultbutton = 256
+		
+		If doc1AttMissing(0) <> "" Then
+			ForAll anl In doc1AttMissing
+				
+				On Error Resume Next                         
+				If defToAll Then
+					Antwort=7
+				Else
+					Antwort = MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" & "Die ANLAGE " + anl + " fehlt im Konflikt" + Chr(13) + Chr(10) + Chr(13) + Chr(10) + Empfehlung  + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Soll die Anlage im Originaldokument entfernt werden?", 35 + defaultbutton, "Konflikt gefunden")
+				End If
+				If Antwort = 2 Then GoTo ende
+				If  Antwort = 6 Then
+					'Anlage entfernen
+					Set emb = doc2.GetAttachment(anl)
+					anlRemoved(anl) = 1
+					Call emb.Remove()
+				End If
+				
+			End ForAll
+		End If
+	End If
+	
+	'Anlagengröße prüfen: Hierzu ausgehend vom Hauptdokument die Anlagen im Konflikt prüfen
+	'-> es reicht hierbei, die ursprünglich im Hauptdokument bestehenden Anlagen zu prüfen.
+	ForAll anl In attDoc2
+		If Not IsElement(anlRemoved(anl)) Then
+			'diese Anlage wurde vorher nicht gerade aus dem Hauptdokument gelöscht			
+
+			Set emb = doc2.GetAttachment(anl)
+			Set emb1 = doc1.GetAttachment(anl)
+			If Not emb1 Is Nothing And Not emb Is Nothing Then
+				'beide Anlagen sind vorhanden
+				If emb.Filesize <> emb1.Filesize Then
+					
+					If Path = "" Then
+						Path = strAddSlash(strAddSlash(GetSystemvar("TRANSFER_ROOT")) & "RSK-" & CreateUniqueString())
+						Call ForceDirectoryLS(Path)
+					End If
+					aFilename = Path & emb.Name
+					
+					Call emb.Extractfile(aFilename & ".haupt")
+					Call emb1.Extractfile(aFilename)
+					
+					'Entscheidung auf Basis des Dateidatumsausmachen
+					dateH = FileDateTime(aFilename & ".haupt")
+					dateK = FileDateTime(aFilename)
+					
+					If dateH >= dateK Then
+						Empfehlung = "Empfehlung: Anlage im Hauptdokument unverändert lassen"
+						Defaultbutton = 256
+					Else
+						Empfehlung = "Empfehlung: Anlage im Hauptdokument ersetzen"
+						Defaultbutton = 0
+					End If
+					
+					On Error Resume Next
+					If defToAll Then
+						If Defaultbutton = 0 Then
+							Antwort=6
+						Else
+							Antwort=7
+						End If
+					Else
+						Antwort = MsgBox("EXPERIMENTELL/UNGETESTET: Anlagen-Abgleich" & "Die ANLAGE " + anl + " hat verschiedene Größen." + Chr(13) + Chr(10) +_
+"Original: " & dateH & "/" & emb.FileSize & " Bytes" & Chr(13) &_
+"Konflikt: " & dateK & "/" & emb1.Filesize & " Bytes" & Chr(13) &_
+						Chr(13) + Chr(10) + Empfehlung  + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Soll die Anlage im Originaldokument ersetzt werden?", 35 + defaultbutton, "Konflikt gefunden")
+					End If
+					If Antwort = 2 Then GoTo ende
+					If  Antwort = 6 Then
+						'Anlage ersetzen
+						
+						'aus Hauptdokument löschen
+						Call emb.Remove()
+						
+						'Get richttext item to store attachment
+						If richtext_item Is Nothing Then
+							If Doc2.HasItem("FileContainerBody") Then
+								Set richtext_item = doc2.GetFirstItem("FileContainerBody")
+							Else
+								Set richtext_item = New NotesRichTextItem(doc2, "FileContainerBody")
+							End If
+						End If
+						
+						'ins Hauptdokument neu einfügen
+						Set emb = richtext_item.EmbedObject(EMBED_ATTACHMENT, "", aFileName)
+						
+					End If
+					
+				End If
+			End If
+		End If
+	End ForAll
+	
+	'TODO: Später mal: ModifiedTimes vergleichen
+	
+	If defToAll Then
+		Antwort=6
+	Else
+		Antwort = MsgBox("Das Dokument wurde gemäß Ihren Antworten angepaßt. Soll das Originaldokument nun gespeichert werden? Wenn Sie Nein wählen, werden alle Änderungen verworfen.", 36, "Änderungen speichern")
+	End If
+	If Antwort = 2 Then GoTo ende
+	If Antwort = 6 Then
+		Call doc2.save(True, True)
+	End If
+	
+	If defToAll Then
+		Antwort=6
+	Else
+		Antwort = MsgBox("Soll das Konfliktdokument nun gelöscht werden? Wenn Sie Nein wählen, können Sie später weitere Daten aus dem Konfliktdokument übernehmen.", 36, "Änderungen speichern")
+	End If
+	If Antwort = 2 Then GoTo Ende
+	If  Antwort = 6 Then
+		Call doc1.remove(True)
+	End If
+	
+ende:
+	On Error Resume Next
+	If Path <> "" Then Call CleanupDirectoryLS(path, True)
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:MISKillLS:1:8
+Function MISKillLS(filename As String) As Boolean
+	
+	'2012-05-15: Umstellung auf Streambasiertes löschen
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error GoTo doerror
+	
+	'nur im Transfer_root erlauben
+	MISKillLS = MISKillFileApprovedInternal(fileName, GetSystemVar("TRANSFER_ROOT"))
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+
+
+'++LotusScript Development Environment:2:1:ValidPathnameLS:1:8
+Function ValidPathnameLS(aPathname As String) As String
+	'################################################################################
+	'Returns aFilename, but replaces not allowed characters and non ASCII characters 
+	'with replacement character.
+	'Because we check a path name (i.e. \Users\All), we explicitely allow "\".
+	'################################################################################
+	
+	'Define error handling
+	On Error GoTo do_error
+	
+	ValidPathnameLS = ValidFSItemname(aPathname, "/:*?""<>|	", "_")
+	
+	'Replace " \", "\ " and "\\" or "\\\" by "\"
+	ValidPathnameLS = StringSuperReplace(ValidPathnameLS, " \", "\", 5)
+	ValidPathnameLS = StringSuperReplace(ValidPathnameLS, "\ ", "\", 5)
+	ValidPathnameLS = StringSuperReplace(ValidPathnameLS, "\\", "\", 5)
+	
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+End Function
+
+
+'++LotusScript Development Environment:2:1:MISKillFileApprovedInternal:1:8
+Private Function MISKillFileApprovedInternal(filename As String, ByVal allowDir As String) As Boolean
+	
+	'2012-05-15: Umstellung auf Streambasiertes löschen
+
+	On Error GoTo doerror
+	
+	Dim requestDir As String
+	
+	If Trim(allowDir) = "" Then GoTo ende
+	
+	allowDir = strAddSlash(allowDir)
+	
+	'die Länge des Transfer-Roots aus dem angefragten Verzeichnis extrahieren
+	requestDir = Left(Filename, Len(allowDir))
+	
+	If StrCompare(allowDir, requestDir, 5) = 0 Then
+		
+		Dim session As New NotesSession
+		Dim sx As NotesStream
+		Set sx = session.Createstream()
+		Call sx.Open(filename)
+		
+		'2013-08-13, dko: Fix Readonly-Flag: entfernen!
+		If sx.Isreadonly Then
+			Call sx.Close()
+			
+			'im LS Kontext so nicht möglich
+			'If L_S2J_fileSetWritable(Filename) Then
+			'	Call sx.Open(filename)
+			'	Call sx.Truncate()
+			'	Call sx.Close()
+			'	MISKillFileApproved = True
+			'End If
+		Else
+			Call sx.Truncate()
+			Call sx.Close()
+			MISKillFileApprovedInternal = True
+		End If
+		
+	Else
+		Call LogError("INVALID KILL REQUEST DROPPED: " & filename & " (not below of directory """ & allowDir & """)")
+	End If
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:ExclusiveFilenameLS:1:8
+Function ExclusiveFilenameLS(aFilename As String) As String
+	'################################################################################
+	'Returns the exclusive file name of the given file name. This is the file name 
+	'itself when the file does not exist, otherwise it's the sequenced file name 
+	'(i.e. "readme (2).txt" instead of "readme.txt").
+	'################################################################################
+	
+	On Error GoTo do_error
+	
+	Dim file_path      As String
+	Dim file_name_stub As String
+	Dim file_ext       As String
+	Dim i              As Integer
+	
+	file_path         = ExtractFilePath(aFilename)
+	file_name_stub    = ExtractFileNameStubLS(aFilename)
+	file_ext          = ExtractFileExt(aFilename)
+	
+	ExclusiveFilenameLS = aFilename
+	
+	'Make sequenced file name:
+	i = 1
+	While FileExistsLS(ExclusiveFilenameLS)
+		i = i + 1
+		
+		'Avoid endless loop
+		ASSERT i < 9999, "ExclusiveFilename(): exceeds maximum iteration depth!"
+		
+		ExclusiveFilenameLS = file_path + file_name_stub + " (" + CStr(i) + ")" + file_ext
+	Wend
+	
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack(aFileName & "; " & ExclusiveFilenameLS)
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+	
+	Exit Function
+End Function
+
+
+
+'++LotusScript Development Environment:2:1:FileExistsExLS:1:8
+Function FileExistsExLS(aFileName As String, aAttributes As Integer) As Boolean
+	'################################################################################
+	'Returns true, if given file exists. Summarize the following values for 
+	'aAttributes:
+	'ATTR_NORMAL, ATTR_HIDDEN, ATTR_SYSTEM, ATTR_VOLUME (only alone), ATTR_DIRECTORY
+	'################################################################################
+	
+	'Path not found: tritt bei zu langen Dateinamen auf, wird als nicht existent gewertet (Rückgabe=false)
+	On Error 76 Resume Next
+	
+	FileExistsExLS = Dir$(aFileName, aAttributes) <> ""
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetTempDirLS:1:8
+Function GetTempDirLS() As String
+	
+	If IsDefined("WINDOWS") Then
+		
+		'2022-10-13, dko: Hier nehmen wir nun nicht mehr den Systempfad, sondern den Transfer-Temp-Pfad 
+		GetTempDirLS = GetTransferTempDirLS() 
+		
+		'Fallback auf ein eigenes Verzeichnis
+		If GetTempDirLS = "" Then GetTempDirLS = "C:\DOMINOTEMPDIR"
+		
+		'Immer sicherstellen
+		Call ForceDirectoryLS(GetTempDirLS)
+		
+	Else
+		'derzeit: Linux: Standardpath
+		GetTempDirLS = "\tmp"
+	End If
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:ForceDirectoryLS:1:8
+Function ForceDirectoryLS(ByVal dirname As String) As Boolean
+	
+	On Error GoTo doError
+	
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	Dim hlpArr
+	Dim i As Integer, start As Integer
+	Dim hlp
+	Dim drive As String
+	
+	hlpArr = String2Array(strDelSlash(dirname), "\", True)
+	
+	If InStr(hlpArr(0), ":") > 0 Then
+		drive = Left(hlpArr(0), 1) + ":"
+		start = 1
+	Else
+		drive = ""
+		start = 0
+	End If
+	
+	For i = start To UBound(hlpArr)
+		
+		drive = drive + "\" + hlpArr(i)
+		
+		On Error Resume Next
+		hlp = Dir(drive, ATTR_FDIRECTORY+4+2)  'inkl. hidden + system
+		On Error GoTo nocreate
+		
+		If hlp = "" Then
+			'muss erstellt werden
+'			Print "try create " & drive
+			MkDir drive
+'			Print "ok create " & drive
+		Else
+'			Print "ok exists" & drive
+		End If
+		
+	Next
+	
+	ForceDirectoryLS = True
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	Resume ende
+	
+noCreate:
+'	Print "error create " & drive
+	ForceDirectoryLS = False
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+
+'++LotusScript Development Environment:2:1:FileExistsLS:1:8
+Function FileExistsLS(aFileName As String) As Boolean
+	'################################################################################
+	'Returns true, if given no-system-file exists.
+	'################################################################################
+	
+	FileExistsLS = FileExistsExLS(aFileName, ATTR_FNORMAL)
+End Function
+
+'++LotusScript Development Environment:2:2:Shell_Run_PowershellScript:35:8
+%REM
+	Sub Empirum_Run_PowershellScript
+	
+	Parameters/Examples
+	
+	psScriptFilePath: Full Path and Filename of the PS script
+		D:\Temp\run.ps1
+	
+	optOutputPath: Full Path to the destinations where temp files are created, as well as additional output by the script
+		Default: <psScriptFilePath>\Exec
+		D:\Temp\RandomId
+	
+	paramList: Values of the List entries will be added as parameter to the PS Call (as 3rd param counting up), order as defined
+		paramList("xyz") = "parameter 3"
+		
+	timeOutSeconds: maximum execution time of the script in seconds before it is dropped
+		300
+	
+	retCode: Return Codes
+		-1: Allgemeiner Scriptfehler
+		-2: Start des CMD-Files fehlgeschlagen
+		-3: Aufruf der Powershell fehlgeschlagen
+		-4: Timeout des CMD-Shells
+	
+		>=0: Script gelaufen, spezifische Return-Codes aus dem Powershell-Script, zur weiteren spezifischen Verarbeitung
+			-> from !SCRIPT_RESULT_CODE
+			
+	retText: Return Text
+		-> Error Text or extracted from !SCRIPT_RESULT_TEXT
+		
+	outputText: additional Text which has been written to the output file by the script
+		-> Text between !SCRIPT_TEXT! Tags in the file
+		
+%END REM	
+Sub Shell_Run_PowershellScript(ByVal psScriptFilePath As String, ByVal optOutputPath As String, paramList List, ByVal timeOutSeconds As Integer, retCode As Integer, retText As String, outputText As String)
+
+	On Error GoTo doError
+	
+	Dim session As New NotesSession
+	
+	Dim psScriptPath As String
+	Dim cmdBaseFilename As String, cmdFilePath As String
+	Dim txtFilePath As String, txtFileName As String, txtDoneName As String, txtDonePath As String
+	
+	Dim outActive As Boolean
+	Dim outTextArr
+	
+	ReDim outTextArr(0) As String
+	
+	'Scriptpath extrahieren
+	psScriptPath = ExtractFilepath(psScriptFilePath)
+	
+	'OutputPath setzen
+	If optOutputPath = "" Then 
+		'Default
+		optOutputPath = psScriptPath & strAddSlash("Exec")
+	Else
+		'Explicit
+		optOutputPath = strAddSlash(optOutputPath)
+	End If
+	
+	'Print "Run Powershell Script " & scriptFilePath & ", " & ListValues2String(paramList, ",", False)
+	
+	'Rücksetzen der output-Parameter
+	retCode = -1
+	retText = "Fehler: Scriptablauf unvollständig"
+	outputText = ""
+	
+	'Erzeuge Dateien in Subfolder
+	cmdBaseFilename = CreateUniqueString()	'eindeutigen Dateinamen erzeugen
+	cmdFilePath = optOutputPath & cmdBaseFilename & ".cmd"
+	
+	txtFileName = cmdBaseFilename & ".txt"
+	txtFilePath = optOutputPath & txtFileName
+	txtDoneName = txtFileName & ".DONE.txt"
+	txtDonePath = optOutputPath & txtDoneName
+	
+	'Eine Default-Output-Datei erstellen: Falls das PS-Script gar nicht läuft, damit was zum Umbenennen da ist
+	Dim txt As NotesStream
+	Set txt = session.Createstream()
+	Call txt.Open(txtFilePath, "UTF-8")
+	Call txt.Writetext("$$NOTRUN")
+	Call txt.Close()
+
+	'CMD-Batchdatei erstellen
+	Dim cmd As NotesStream
+	Set cmd = session.Createstream()
+	Call cmd.Open(cmdFilePath, "UTF-8")
+	Call cmd.Writetext("@echo -Run_PowershellScript-", Eol_platform)
+
+	Dim pList List As String
+	Dim i As Integer
+
+	'Param 1 = Destination path for the Output (with no Backslash)	
+	i = 0
+	pList(i) = """" & strDelSlash(optOutputPath) & """"
+
+	'Param 2 = Textfile für Output (without path)	
+	i = 1
+	pList(i) = """" & txtFilePath & """"
+
+	'Param 3..x = Parameter gem. Liste	
+	ForAll p In paramList
+		i = i + 1
+		If TypeName(p) = "STRING" Then
+			'Strings immer mit Textqualifizierern hinterlegen, falls sie Leerzeichen etc enthalten
+			pList(i) = """" & p & """"
+		Else
+			'andere Parameter normal übernehmen
+			pList(i) = p
+		End If
+	End ForAll
+	
+	'Die Umbenannte output.txt-Datei dient als Kontrolle, ob die Shell() beendet wurde
+	Call cmd.Writetext("powershell -ExecutionPolicy ByPass -file """ & psScriptFilePath & """ " & ListValues2String(pList, " ", False), Eol_platform)
+	Call cmd.Writetext("rename """ & txtFilePath & """ """ & txtDoneName & """", Eol_platform)
+	Call cmd.Close()
+	
+	If Shell(cmdFilePath, 1) <> 33 Then
+		'Problem beim Start -> Abbruch
+		retCode = -2
+		retText = "Fehler: CMDFile " & cmdFilePath & " wurde nicht gestartet"
+		Call LogError(retText)
+		GoTo ende
+	End If
+	
+	'Warteschleife: 60 Sekunden Timeout
+	Dim timeout As Integer
+	Dim condition As Boolean
+
+	'auf Umbenennung der txt warten	
+	timeout = 0
+	condition = False
+	While Not condition And timeout <= timeOutSeconds
+		Sleep 1
+		timeout=timeout+1
+		condition = fileExistsLS(txtDonePath)
+	Wend
+
+	'bei erfolgreicher Beendigung: Aufräumen
+	If condition Then
+		
+		'Default = 0 = gelaufen, kein besonderer Text
+		retCode = 0
+		retText = ""
+		
+		Sleep 1 'avoid "File is readonly error" when deleting cmdFile
+		
+		'Call logAction("#CMD-File: " & cmdFilePath & ", Execution Done, Deleting CMDFile")
+
+		'cmd file ohne Prüfung löschen
+		Call cmd.Open(cmdFilePath, "")
+		Call cmd.Truncate()
+		Call cmd.Close()
+		
+		'Ergebnisdatei auslesen
+		Dim content As String
+		Call txt.Open(txtDonePath, "UTF-8")
+		
+		'Extrahieren des allgemeinen relevanten Script-Outputs
+		While Not txt.Iseos
+			
+			'EOL entfernen, da RestText diese mitliest
+			content = StrReplaceCRLF_LF(txt.Readtext(STMREAD_LINE), "")
+			
+			If content = "$$NOTRUN" Then
+				'Powershell ist nicht gelaufen
+				retCode = -3
+				retText = "Fehler: Aufruf des Powershell-Scripts fehlgeschlagen"
+			ElseIf strBegins(content, "!SCRIPT_RESULT_CODE: ", 5) Then
+				'Powershell gelaufen, auslesen der Codes
+				retCode = CInt(Mid$(content, 22))
+			ElseIf strBegins(content, "!SCRIPT_RESULT_TEXT: ", 5) Then
+				'Powershell gelaufen, auslesen des Textes
+				retText = Mid$(content, 22)
+			End If
+
+			If strBegins(content, "!SCRIPT_TEXT!", 5) Then
+				'dieses Tag schaltet die Debugaufzeichnung ein bzw. aus
+				outActive = Not outActive
+			ElseIf outActive Then
+				outTextArr = ArrayAppend(outTextArr, content)
+			End If
+
+		Wend
+		
+		outputText = Array2String(outTextArr, GetCRLF(1), True)
+		
+		'Text als Ganzes auslesen
+		%REM geht nicht, kommt garbage raus
+		txt.Position = 0
+		content = txt.Readtext()
+		Call LogAction(content)
+		
+		Dim hlpArr
+		hlpArr = Split(content, "!SCRIPT_TEXT!")
+		Call logAction("!SCRIPT_TEXT! Extract: " & UBound(hlpArr))
+		If UBound(hlpArr) = 2 Then 
+			outputText = hlpArr(1)
+			Call logAction("!SCRIPT_TEXT! Extract: " & outputText)			
+		End If
+	%END REM
+		Call txt.Truncate()
+		Call txt.Close()
+
+	Else
+		retCode = -4
+		retText = "Fehler: Timeout der Shell-Aktion """ & cmdFilePath & """ (" & timeOutSeconds & "s)"
+		Call LogError(retText)
+	End If
+		
+	GoTo ende
+			
+doError:
+	On Error Resume Next
+	outputText = Error$
+	Call ErrStack("")
+	Resume ende
+			
+ende:
+
+End Sub
+
+
+'++LotusScript Development Environment:2:1:ValidFSItemname:1:8
+Private Function ValidFSItemname(aFSItemname As String, aNotAllowedCharacters, aReplacementCharacter) As String
+	'################################################################################
+	'Returns aFSItemname (item of file system), but replaces non allowed characters 
+	'and non ASCII characters with replacement character.
+	'Will be called by ValidFilename() and ValidPathname()
+	'################################################################################
+	
+	'Define error handling
+	On Error GoTo do_error
+	
+	Dim i As Integer
+	Dim c As String
+	
+	ValidFSItemname = ""
+	
+	For i = 1 To Len(aFSItemname)
+		c = Mid$(aFSItemname, i, 1)
+		
+		'Replace not allowed characters and non ASCII characters 
+		If (InStr(aNotAllowedCharacters, c) > 0) Or (Uni(c) > 255) Then 
+			ValidFSItemname = ValidFSItemname & aReplacementCharacter
+		Else
+			ValidFSItemname = ValidFSItemname & c
+		End If
+	Next i
+	
+	ValidFSItemname = Trim(ValidFSItemname)
+	
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+	
+	Exit Function
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetUniqueTempDirLS:1:8
+Function GetUniqueTempDirLS() As String
+	'################################################################################
+	'Returns the unique name of a subdir in the basetemp dir, which can be used for 
+	'your own purpose.
+	'################################################################################
+	
+	GetUniqueTempDirLS = strAddSlash(GetTransferTempDirLS()) + CreateUniqueString()
+End Function
+
+'++LotusScript Development Environment:2:1:ValidFilenameLS:1:8
+Function ValidFilenameLS(aFilename As String) As String
+	'################################################################################
+	'Returns aFilename, but replaces not allowed characters and non ASCII characters 
+	'with replacement character.
+	'################################################################################
+	
+	'Define error handling
+	On Error GoTo do_error
+	
+	ValidFilenameLS = ValidFSItemname(aFilename, "\/:*?""<>|	", "_")
+	
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+	
+	Exit Function
+End Function
+
+
+'++LotusScript Development Environment:2:2:CleanupDirectoryLS:1:8
+Sub CleanupDirectoryLS(ByVal tdir As String, doDelDir As Boolean)
+	
+	'2012-05-15: Umstellung auf LS2J-Methode
+	'2007-01-08: ROOT TEMPLATE CHECKED
+	
+	On Error Resume Next
+	
+	Dim allowDir As String
+	Dim requestDir As String
+	Dim doDeleteDir As Boolean
+	
+	If Trim(tDir)="" Then GoTo ende
+	
+	'nur im Transfer_root erlauben
+	allowDir = GetSystemVar("TRANSFER_ROOT")
+	If Trim(allowDir) = "" Then GoTo ende
+	allowDir = strAddSlash(allowDir)
+
+	'die Länge des Transfer-Roots aus dem angefragten Verzeichnis extrahieren
+	requestDir = Left(strAddSlash(tDir), Len(allowDir))
+	doDeleteDir = doDelDir
+	
+	If StrCompare(allowDir, requestDir, 5) = 0 Then
+		Call CleanupDirectoryInternal(tdir, doDeleteDir)
+	Else
+		Call LogError("INVALID CLEANUPDIRECTORY REQUEST DROPPED: " & tDir)
+	End If
+	
+ende:
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:ExtractFileNameStubLS:1:8
+Function ExtractFileNameStubLS(ByVal aName As String) As String
+	'################################################################################
+	'Returns the file name without path and without extension.
+	'################################################################################
+	
+	On Error GoTo do_error
+	
+	Dim file_name As String
+	Dim file_ext  As String
+	
+	file_name         = ExtractFileName(aName)
+	file_ext          = ExtractFileExt(aName)
+	
+	ExtractFileNameStubLS = Left$(file_name, Len(file_name) - Len(file_ext))
+	
+	Exit Function
+	
+do_error:
+	On Error Resume Next
+	
+	'Remeber error stack
+	Call ErrStack("")
+	
+	'Re-raise error
+	On Error GoTo 0
+	Raise
+	
+	Exit Function
+End Function
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:Shell_Run_PowershellScript_UTF8:40:8
+%REM
+	Sub Empirum_Run_PowershellScript_UTF8
+	
+	Übernahme aus BMFuncs
+	
+	Parameters/Examples
+	
+	psScriptFilePath: Full Path and Filename of the PS script
+		D:\Temp\run.ps1
+	
+	optOutputPath: Full Path to the destinations where temp files are created, as well as additional output by the script
+		Default: <psScriptFilePath>\Exec
+		D:\Temp\RandomId
+	
+	paramList: Values of the List entries will be added as parameter to the PS Call (as 3rd param counting up), order as defined
+		paramList("xyz") = "parameter 3"
+		
+	timeOutSeconds: maximum execution time of the script in seconds before it is dropped
+		300
+
+	keepCmdFile: calling proc or this function itself can specify that (in case of error) the original cmd file should not be deleted
+		true/false
+			
+	retCode: Return Codes
+		-1: Allgemeiner Scriptfehler
+		-2: Start des CMD-Files fehlgeschlagen
+		-3: Aufruf der Powershell fehlgeschlagen
+		-4: Timeout des CMD-Shells
+	
+		>=0: Script gelaufen, spezifische Return-Codes aus dem Powershell-Script, zur weiteren spezifischen Verarbeitung
+			-> from !SCRIPT_RESULT_CODE
+			
+	retText: Return Text
+		-> Error Text or extracted from !SCRIPT_RESULT_TEXT
+		
+	outputText: additional Text which has been written to the output file by the script
+		-> Text between !SCRIPT_TEXT! Tags in the file
+		
+%END REM
+Sub Shell_Run_PowershellScript_UTF8(ByVal psScriptFilePath As String, ByVal optOutputPath As String, paramList List, ByVal timeOutSeconds As Integer, keepCmdFile As Boolean, retCode As Integer, retText As String, outputText As String)
+
+		On Error GoTo doError
+		
+		Dim session As New NotesSession
+		
+		Dim psScriptPath As String
+		Dim cmdBaseFilename As String, cmdFilePath As String
+		Dim txtFilePath As String, txtFileName As String, txtDoneName As String, txtDonePath As String
+		
+		Dim outActive As Boolean
+		Dim outTextArr
+		
+		ReDim outTextArr(0) As String
+		
+		'Scriptpath extrahieren
+		psScriptPath = ExtractFilepath(psScriptFilePath)
+		
+		'OutputPath setzen
+		If optOutputPath = "" Then 
+			'Default
+			optOutputPath = psScriptPath & strAddSlash("Exec")
+		Else
+			'Explicit
+			optOutputPath = strAddSlash(optOutputPath)
+		End If
+		
+		'Print "Run Powershell Script " & scriptFilePath & ", " & ListValues2String(paramList, ",", False)
+		
+		'Rücksetzen der output-Parameter
+		retCode = -1
+		retText = "Fehler: Scriptablauf unvollständig"
+		outputText = ""
+		
+		'Erzeuge Dateien in Subfolder
+		cmdBaseFilename = CreateUniqueString()	'eindeutigen Dateinamen erzeugen
+		cmdFilePath = optOutputPath & cmdBaseFilename & ".cmd"
+		
+		txtFileName = cmdBaseFilename & ".txt"
+		txtFilePath = optOutputPath & txtFileName
+		txtDoneName = txtFileName & ".DONE.txt"
+		txtDonePath = optOutputPath & txtDoneName
+		
+		'Eine Default-Output-Datei erstellen: Falls das PS-Script gar nicht läuft, damit was zum Umbenennen da ist
+		Dim txt As NotesStream
+		Set txt = session.Createstream()
+		Call txt.Open(txtFilePath, "UTF-8")
+		Call txt.Writetext("$$NOTRUN")
+		Call txt.Close()
+
+		'CMD-Batchdatei erstellen
+		Dim cmd As NotesStream
+		Set cmd = session.Createstream()
+		Call cmd.Open(cmdFilePath, "UTF-8")
+		Call cmd.Writetext("@echo -Run_PowershellScript-", Eol_platform)
+		
+		'Hier kommt der Trick, damit die Parameterübergabe im UTF-8-Format korrekt funktioniert
+		Call cmd.Writetext("chcp 65001", Eol_platform)	
+
+		Dim pList List As String
+		Dim i As Integer
+
+		'Param 1 = Destination path for the Output (with no Backslash)	
+		i = 0
+		pList(i) = "-localPath " & """" & strDelSlash(optOutputPath) & """"
+
+		'Param 2 = Textfile für Output (without path)	
+		i = 1
+		pList(i) = "-TransLogFile " & """" & txtFilePath & """"
+
+		'Param 3..x = Parameter gem. Liste	
+		ForAll p In paramList
+			i = i + 1
+			If TypeName(p) = "STRING" Then
+				'Strings immer mit Textqualifizierern hinterlegen, falls sie Leerzeichen etc enthalten
+				pList(i) = "-" & ListTag(p) & " """ & p & """"
+			Else
+				'andere Parameter normal übernehmen
+				pList(i) = "-" & ListTag(p) & " " & p
+			End If
+		End ForAll
+		
+		'Die Umbenannte output.txt-Datei dient als Kontrolle, ob die Shell() beendet wurde
+		Dim hlpStr As String
+		hlpStr = "powershell -ExecutionPolicy ByPass -file """ & psScriptFilePath & """ " & ListValues2String(pList, " ", False)
+		Call cmd.Writetext(hlpStr, Eol_platform)
+		
+		'2024-02-23, dko: Sicherheitshalber kurz warten vor Umbenennen
+		Call cmd.Writetext("timeout 2 > NUL", Eol_platform)
+		
+		hlpStr = "rename """ & txtFilePath & """ """ & txtDoneName & """"
+		Call cmd.Writetext(hlpStr, Eol_platform)
+		Call cmd.Close()
+		
+		If Shell(cmdFilePath, 1) <> 33 Then
+			'Problem beim Start -> Abbruch
+			keepCmdFile = True
+			retCode = -2
+			retText = "Fehler: CMDFile " & cmdFilePath & " wurde nicht gestartet"
+			Call LogError(retText)
+			GoTo ende
+		End If
+		
+		'Warteschleife: 60 Sekunden Timeout
+		Dim timeout As Integer
+		Dim condition As Boolean
+
+		'auf Umbenennung der txt warten	
+		timeout = 0
+		condition = False
+		While Not condition And timeout <= timeOutSeconds
+			Sleep 1
+			timeout=timeout+1
+			condition = fileExistsLS(txtDonePath)
+			
+			'2024-02-23, dko: Debug
+			Print "(DBG): slept " & timeout & "s (max. " & timeOutSeconds & "), condition=" & condition
+		Wend
+
+		'bei erfolgreicher Beendigung: Aufräumen
+		If condition Then
+			
+			'Default = 0 = gelaufen, kein besonderer Text
+			retCode = 0
+			retText = ""
+			
+			Sleep 1 'avoid "File is readonly error" when deleting cmdFile
+			
+			'Ergebnisdatei auslesen
+			Dim content As String
+			Call txt.Open(txtDonePath, "UTF-8")
+			
+			'Extrahieren des allgemeinen relevanten Script-Outputs
+			While Not txt.Iseos
+				
+				'EOL entfernen, da RestText diese mitliest
+				content = StrReplaceCRLF_LF(txt.Readtext(STMREAD_LINE), "")
+				
+				If content = "$$NOTRUN" Then
+					'Powershell ist nicht gelaufen
+					keepCmdFile = True
+					retCode = -3
+					retText = "Fehler: Aufruf des Powershell-Scripts fehlgeschlagen"
+				ElseIf strBegins(content, "!SCRIPT_RESULT_CODE: ", 5) Then
+					'Powershell gelaufen, auslesen der Codes
+					retCode = CInt(Mid$(content, 22))
+				ElseIf strBegins(content, "!SCRIPT_RESULT_TEXT: ", 5) Then
+					'Powershell gelaufen, auslesen des Textes
+					retText = Mid$(content, 22)
+				End If
+
+				If strBegins(content, "!SCRIPT_TEXT!", 5) Then
+					'dieses Tag schaltet die Debugaufzeichnung ein bzw. aus
+					outActive = Not outActive
+				ElseIf outActive Then
+					outTextArr = ArrayAppend(outTextArr, content)
+				End If
+
+			Wend
+			
+			outputText = Array2String(outTextArr, GetCRLF(1), True)
+
+			Call txt.Truncate()
+			Call txt.Close()
+
+
+			If Not keepCmdFile Then
+				'Call logAction("#CMD-File: " & cmdFilePath & ", Execution Done, Deleting CMDFile")
+
+				'cmd file ohne Prüfung löschen
+				Call cmd.Open(cmdFilePath, "")
+				'2024-02-24, dko: temp. Disable: Call cmd.Truncate()
+				Call cmd.Close()
+			End If
+
+		Else
+			keepCmdFile = True
+			retCode = -4
+			retText = "Fehler: Timeout der Shell-Aktion """ & cmdFilePath & """ (" & timeOutSeconds & "s)"
+			Call LogError(retText)
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		outputText = Error$
+		Call ErrStack("")
+		Resume ende
+		
+ende:
+
+	End Sub

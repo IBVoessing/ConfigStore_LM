@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="46e" sequence="28" unid="1E41B8C06F86DB05C1258AFC0036E2AF">
+<created><datetime dst="true">20240411T115929,75+02</datetime></created>
+<modified><datetime dst="true">20240415T092549,12+02</datetime></modified>
+<revised><datetime dst="true">20240412T085154,79+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240415T092549,11+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240412T000244,52+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE"><text>com/voessing/vcde/endpoints/vrh/resources/fromview/PmToolInstanceMembershipsOfProject.java</text></item>
+
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/vcde/endpoints/vrh/resources/fromview/PmToolInstanceMembershipsOfProject.java</text></item>
+
+
+<item name="$Flags"><text>34567Cg~[</text></item></note>

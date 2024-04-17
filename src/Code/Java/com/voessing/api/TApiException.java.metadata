@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="206" sequence="122" unid="6FAA36C833C5DDD9C1258672003B09F4">
+<created><datetime>20210204T114451,72+01</datetime></created>
+<modified><datetime dst="true">20240411T133551,54+02</datetime></modified>
+<revised><datetime dst="true">20230425T164349,57+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133551,53+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133551,53+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE"><text>com/voessing/api/TApiException.java</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/api/TApiException.java</text></item>
+
+
+
+<item name="$Flags"><text>34567Cg~[</text></item></note>

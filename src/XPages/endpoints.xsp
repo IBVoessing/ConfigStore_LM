@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xp:view xmlns:xp="http://www.ibm.com/xsp/core" xmlns:xe="http://www.ibm.com/xsp/coreex"
+	rendered="false" viewState="nostate">
+
+	<!-- config manager endpoint DEPRECATED -->
+	<xe:restService id="restServiceConfigManager" pathInfo="config-manager/v1.0"
+		ignoreRequestParams="false" state="false" preventDojoStore="true">
+		<xe:this.service>
+			<xe:customRestService contentType="application/json"
+				requestContentType="application/json"
+				serviceBean="com.voessing.vcde.endpoints.srs.SrsConfigManagerBean">
+			</xe:customRestService>
+		</xe:this.service>
+	</xe:restService>
+
+	<xp:this.beforeRenderResponse>
+		<![CDATA[#{javascript:com.voessing.vcde.endpoints.vrh.resources.VCDERequestHandler.handleRequest();}]]>
+	</xp:this.beforeRenderResponse>
+
+</xp:view>

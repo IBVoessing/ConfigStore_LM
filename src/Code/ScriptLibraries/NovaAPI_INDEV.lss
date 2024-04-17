@@ -1,0 +1,195 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library NovaAPI_INDEV
+	Created Sep 29, 2021 by Denis Kopprasch/IT/Duesseldorf/IBV/DE
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "Common_NotesHttp"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class UNUSEDTNovaAPI_INDEV
+Declare Sub Initialize
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private session As NotesSession
+Private db As NotesDatabase
+%REM
+	Class TNovaAPI
+	Description: Comments for Class
+%END REM
+Class UNUSEDTNovaAPI_INDEV
+	
+	Private appCredentialsKey As String
+	Private apiUrl as String
+	Private myBaseUrl As String
+	Private bearerToken As String
+	
+	Private myPageLimit As Integer
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New()
+		Me.appCredentialsKey = "novaava-voessing"
+
+		Me.apiUrl = GetAppAccessCredentialsByName(Me.appCredentialsKey, "apiUrl")
+		Me.myBaseUrl = GetAppAccessCredentialsByName(Me.appCredentialsKey, "baseUrl")
+
+		
+		Me.bearerToken = GetAppAccessCredentialsByName(Me.appCredentialsKey, "bearerToken")
+		myPageLimit = 100	'Default
+		
+	End Sub
+	
+	%REM
+		Sub SetPageLimit
+		Description: Comments for Sub
+	%END REM
+	Sub SetPageLimit(newLimit As Integer)
+		If newLimit > 0 And newLimit < 1001 Then myPageLimit = newLimit
+	End Sub
+	
+	%REM
+		Function GetAsJsonNavigator
+		Description: Comments for Function
+	%END REM
+	Private Function GetAsJsonNavigator(Byval commandUrl As String, urlParams List As String, jsonNav As NotesJSONNavigator, retHasMorePages As Boolean) As Integer
+		
+		On Error GoTo doError
+		
+		Dim http As TNotesHttpRequestLS
+		Set http = New TNotesHttpRequestLS
+		
+		Dim resp As Integer
+		
+		'Reset Flag für weitere pages
+		retHasMorePages = false
+		
+		Call http.SetBearerAuth(Me.bearerToken)
+		
+		http.PreferStrings = False
+		http.PreferUTF8 = True
+		http.PreferJsonNavigator = True
+
+		'URL: ggf. Limit ergänzen
+		If Not IsElement(urlParams("limit")) Then
+			urlParams("limit") = "" & myPageLimit
+		End If
+		
+		Dim url As String
+		Dim sep As String
+		
+		'URL zusammenbauen: Basis + Command + Parameter
+		url = Me.apiUrl
+		If Not strBegins(commandUrl, "/", 5) Then url = url & "/"
+		url = url & commandUrl
+		
+		sep = "?"
+		ForAll paramValue In urlParams
+			url = url & sep & ListTag(paramValue) & "=" & EncURL(paramValue)
+			sep = "&"
+		End ForAll
+		
+		Print "url: " & url
+		
+		resp = http.doGet(url)
+		Print "resp: " & resp
+
+		Set jsonNav = http.getResponseJsonNavigator()
+
+		If resp = 200 Then
+			
+			'Paging feststellen: direkt ohne Prüfung auf Null abgreifen.
+			Dim page As Integer, pages As Integer
+
+			page = GetJSONNavValueByName(jsonNav, "page")
+			pages = GetJSONNavValueByName(jsonNav, "pages")
+			
+			Print "page: " & page, "pages: " & pages
+			
+			'Nächste Seite in den URLParametern setzen und Flag setzen, dass mehr folgt
+			If page < pages Then
+				urlParams("page") = page+1
+				retHasMorePages = True
+			End If
+			
+		ElseIf resp = 429 Then
+			Error 1000, resp & ": Too Many requests."
+		Else
+			Error 1001, resp & ": Error"
+		End If
+
+		GetAsJsonNavigator = resp
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise			
+		
+ende:		
+	End Function
+	
+	%REM
+		Function GetProjects
+		Description: Comments for Function
+	%END REM
+	Function GetProjects(urlParams List As String, jsonNav As NotesJSONNavigator, retHasMorePages As Boolean) As Integer
+		
+		On Error GoTo doError
+		
+		GetProjects = GetAsJsonNavigator("/v1/projects", urlParams, jsonNav, retHasMorePages)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise			
+		
+ende:	
+	End Function
+	
+	%REM
+		Function EncURL
+		Description: Comments for Function
+	%END REM
+	Private Function EncURL(urlParam As String) As String
+		Dim hlpArr
+		hlpArr = Evaluate({@URLDecode( "Domino"; "} & urlParam & {" )})
+		EncURL = hlpArr(0)
+	End Function
+
+	%REM
+		Property Get BaseURL
+		Description: Comments for Property Get
+	%END REM
+	Property Get BaseURL As String
+		BaseURL = Me.myBaseUrl
+	End Property
+	
+End Class
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	If session Is Nothing Then
+		Set session = New NotesSession
+		Set db = session.CurrentDatabase
+	End If
+End Sub
+
+'++LotusScript Development Environment:2:2:Agent_Import_NovaAVA_Projects:0:8
+%REM
+	Sub Agent_Import_NovaAVA_Projects
+	Description: Comments for Sub
+%END REM
+
+
+
+

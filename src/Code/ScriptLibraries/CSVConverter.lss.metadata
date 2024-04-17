@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="filter" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="422" sequence="3" unid="AB5D6D19D39A7A71C12587E50038A89D">
+<created><datetime>20220210T111851,81+01</datetime></created>
+<modified><datetime dst="true">20240411T133556,34+02</datetime></modified>
+<revised><datetime dst="true">20200904T110427,13+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133556,31+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133556,31+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO1/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE" sign="true"><text>CSVConverter</text></item>
+<item name="$PublicAccess"><text>1</text></item>
+
+
+
+<item name="$Comment"><text>CDRT</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$POID"><datetime dst="true">20200904T110427,13+02</datetime></item></note>

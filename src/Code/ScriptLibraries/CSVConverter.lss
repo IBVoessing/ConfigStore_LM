@@ -1,0 +1,2418 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+Option Public
+Option Explicit
+Use "Common_Funcs"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class CSVFile
+Declare Class CSVTextFileOut
+Declare Class CSVTextFileIn
+Declare Class CSVStructuredRead As CSVTextFileIn
+Declare Class CSVStructuredWrite As CSVTextFileOut
+Declare Class CSVHandlerBase
+Declare Class CSVExportAbstract As CSVHandlerBase
+Declare Class CSVExportFile As CSVExportAbstract
+Declare Class CSVImportAbstract As CSVHandlerBase
+Declare Class CSVImportFile As CSVImportAbstract
+Declare Class CSVImportAbstractStream As CSVImportAbstract
+Declare Class CSVExportAbstractStream As CSVExportAbstract
+Declare Class CSVImportStructured
+Declare Class CSVExportStructured
+Declare Class CSVImportFileStream As CSVImportAbstractStream
+Declare Class CSVImportMemoryStream As CSVImportAbstractStream
+Declare Class CSVExportFileStream As CSVExportAbstractStream
+Declare Class CSVExportMemoryStream As CSVExportAbstractStream
+Declare Function ExportViewAsCsv(db As NotesDatabase, nFilename As String, nView As String, opt List As Byte) As Boolean
+Declare Function WriteArrayToCSVFile(hlpArr, filename As String) As Integer
+Declare Private Function A_OLD_ExportViewAsCsv(db As NotesDatabase, nFilename As String, nView As String) As Integer
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private Const C_Trenner = ";"
+Private Const C_Special =""""
+
+%REM
+	
+- CSVHandlerBase, CSVExport****, CSVImport****
+	'ACHTUNG: Crasht den Notes 6.5 Client (Replace Funktion in Encode/Decode des CSVHandlerBase)
+	'Interface-Änderungen sollten komplett sein
+	
+	Erledigte TODOs:
+		- als LineDelimiter fix CR, LF oder CRLF wählbar machen
+		- Charset für Export einstellbar machen, Dateierstellung aus New() auslagern
+		- Getrennte Klassen für Memory, FileStream und File
+		- Import: Über mehrere Zeilen verteilte Datensätze zusammenfügen vor dem Verarbeiten (Spanning, LineDelimiter)
+		- Delimit_Never: Beim Setzen dieser Property sind alle gegensätzichen Delimit_****-anagben zu ignoerieren
+		- Autotrim im Export und Import umsetzen
+		- Import/Export: Klassenhierarchie komplett
+		- Export: Array Direkt
+		- Export: Structured
+		- Import: Structured
+
+	TODO:
+		- ggf. Umlautersetzung
+		- Prio D: ggf. beim Import zunächst davon ausgehen, dass  keine Zeilenumbrüche in Werten vorhanden sind
+			-> Property ist Standardmäßig bereits deaktiviert
+			-> Am Besten wäre es, wenn zur Laufzeit die Spanning-Prüfung selbst aktiviert wird, wenn weniger Spalten 
+				als vorher bei der Verarbeitung festgestellt werden
+
+2020-09-04, dko:
+	- CSVImportAbstractStream: ReadFromSource(): Wird nur der Zeilentrenner als Line ausgelesen, dann ggf. direkt die nächste Zeile lesen
+
+2013-11-18, dko:
+	- Änderung: CSVImportAbstract: maxCol / isEOL-Prüfung angepasst
+		-> isEOL() prüft nun auf End of Current Line, nicht in Bezug auf maxCol, da dies bei kürzeren Zeilen zum Fehler führte
+		-> maxCol wird nun dynamisch erweitert, wenn während des Durchlaufs mehr Spalten dazukommen
+
+2012-07-25, dko:
+	- Änderung: CSVImportStructured und CSVExportStructured: Dekonstruktur löscht auch das csv-Import/-Export-Objekt im Speicher
+	
+2012-06-21, dko:
+	- Bugfix: CSVImportAbstractStream.ReadFromSource(): EOL bei Streamende nur wegkürzen, wenn auch vorhanden 
+
+2012-05-30, dko:
+	- CSVImportAbstractStream: als Zwischenklasse zu File-/MemoryStream, abgeleitet von CSVImportActract
+	- analog: CSVExportAbstractStream
+	
+2012-05-29, dko:
+	- Structured Import/Export
+		- CSVExportStructured: exportiert übergebenes CSVExportFile, CSVExportFileStream oder CSVExportMemoryStream via Spaltenkopf
+		- CSVImportStructured: importiert übergebenes CSVImportFile, CSVImportFileStream oder CSVImportMemoryStream via Spaltenkopf
+
+2011-12-06, dko:
+	- CSVExportFileStream: geändert, wird nun direkt von CSVExportAbstract abgeleitet
+	- CSVImportMemoryStream: ResetToBeginning() hinzugefügt
+	- CSVExportMemoryStream: get ExportStream Property hinzugefügt
+	
+2011-09-27, dko:
+	- CSVImportFileStream/CSVImportMemoryStream: Fixes
+		-> CSVImportFileStream: Fix Stream Init
+		-> CSVImportFileStream/CSVImportMemoryStream: Fix ReadFromSource: EOL Character müssen entfernt werden
+	
+2011-07-07/18, dko:
+	- Neu: CSVHandlerBase, CSVExport****, CSVImport****, mit CharSet/Unicode-Unterstützung
+		-> Performance verbessert
+	
+2010-08-25, dko:
+	- Neu: CSVStructuredWrite: Liste definieren und befüllen, Schreiben der Klasse überlassen
+
+2010-06-22, dko:
+	- CSVStructuredRead: Änderungen
+		- Ziel: ermöglichen, einen alternativen Trenner / Special Char vor dem auslesen zu definieren
+			-> getHeader() entfällt, dafür ReadHeader() verwenden
+			-> ReadHeader() wird bei erstem Aufruf von NextDataRow() bzw. anderen Funktionen, die Zugriff auf den Header brauchen, bei Bedarf automatisch 1x ausgeführt
+		- CSVLine: gibt für Objekte dieser Klasse den ursprünglichen, unangetasteten CSV.-String zurück
+		- NextDataRow(): Gibt nun eine untypisierte Liste zurück statt einer Stringliste, die danach nicht mit anderen Werten Typen belegbar ist
+
+2010-02-26, dko:
+	- CSVFile / CSVTextFileOut: Support für das Erstellen von CSV-Dateien mit Zeilenumbruch
+		') read noch nicht implementiert
+
+2009-12-28, dko:
+	- CSVStructuredRead: Handling für Spalten mit doppelten oder leeren Namen geändert: Name = Nummer der Spalte
+
+2009-05-20, dko:
+	- CSVStructuredRead: Abgeleitet von CSVTextFileIn: Auslesen strukturierter CSV-Dateien (auf Basis der Überschriftenzeile)
+		-> NextDataRow(): Gibt eine Stringliste mit Tag=Spaltentitel und Wert=Wert der Spalte des aktuellen Datensatzes zurück
+		-> getHeader(): Gibt eine Liste mit den Spaltentiteln zurück
+		-> isDefined(): ermittelt, ob eine Spalte definiert ist
+
+2007-01-08, dko:
+	- Abgleich PMS OK, Übernahme ins CDRT
+
+2006-09-15, dko:
+	- Umstellung auf Common_Funcs
+
+2006-04-10, dko:
+	- Update ExportViewAsCSV: Kann nun auch kategorisierte Ansichten exportieren
+	- Re-Sync ExportViewAsCSV mit PMS-Prozedur
+
+2004-07-29, dko:
+	- Fix LINUX: CRLF
+
+2004-07-13, dko:
+- WriteArrayToCSVFile(): Quick-Method zum Exportieren von Arrays (Strings)
+
+2004-05-25, dko:
+- Synchronisation IBV / PMS
+
+2003-04-03, dko:
+- Bugfix in ReadColumn(): "";"";"" wurde nicht korrekt gelesen
+
+2003-01-23, dko:
+ - Erweiterung: AlwaysDelimitText-Eigenschaft (true, false) für Erzeugen von Spalten: Spalteninhalt wird 
+   auf Wunsch immer in Anführungszeichen gesetzt
+
+2002-04-26, dko:
+ - BugFix CSVFile.ReadColumn(): Endlosschleife, wenn " in letztem Wert enthalten
+
+2001-12-03, dko:
+ - Bugfix CSVFile.AddColumn(): leere Spalten wurden nicht hinzugefügt, wenn eine der ersten Spalten
+ - Class CSVTextFileOut: File-Handling kombiniert mit CSVFile
+
+Erstellt 29.06.2001, dko
+
+Funktion: Lesen und Erstellen von CSV-Textzeilen
+
+%END REM
+
+%REM
+	OUT OF DATE:  
+	-> USE CSVHandlerBase
+%END REM
+Class CSVFile
+	
+	Public cTrenner As String
+	Public cSpecial As String
+	Public AlwaysDelimitText As Integer
+	Private currentCol As Integer
+	
+	Private AllowCRLFExport As Integer
+	
+	'Kontrollobjekt + LogCount
+	'Private newCSV As CSVHandlerBase
+	'Private newCSVLogged As Integer
+	'Private newCSVInitialized As Boolean
+	
+	Sub New
+		cTrenner = C_Trenner
+		cSpecial = C_Special
+		currentCol = 0
+	End Sub
+	
+	Function ResetCounters()
+		currentCol = 0
+	End Function
+	
+	Function ReadColumn(intBuff As String) As String
+		
+		Dim hlpAnfang As Integer
+		Dim hlpEnde As Integer
+		Dim Strhlp1 As String
+		
+		Dim StrRest2 As String
+		Dim Lenhlp As Integer
+		Dim Lenohne As Integer
+		Dim Rest As Integer
+		Dim positionOfSpecial1 As Integer
+		Dim hlpstr As String
+		Dim letzterTrenner As Integer
+		Dim vorherigerTrenner As Integer
+		
+		letzterTrenner = 0
+		rest = 1
+		
+		If IntBuff <> "" Then
+			
+   'Das Ende des ersten Wertes ermitteln
+			While rest <> 0
+				letzterTrenner = InStr(letzterTrenner + 1, intbuff, cTrenner)
+				
+				If letzterTrenner = 0 Then 
+					letzterTrenner = Len(intBuff) + 1
+					GoTo nextCall
+				End If
+				
+				hlpstr = Mid(intbuff, 1, letzterTrenner-1)
+				
+				Lenhlp = Len(hlpstr)
+				Lenohne = Len(strReplace(hlpstr, cSpecial, "", 5))
+				Rest = (Lenhlp-Lenohne) Mod 2
+			Wend
+			
+nextCall:
+			
+   'Wert extrahieren und vom Original mit Trenner abschneiden
+			ReadColumn = Mid(intbuff, 1, letzterTrenner-1)
+			intbuff = Mid(intbuff, Len(ReadColumn) + 2)
+			
+   'Doppelte Anführungszeichen ersetzen
+			Readcolumn = StrReplace(ReadColumn, cSpecial + cSpecial, cSpecial, 5)
+			
+   'Formatbedingte, begrenzende Anführungszeichen entfernen
+			If readColumn <> "" Then
+				If Left(Readcolumn, 1) = cSpecial And Right(Readcolumn, 1) = cSpecial Then
+                         '2003-04-03, dko: bei "";"" ergab MID(xxx, 2, -1) einen Fehler (Len ReadColumn=1)
+					If Len(ReadColumn) = 1 Then 
+						Readcolumn = ""
+					Else
+						Readcolumn = Mid(Readcolumn, 2, Len(ReadColumn)-2)
+					End If
+				End If
+			End If
+			
+		End If
+		
+	End Function
+	
+	Function AddColumn(intBuff As String, dValue As Variant) As String
+		
+		Dim addValue As String
+		Dim hlp As String
+		Dim i As Integer
+		Dim needCRLFEscape As Integer
+		
+
+%REM
+	
+		'INDEV: CSV-Kontrollobjekt mit Properties initialisieren
+		Dim newCSVResult As String
+		Dim newCSVValue As Variant
+
+		'zur Sicherheit umspeichern
+		newCSVValue = dValue
+		If Not newCSVInitialized Then
+			Set newCSV = New CSVHandlerBase
+			Call newCSV.SetProperty("ColumnDelimiter", cTrenner)
+			Call newCSV.SetProperty("TextQualifier", cSpecial)
+			Call newCSV.SetProperty("Delimit_LineDelimiter", AllowCRLFExport)
+			Call newCSV.SetProperty("Delimit_Always", AlwaysDelimitText)
+			newCSVInitialized = True
+		End If
+	
+		'INDEV: Kontrollobjekt-Ergebnis abgreifen
+		newCSVResult = newCSV.EncodeValue(newCSVValue)
+%END REM
+
+  '2001-12-03, dko: Arrays umwandeln in String
+		If IsArray(dValue) Then
+			Dim tmpCSV As New CSVFile
+			hlp = ""
+			tmpCSV.cTrenner = ":"
+			For i = LBound(dValue) To UBound(dValue)
+				Call tmpCSV.AddColumn(hlp, dValue(i))
+			Next
+			dValue = hlp
+		End If
+		
+		If Not AllowCRLFExport Then
+			'old behaviour: Replace CRLF by Space
+			addvalue = strReplaceCRLF_LF(dValue, " ")
+		Else
+			'new: Check if it needs double quotes
+			needCRLFEscape = InStr(dValue, Chr(13)) > 0 Or InStr(dValue, Chr(10)) > 0
+			addvalue = dValue
+		End If
+		
+		'jedem Anführungszeichen ein weiteres voranstellen
+		addvalue = strReplace(addvalue, cSpecial, cSpecial + cSpecial, 5)
+		
+		'wenn Anführungszeichen oder Trennzeichen im Wert vorhanden sind, den gesamten String einkapseln
+		'-> auch, wenn durch CR / LF welche benötigt werden
+		If InStr(addvalue, cSpecial) > 0 Or InStr(addvalue, cTrenner) > 0 Or needCRLFEscape Or Me.AlwaysDelimitText Then
+			addvalue = cSpecial + addvalue + cSpecial
+		End If
+		
+		%REM
+		'INDEV: Ergebnisvergleich
+		If newCSVLogged < 5 Then
+			newCSVLogged = newCSVLogged + 1
+			If Not IsEqual(addValue, newCSVResult) Then
+				Call LogError("CSV Old/New MisMatch; ORG: " & newCSVValue & "; OLD: " & addValue & "; NEW: " & newCSVResult)
+			End If
+		End If
+		%END REM
+		
+  'Neuen Wert an Zeile anhängen: zunächst das Trennzeichen bei Bedarf
+  '2001-12-03, dko: schlägt fehl, wenn die ersten Spalten leer sind: If Trim(intBuff) <> "" Then intBuff = intBuff + cTrenner
+		currentCol = currentCol + 1
+		
+		If currentCol > 1 Then intBuff = intBuff + cTrenner
+		intBuff = intBuff + addvalue
+		
+		AddColumn = intBuff
+	End Function
+	
+	Property Set AllowCRLF As Integer
+		AllowCRLFExport = AllowCRLF
+	End Property
+	
+	Property Get AllowCRLF As Integer
+		AllowCRLF = AllowCRLFExport
+	End Property
+	
+End Class
+%REM
+	OUT OF DATE:  
+	-> USE CSVExportFileStream, CSVExportMemoryStream or CSVExportFile
+%END REM
+Class CSVTextFileOut
+	
+	Private csv As CSVFile
+	Private fname As String
+	Private fhandle As Integer
+	Private colnum As Long
+	Private intBuffer As String
+	Private colcount As Long
+	Private rowcount As Long
+	
+	Public Replace_Umlauts As Integer
+	
+	Sub New(sfilename As String)
+		fname = sfilename
+		fhandle = FreeFile()
+		
+		On Error GoTo Datei_Fehler
+		
+		Open fname For Output As fhandle
+'  Print "Erstelle Datei " + fname          
+		rowcount = 1
+		colnum = 1
+		intbuffer = ""
+		replace_umlauts = False
+		Set csv = New CSVFile
+		
+		Exit Sub
+		
+Datei_Fehler:
+		Close fhandle
+		fhandle = 0
+		Resume Ende
+Ende:
+	End Sub
+	
+	Function IsFileOpen As Integer
+		IsFileOpen = fHandle > 0
+	End Function
+	
+	Sub NextRow
+		If replace_umlauts Then intBuffer = UmlautErsetzung(intBuffer)
+		
+		If intBuffer <> "" Then Print #fhandle, intBuffer
+		rowcount = rowcount + 1
+		colnum = 1
+		intBuffer = ""
+		Call Csv.ResetCounters()
+	End Sub
+	
+	Sub Save
+		Me.nextRow
+		Close fhandle
+		fhandle = 0
+	End Sub
+	
+	Sub Delete
+		On Error GoTo save_err
+		If fhandle > 0 Then Me.Save
+		
+del_ende:
+		Exit Sub
+		
+save_err:
+		If fhandle > 0 Then 
+			Close fHandle
+			fhandle = 0
+		End If          
+		Resume del_ende
+		
+	End Sub
+	
+	Sub AddColumn(dValue As Variant)
+		Call csv.AddColumn(intBuffer, dValue)
+		colnum = colnum + 1
+		If colnum > colcount Then colcount = colnum 'grösste Spaltenanzahl merken
+	End Sub
+	
+     'aktuelle = maximale Zeile
+	Function CurrentRow() As Long
+		CurrentRow = rowcount
+	End Function
+	
+     'aktuelle Spalte
+	Function CurrentCol() As Integer
+		CurrentCol = colnum
+	End Function
+	
+     'Anzahl der Spalten
+	Function MaxCol() As Integer
+		MaxCol = colcount
+	End Function
+	
+	Property Set C_Trenner As String
+		csv.CTrenner = C_Trenner
+	End Property
+	
+	Property Set C_Special As String
+		csv.CSpecial = C_Special
+	End Property
+	
+	Property Set AlwaysDelimitText As Integer
+		csv.AlwaysDelimitText = AlwaysDelimitText
+	End Property
+	
+	Property Set AllowCRLF As Integer
+		csv.AllowCRLF = AllowCRLF
+	End Property
+	
+	Property Get AllowCRLF As Integer
+		AllowCRLF = csv.AllowCRLF
+	End Property
+	
+End Class
+%REM
+	OUT OF DATE:  
+	-> USE CSVImportFileStream, CSVImportMemoryStream or CSVImportFile
+%END REM
+Class CSVTextFileIn
+	
+	Private csv As CSVFile
+	Private fname As String
+	Private fhandle As Integer
+	Private colnum As Long
+	Private intBuffer As String
+	Private colcount As Long
+	Private rowcount As Long
+	
+	Public Autotrim As Integer
+	
+	Sub New(sfilename As String)
+		
+		On Error GoTo doerror
+		
+		fname = sfilename
+		fhandle = FreeFile()
+		
+		Open fname For Input Shared As fhandle
+		
+		Autotrim = False
+		rowcount = 1
+		colnum = 1
+		intbuffer = ""
+		Set csv = New CSVFile
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("Handle=" & fHandle & "; Filename=" & fname)
+		Close fhandle
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	Function IsFileOpen As Integer
+		IsFileOpen = fHandle > 0
+	End Function
+	
+	Function IsEOF As Integer
+		IsEOF = EOF(fHandle)
+	End Function
+	
+	Function IsEOL As Integer
+		IsEOL = intBuffer = ""
+	End Function
+	
+	Function NextRow As Integer
+		NextRow = Not Me.IsEOF()
+		If NextRow Then
+			Line Input #fHandle%, intBuffer$
+			rowcount = rowcount + 1
+			colnum = 1
+			Call Csv.ResetCounters()
+		End If
+	End Function
+	
+	Sub Delete
+		If fhandle > 0 Then 
+			Close fHandle
+			fhandle = 0
+		End If
+	End Sub
+	
+	Function ReadColumn() As String
+		If Not Me.IsEOL() Then
+			ReadColumn = csv.ReadColumn(intBuffer)
+			If Me.autotrim Then ReadColumn = Trim(ReadColumn)
+			
+			colnum = colnum + 1
+			If colnum > colcount Then colcount = colnum 'grösste Spaltenanzahl merken
+		End If
+	End Function
+	
+     'aktuelle = maximale Zeile
+	Function CurrentRow() As Long
+		CurrentRow = rowcount
+	End Function
+	
+     'aktuelle Spalte
+	Function CurrentCol() As Integer
+		CurrentCol = colnum
+	End Function
+	
+     'Anzahl der Spalten
+	Function MaxCol() As Integer
+		MaxCol = colcount
+	End Function
+	
+	Property Set C_Trenner As String
+		csv.CTrenner = C_Trenner
+	End Property
+	
+	Property Set C_Special As String
+		csv.CSpecial = C_Special
+	End Property
+	
+	Property Get CSVLine As String
+		CSVLine = intBuffer
+	End Property
+	
+End Class
+%REM
+	OUT OF DATE:  
+	-> USE CSVImportStructured in combination with CSVImportFileStream, CSVImportMemoryStream or CSVImportFile
+%END REM
+Class CSVStructuredRead As CSVTextFileIn
+	
+	Private Header List As Integer
+	Private orgCSVLine As String
+	Private headerRead As Integer
+	
+	Sub New(sfilename As String)
+		'Parent Sub wird automatisch ausgeführt
+		On Error GoTo doerror
+		
+		'Do nothing, only Callstack
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Sub
+	
+	'Header auslesen: ggf. automatisch bei Abgriff der ersten Datenzeile
+	'-> Gleichzeitig: Zugriff auf Header
+	Function ReadHeader()
+		
+		On Error GoTo doerror
+		
+		Dim i As Integer
+		Dim hlp As String
+		
+		If Not headerRead Then
+			
+			'Auslesen der 1. Zeile (Überschrift) und Speichern in einer Header-Liste
+			i=0		
+			Call Me.NextRow()
+			orgCSVLine = intBuffer
+			While Not Me.IsEOL()
+				i=i+1
+				hlp = Me.ReadColumn()
+				
+				'Doppelte oder leere Spalten verwenden einen generischen Namen (Nummer der Spalte, beginnend bei 1)
+				If IsElement(Header(hlp)) Or hlp = "" Then hlp = "" & i
+				
+				Header(hlp) = i
+			Wend
+			
+			headerRead = True
+		End If
+		
+		ReadHeader = Header
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Function
+	
+	
+	'Daten der nächsten Zeile auslesen
+	Function NextDataRow()
+		
+		On Error GoTo doerror
+		
+		Dim Data List
+		
+		'Header auslesen, sofern nicht manuell erfolgt
+		If Not headerRead Then Call Readheader()
+		
+		'Daten einlesen
+		Call Me.NextRow()
+		orgCSVLine = intBuffer
+		ForAll x In Header
+			Data(ListTag(x)) = Me.ReadColumn()
+		End ForAll
+		
+		NextDataRow = Data
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	'Prüft, ob eine Spalte definiert ist
+	Function isDefined(cc As String) As Integer
+		'Header auslesen, sofern nicht manuell erfolgt
+		If Not headerRead Then Call Readheader()
+		
+		isDefined = IsElement(Header(cc))
+	End Function
+	
+	'überschriebene Methode
+	Property Get CSVLine As String
+		CSVLine = orgCSVLine
+	End Property
+	
+End Class
+%REM
+	OUT OF DATE:  
+	-> USE CSVExportStructured in Combination with CSVExportFileStream, CSVExportMemoryStream or CSVExportFile
+%END REM
+Class CSVStructuredWrite As CSVTextFileOut
+	
+	Private Header List As Integer
+	Private headerSet As Integer
+	
+	Public SuppressHeader As Integer
+	
+	Sub New(sfilename As String)
+		'Parent Sub wird automatisch ausgeführt
+		On Error GoTo doerror
+		
+		'Do nothing, only Callstack
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Sub
+	
+	'Header setzen: einmalig definieren, intern umspeichern
+	Sub SetHeader(FL)
+		
+		On Error GoTo doerror
+		
+		If Not headerSet Then
+			ForAll x In FL
+				Header(ListTag(x)) = 1
+			End ForAll
+			
+			'Output Header
+			If Not SuppressHeader Then
+				ForAll x In FL
+					Call Me.AddColumn(ListTag(x))
+				End ForAll
+				Call Me.NextRow()
+			End If
+			
+			headerSet = True
+		End If
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Sub
+	
+	
+	'Daten der nächsten Zeile auslesen
+	Sub NextDataRow(Data List)
+		
+		On Error GoTo doerror
+		
+		'Header definieren, sofern nicht manuell erfolgt
+		If Not headerSet Then Call SetHeader(Data)
+		
+		'Daten schreiben: Nur die, die im Header definiert sind
+		ForAll x In Header
+			If IsElement(Data(ListTag(x))) Then 
+				Call Me.AddColumn(Data(ListTag(x)))
+			Else
+				Call Me.AddColumn("")
+			End If
+		End ForAll
+		Call Me.NextRow()
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+End Class
+%REM
+	Basisklasse mit grundlegenden CSV-Funktionen
+	-> Properties für CSV-Format als Liste (später problemlos ohne Neukompilieren erweiterbar)
+	-> Wert ins CSV-Format bringen
+	-> Direkte verwendung zum Dekodieren bzw. Codieren von CSV-Daten ist möglich
+%END REM
+Class CSVHandlerBase
+	
+	Private Props List As Variant
+	Private arrCSV As CSVHandlerBase
+	
+	Private needPropertyAssign As Integer
+	
+	Private prop_AutoTrim As Integer
+	Private prop_LineDelimiter As String
+	Private prop_ColumnDelimiter As String
+	Private prop_TextQualifier As String
+	Private prop_ArrayDelimiter As String
+	
+	Private prop_Delimit_TextQualifier As Integer
+	Private prop_Delimit_ReplaceTextQualifier As String
+	
+	Private prop_Delimit_LineDelimiter As Integer
+	Private prop_Delimit_ReplaceLineDelimiter As String
+	
+	Private prop_Delimit_ColumnDelimiter As Integer
+	Private prop_Delimit_ReplaceColumnDelimiter As String
+
+	Private prop_Delimit_Surrounding_Spaces As Integer
+	Private prop_Delimit_Always As Integer
+	Private prop_Delimit_Never As Integer
+
+	Private enc_canDelimit As Boolean	
+	Private enc_needReplace As Boolean
+	
+	Private enc_allowedLineDelimiters List As Byte
+	
+	Private enc_SourceArr As Variant
+	Private enc_ReplaceArr As Variant
+
+	Private dec_SourceTextQualifierArr As Variant
+	Private dec_ReplaceTextQualifierArr As Variant
+	
+	%REM
+		Function DecodeLine
+		Description: Comments for Function
+	%END REM
+	Function DecodeLine(intBuffer As String)
+		
+		On Error GoTo doerror
+		
+		'Buffer zerlegen in ein Array.
+		Dim hlpArr
+		Dim i As Integer
+		Dim resArr() As String, hlpStr As String
+		Dim targetSlot As Integer, anzTextQualifiers As Integer
+		Dim aktRest As Integer
+		Dim isValueContinued As Boolean
+		
+		If needPropertyAssign Then Call Me.AssignProperties()
+		
+		If Not enc_canDelimit Then
+			'Soll die Datei keine Textbegrenzer verwenden, dann kann das Array direkt gebildet werden, da
+			'der ColumnDelimiter, TextQualifier und LineDelimiter dann NICHT innerhalb von Werten vorkommen dürfen
+			DecodeLine = Split(intBuffer$, prop_ColumnDelimiter)
+		Else
+			
+			'Variante 1: intBuffer ist ein vollständiger Datensatz, d.h. ein Zeilen-Spanning wurde bereits zurückgeführt
+			'-> ColumnDelimiter können in Textbegrenzten Spalten noch vorkommen
+			'-> LineDelimiter ebenfalls -> hierfür irrelevant
+			'-> Textbegrenzer (doppelts) ebenfalls -> müssen noch durch einfache ersetzt werden
+			
+			'Split auf ColumnDelimiter ausführen
+			'-> Textbegrenzte ColumnDelimiter führen zunächst zur Aufteilung in mehrere Elemente, 
+			'-> die aber per Einzelprüfung zusammenfassbar bleiben (Prüfung Anzahl TextDelimiter)
+			hlpArr = Split(intBuffer$, prop_ColumnDelimiter$)
+			
+			'Ergebnisarray zunächst so groß wie das temporäre Array dimensionieren
+			'Es können nur weniger oder gleich viele Elemente als Ergebnis herauskommen
+			ReDim ResArr(1 To UBound(hlpArr)+1)
+			
+			targetSlot = 0
+			For i=0 To UBound(hlpArr)
+				
+				'Nächste Spalte: nur, wenn vorherige Spalte vollständig ist
+				If isvalueContinued Then 
+					'Spaltentrenner wieder anhängen (durch Split verlorengegangen)
+					ResArr(targetSlot) = ResArr(targetSlot) & prop_ColumnDelimiter$
+				Else
+					targetSlot = targetSlot + 1
+				End If
+			
+				'Zuweisen des Zielwertes
+				hlpStr$ = hlpArr(i)
+				
+				anzTextQualifiers = Len(Replace(hlpStr$, prop_TextQualifier, "", 1, -1, 5))
+				aktRest = Len(hlpStr$) - anzTextQualifiers
+				If aktRest Mod 2  > 0 Then
+					'Anzahl der Textbegrenzer ist ungerade: Umschalten des Kennzeichens, dass Spaltenwert fortgesetzt wird
+					isValueContinued = Not isValueContinued
+				End If
+
+				ResArr(targetSlot) = ResArr(targetSlot) & hlpStr$
+ 
+				If Not isValueContinued Then
+					'Dieser Teil verbraucht sehr viel Zeit (zumindest die ""-prüfung/korrektur)
+					If ResArr(targetSlot) = """""" Then
+						'die Konstellation "" als Wert abfangen
+						ResArr(targetSlot) = ""
+					ElseIf prop_AutoTrim Then 
+						'Werte automatisch trimmen
+						ResArr(targetSlot) = Trim(ResArr(targetSlot))
+					End if
+				End If
+				
+			Next i
+						
+			'Begrenzen auf die Anzahl der tatsächlichen Spalten
+			ReDim Preserve ResArr(1 To targetSlot)
+			
+			'Erst hier die Schlussersetzungen ausführen
+			'-> Dreieckstausch doppelte Textqualifizierer / Entfernung einfacher gem. CSV-Optionen
+			DecodeLine = Replace(resArr, dec_SourceTextQualifierArr, dec_ReplaceTextQualifierArr, 1, -1, 5)
+		End if
+		
+		GoTo Ende
+		
+doError:		
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		'%END REM
+		
+	End Function
+	
+	Sub New
+		
+		On Error GoTo doerror
+		
+		'TODO: Umlaut-Replacements
+		
+		'LineDelimiters: Gültige Werte einschränken
+		'-> Unterstützt werden neben CRLF nur noch CR oder LF
+		enc_allowedLineDelimiters(Chr(13) & Chr(10)) = 1
+		enc_allowedLineDelimiters(Chr(13)) = 1
+		enc_allowedLineDelimiters(Chr(10)) = 1
+		
+		'Definiere unterstütze Properties und initialisiere diese mit den Standardwerten
+
+		'Automatisches Trimmen vor dem Schreiben
+		Call me.SetProperty("AutoTrim", False)
+		
+		'Zeilen-Trenner: CRLF
+		Call me.SetProperty("LineDelimiter", Chr(13) & Chr(10))
+		
+		'Spaltentrenner: Semikolon
+		Call me.SetProperty("ColumnDelimiter", ";")
+
+		'Textqualifizierer: doppeltes Anführungszeichen
+		'-> wenn leer, werden Spalten- oder Zeilentrenner im Wert gelöscht
+		Call me.SetProperty("TextQualifier", """")
+
+		'Arrays als Wert werden zu einem String umgewandelt, mit folgendem Trennzeichen
+		Call me.SetProperty("ArrayDelimiter", ":")
+
+
+		'Textdelimiter bei Textdelimiter im Wert anwenden 
+		Call me.SetProperty("Delimit_TextQualifier", True)
+
+		'Kann oder Soll ein TextQualifier im Wert nicht in Textbegrenzer gesetzt werden, wird eine Ersetzung vorgenommen
+		'-> Delimit_TextQualifier = False: TextQualifier ersetzen durch diesen Wert
+		'-> Delimit_TextQualifier = True: Keine Auswirkungen
+		Call me.SetProperty("Delimit_ReplaceTextQualifier", "")
+
+
+		'Textdelimiter bei Zeilentrenner im Wert anwenden
+		'-> Wenn False oder Textdelimiter leer, werden CR/LF / CRLF (immer) bzw. der LineDelimiter (falls nicht CRLF bzw. LF) aus dem Wert entfernt
+		'-> Default: False, d.h. CRLF entfernen bzw. durch Delimit_ReplaceLineDelimiter ersetzen
+		'-> False aufgrund üblicher Verwendung/Abwärtskompatibilität zum alten CSV-Converter
+		Call me.SetProperty("Delimit_LineDelimiter", False)
+
+		'Kann oder Soll ein LineDelimiter im Wert nicht in Textbegrenzer gesetzt werden, wird eine Ersetzung vorgenommen
+		'-> Delimit_LineDelimiter = False oder kein Textqualifier: CRLF/CR/LF bzw. LineDelimiter ersetzen durch diesen Wert
+		'-> Delimit_LineDelimiter = True und TextQualifier gesetzt: Keine Auswirkungen
+		Call me.SetProperty("Delimit_ReplaceLineDelimiter", " ")
+
+
+		'Textdelimiter bei Spaltentrenner im Wert anwenden
+		'-> wenn False oder Textdelimiter leer, werden Spaltentrenner aus dem Wert gelöscht 
+		Call me.SetProperty("Delimit_ColumnDelimiter", True)
+
+		'Kann oder Soll ein ColumnDelimiter im Wert nicht in Textbegrenzer gesetzt werden, wird eine Ersetzung vorgenommen
+		'-> Delimit_ColumnDelimiter = False oder kein Textqualifier: ColumnDelimiter ersetzen durch diesen Wert
+		'-> Delimit_ColumnDelimiter = True und TextQualifier gesetzt: Keine Auswirkungen
+		Call me.SetProperty("Delimit_ReplaceColumnDelimiter", " ")
+
+
+		'Textdelimiter bei führenden/abschließenden Leerzeichen anwenden 
+		Call me.SetProperty("Delimit_Surrounding_Spaces", False)
+
+		'Textqualifizierer auf alle Spalten anwenden (Vorrang vor anderen Optionen)
+		'-> aus Performancesicht ist TRUE die schnellste Einstellung, da nicht lange geprüft werden muss
+		Call me.SetProperty("Delimit_Always", False)
+
+		'Textqualifizierer nie anwenden (Vorrang vor anderen Optionen, ausser Delimit_Always)
+		'-> aus Performancesicht ist auch dies eine schnellste Einstellung, da nicht lange geprüft werden muss
+		Call me.SetProperty("Delimit_Never", False)
+
+		GoTo Ende
+		
+doError:		
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	Sub SetProperty(ByVal propertyName As String, propertyValue As Variant)
+		
+		On Error GoTo doerror
+		
+		Dim canAssign As Boolean
+		
+		propertyName = LCase(propertyName)
+		
+		'als NewLine-Separatoren nur CRLF/CR/LF zulassen
+		If propertyName = "linedelimiter" Then
+			If IsElement(enc_allowedLineDelimiters(propertyvalue)) Then
+				canAssign = True
+			End If
+		Else
+			canAssign = True
+		End If
+		
+		'Nie Textqualifizierer verwenden: alle gegensätzliche Delimit-Optionen abschalten
+		If propertyName = "delimit_never" Then
+			If propertyValue then
+				Call Setproperty("Delimit_TextQualifier", False)
+				Call Setproperty("Delimit_ColumnDelimiter", False)
+				Call Setproperty("Delimit_LineDelimiter", False)
+				Call Setproperty("Delimit_Surrounding_Spaces", False)
+				Call Setproperty("Delimit_Always", False)
+			End if
+		End If
+		
+		If canAssign Then
+			Props(propertyName) = propertyValue
+			needPropertyAssign = True
+		End If
+		
+		GoTo Ende
+		
+doError:		
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+
+	Function Getproperty(propertyName As String) As Variant
+		If IsElement(Props(LCase(propertyName))) Then
+			Getproperty = Props(LCase(propertyName))
+		Else
+			Getproperty = ""
+		End If
+	End Function
+	
+	'Properties aus den Listen zu den schneller abfragbaren Members zuweisen
+	Private Sub AssignProperties()
+		
+		On Error GoTo doerror
+		
+		prop_AutoTrim = Getproperty("AutoTrim")
+		
+		prop_ColumnDelimiter = Getproperty("ColumnDelimiter")
+		prop_LineDelimiter = Getproperty("LineDelimiter")
+		prop_TextQualifier = Getproperty("TextQualifier")
+		prop_ArrayDelimiter = Getproperty("ArrayDelimiter")
+		
+		prop_Delimit_TextQualifier = Getproperty("Delimit_TextQualifier")
+		prop_Delimit_ReplaceTextQualifier = Getproperty("Delimit_ReplaceTextQualifier")
+		
+		prop_Delimit_LineDelimiter = Getproperty("Delimit_LineDelimiter")
+		prop_Delimit_ReplaceLineDelimiter = Getproperty("Delimit_ReplaceLineDelimiter")
+		
+		prop_Delimit_ColumnDelimiter = Getproperty("Delimit_ColumnDelimiter")
+		prop_Delimit_ReplaceColumnDelimiter = Getproperty("Delimit_ReplaceColumnDelimiter")
+
+		prop_Delimit_Surrounding_Spaces = Getproperty("Delimit_Surrounding_Spaces")
+		prop_Delimit_Always = Getproperty("Delimit_Always")
+		prop_Delimit_Never = Getproperty("Delimit_Never")
+		
+		'interne Variablen bilden
+		enc_canDelimit = prop_TextQualifier <> "" 
+		enc_needReplace = False
+		ReDim enc_SourceArr(0)
+		ReDim enc_ReplaceArr(0)
+		
+		'Decoder Hilfsarrays TextQualifier-Dreieckstausch (sofern Textqualifier eingesetzt werden)
+		ReDim dec_SourceTextQualifierArr(0)
+		ReDim dec_ReplaceTextQualifierArr(0)
+		If enc_canDelimit then
+			Call AddReplacePair(dec_SourceTextQualifierArr, dec_ReplaceTextQualifierArr, prop_TextQualifier & prop_TextQualifier, Chr(27))
+			Call AddReplacePair(dec_SourceTextQualifierArr, dec_ReplaceTextQualifierArr, prop_TextQualifier, "")
+			Call AddReplacePair(dec_SourceTextQualifierArr, dec_ReplaceTextQualifierArr, Chr(27), prop_TextQualifier)
+		End if
+		
+		'Delimit-Replacement-Arrays können ebenfalls einmalig gebildet werden
+
+		'Textbegrenzung ist nur verfügbar, wenn der Textbegrenzer gesetzt ist 
+		If Not enc_canDelimit Then
+			'es kann nicht begrenz werden: Demzufolge sind alle im Wert unerlaubten Zeichen zu ersetzten
+			
+			'Info: TextDelimiter ist nicht verfügbar, daher können dessen Delimit_-Optionen hier nicht angewandt werden 
+			
+			'LineBreaks entfernen: alle möglichen LineBreaks definieren
+			'TODO: Sicherstellen, dass Zielstring nicht einem Argument entspricht
+			ForAll x In enc_allowedLineDelimiters
+				Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, ListTag(x), prop_Delimit_ReplaceLineDelimiter)
+			End ForAll
+			
+			'Column
+			'TODO: Sicherstellen, dass Zielstring nicht einem Argument entspricht
+			Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, prop_ColumnDelimiter, prop_Delimit_ReplaceColumnDelimiter)
+		Else
+			'Textbegrenzer ist verfügbar. Erweiterte Einstellungen anwenden
+			
+			'Textbegrenzer im Wert oder immer Textbegrenzer anwenden
+			'-> Einstellung von Delimit_Always ist dabei egal
+			If prop_Delimit_TextQualifier Then
+				'Textbegrenzer müssen maskiert werden
+				Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, prop_TextQualifier, prop_TextQualifier & prop_TextQualifier)
+			Else
+				'Textbegrenzer sollen nicht maskiert werden: sind dann zu ersetzen
+				'TODO: Sicherstellen, dass Zielstring nicht einem Argument entspricht
+				Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, prop_TextQualifier, prop_Delimit_ReplaceTextQualifier)
+			End If
+			
+			If Not(prop_Delimit_ColumnDelimiter) Then
+				'Der Spaltentrenner soll nicht in Textbegrenzern stehen: dann immer ersetzen
+				'-> Einstellung von Delimit_Always ist dabei egal
+				Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, prop_ColumnDelimiter, prop_Delimit_ReplaceColumnDelimiter)
+			End If
+			
+			If Not(prop_Delimit_LineDelimiter) Then
+				'Der Zeilentrenner soll nicht in Textbegrenzern stehen: dann immer ersetzen
+				'-> Einstellung von Delimit_Always ist dabei egal
+				
+				'LineBreaks entfernen: alle möglichen LineBreaks definieren
+				'TODO: Sicherstellen, dass Zielstring nicht einem Argument entspricht
+				ForAll x In enc_allowedLineDelimiters
+					Call AddReplacePair(enc_SourceArr, enc_ReplaceArr, ListTag(x), prop_Delimit_ReplaceLineDelimiter)
+				End ForAll			
+			End If
+		
+		End If
+
+		'Print UBound(enc_SourceArr)+1, "Ersetzungen definiert"
+		
+		enc_needReplace = UBound(enc_SourceArr) > 0 Or enc_SourceArr(0) <> ""
+		needPropertyAssign = False
+
+		GoTo Ende
+		
+doError:		
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+
+	'Ein Ersetzungspärchen zu den Such- und Ersetzungs-Arrays hinzufügen
+	Private Sub AddReplacePair(sourceArr, replaceArr, src As String, dst As String)
+		If sourceArr(0) = "" And replaceArr(0) = "" Then
+			sourceArr(0) = src
+			replaceArr(0) = dst
+		Else
+			sourceArr = ArrayAppend(sourceArr, src)
+			replaceArr = ArrayAppend(replaceArr, dst)
+		End If
+	End Sub
+
+	'Anhand der CSV-Properties und des Wertes prüfen, ob dieser in Textbegrenzer zu setzen ist
+	Private Function needDelimit(Value) As Boolean
+		
+		'Textbegrenzer ist definiert?
+		If enc_canDelimit Then
+
+			'Muss generell immer jede Spalte in Textbegrenzung gesetzt werden?			
+			If prop_Delimit_Always Then
+				needDelimit = True
+			ElseIf Not prop_Delimit_Never Then
+				
+				'Konditionale Prüfung: Text Delimiter
+				If prop_Delimit_TextQualifier Then
+					If InStr(Value, prop_TextQualifier) > 0 Then
+						needDelimit = True
+						Exit Function
+					End if
+				End If
+
+				'Konditionale Prüfung: Column Delimiter
+				If prop_Delimit_ColumnDelimiter then 
+					If InStr(Value, prop_ColumnDelimiter) > 0 Then
+						needDelimit = True
+						Exit Function
+					End if
+				End if
+	
+				'Konditionale Prüfung: LF oder CR (erkennt damit auch CRLF)
+				If prop_Delimit_LineDelimiter Then
+					If InStr(Value, Chr(10)) > 0 Or InStr(Value, Chr(13)) > 0 Then
+						needDelimit = True
+						Exit Function
+					End If
+				End if
+
+				'Konditionale Prüfung: Leading/Trailing Spaces, sofern nicht Auto-Trim definiert ist
+				If prop_Delimit_Surrounding_Spaces Then
+					If Not prop_AutoTrim then 
+						If Left(Value, 1) = " " Or Right(Value, 1) = " " Then
+							needDelimit = True
+							Exit Function
+						End If
+					End if
+				End If
+				
+			End If
+		End If
+		
+	End Function
+
+	'Ein ganzes Array als fertig konvertierte CSV-Zeile zurückgeben
+	'-> Core-Routine
+	'-> Einzelwerte, die Arrays sind (Mehrfachwerte), werden korrekt umgesetzt
+	'-> Schnellste Routine, wenn Value mehr als 1 Element hat  
+	Function EncodeArray(Value) As String
+		
+		'Optimiert für hohen Durchdsatz (50% schneller als alte Version)
+		On Error GoTo DoError
+		
+		Dim i As Integer
+		Dim enc_needDelimi() As Boolean
+		Dim enc_ArrayValues() As String
+		Dim hlpArr
+	
+		'ggf. Properties privaten Variablen zuweisen (Performance)
+		If needPropertyAssign Then Call Me.AssignProperties()
+	
+		'Prüfen, welche der Elemente in Textbegrenzer zu setzen sind
+		'-> inkl. Vorkonvertierung von Arrays im Wert
+		ReDim enc_needDelimi(LBound(Value) To UBound(Value))
+		ReDim enc_ArrayValues(LBound(Value) To UBound(Value))
+		For i=LBound(Value) To UBound(Value)
+			If IsArray(Value(i)) Then
+				'Vorkonvertieren von Werten, die Arrays sind (Mehrfachwerte).
+				enc_ArrayValues(i) = EncodeCSVArrayValue(Value(i))
+				Value(i) = ""
+			Else
+				'Sicherstellen, dass es ein String ist
+				Value(i) = Value(i) & ""
+				enc_needDelimi(i) = needDelimit(Value(i))
+			End If
+		Next i
+		
+		'Ersetzungen ausführen
+		If enc_needReplace Then	
+			hlpArr = Replace(Value, enc_SourceArr, enc_ReplaceArr, 1, -1, 5)
+		Else
+			hlpArr = Value
+		End If
+
+		'Text-Delimitierung und ggf. Autotrim ausführen
+		For i=LBound(Value) To UBound(Value)
+			'Vorkonvertierte Elemente wieder zuweisen
+			If enc_ArrayValues(i) <> "" Then hlpArr(i) = enc_ArrayValues(i)
+			
+			'Auto-Trim ausführen
+			If prop_AutoTrim Then hlpArr(i) = Trim(hlpArr(i))
+			
+			'Text-Delimit ausführen
+			If enc_needDelimi(i) Then hlpArr(i) = prop_TextQualifier & hlpArr(i) & prop_TextQualifier
+		Next i
+		
+		EncodeArray = Join(hlpArr, prop_ColumnDelimiter)
+		
+		GoTo ende
+DoError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+ende:
+		
+	End Function
+
+	'Einen Einzelwert (String, Spaltenwert) in das CSV-Format bringen
+	'-> Core-Routine
+	'-> Schneller als EncodeValue(), da keine Array-Prüfung erfolgt
+	Function EncodeString(singleStringValue As String) As String
+
+		'Optimiert für hohen Durchdsatz (50% schneller als alte Version)
+		Dim enc_needDelimi As Boolean
+		
+		'ggf. Properties privaten Variablen zuweisen (Performance)
+		If needPropertyAssign Then Call Me.AssignProperties()
+
+		'Prüfen, ob Textbegrenzer zu setzen sind 
+		enc_needDelimi = needDelimit(singleStringValue)
+
+		'Call Timer_Start("ReAssign+Trim")
+		If prop_AutoTrim Then 
+			EncodeString = Trim(singleStringValue)
+		Else
+			EncodeString = singleStringValue
+		End If
+		
+		'Replace und Text-Delimitting ausführen
+		If enc_needReplace Then	EncodeString = Replace(EncodeString, enc_SourceArr, enc_ReplaceArr, 1, -1, 5)
+		If enc_needDelimi Then EncodeString = prop_TextQualifier & EncodeString & prop_TextQualifier
+			
+	End Function
+	
+	'Einen Wert (Spaltenwert) in das CSV-Format bringen
+	Function EncodeValue(variantValue) As String
+
+		'Temporär während Einbindung in CSVFile
+		On Error Resume Next
+		
+		If IsArray(variantValue) Then
+			EncodeValue = EncodeCSVArrayValue(variantValue)
+		Else
+			EncodeValue = EncodeString(variantValue & "")
+		End If
+		
+	End Function
+	
+	'Ein Array-Wert über ein CSV-Hilfsobjekt konvertieren (Mehrfachwerte in eine Spalte)
+	Private Function EncodeCSVArrayValue(Value) As String
+		
+		If needPropertyAssign Then Call Me.AssignProperties()
+		
+		If arrCSV Is Nothing Then
+			'Hilfsobjekt zur Konvertierung von Mehrfachwerten nur 1x initialisieren
+			Set arrCSV = New CSVHandlerBase
+			Call arrCSV.SetProperty("ColumnDelimiter", prop_ArrayDelimiter)
+			Call arrCSV.SetProperty("TextQualifier", "")
+			Call arrCSV.SetProperty("AutoTrim", prop_AutoTrim)
+		End If
+
+		EncodeCSVArrayValue = arrCSV.EncodeArray(Value)
+		
+	End Function
+	
+End Class
+%REM
+	Abstrakte Basisklasse für spezialisiertere Exportklassen. Stellt Basis/Grundgerüst zur Verfügung
+	-> Nicht direkt verwenden!
+%END REM
+Class CSVExportAbstract As CSVHandlerBase
+	
+	Private currentCol As Integer
+	Private currentRow As Long
+	Private maxCol As Integer
+	
+	Private hlpData As Variant
+
+	Sub New()
+		'übergeordnete wird automatisch ausgeführt
+
+		'max 5000 Spalten
+		ReDim hlpData(1 To 5000)
+	End Sub
+	
+	Sub AddColumn(value)
+		currentCol = currentCol + 1
+		hlpData(currentCol) = value
+	End Sub
+	
+	'Ein komplettes Array als nächste Zeile schreiben (unabhängig von AddColumn)
+	Sub NextArrayRow(columnValuesArray)
+
+		On Error GoTo doError
+		
+		Dim lb As Integer
+		
+		lb = LBound(columnValuesArray)
+		currentCol = UBound(columnValuesArray) - lb + 1
+		
+		'Beim ersten Datensatz die Anzahl der Spalten festsetzen/Einschränken
+		If maxCol = 0 Then 
+			maxCol = currentCol
+			ReDim Preserve columnValuesArray(lb To maxCol+lb-1)
+			
+			'2013-11-15, dko: Initial auch das reguläre Datenarray neu dimensionieren, sonst bleibt es auf 5000 Elementen
+			ReDim Preserve hlpData(1 To maxCol)
+		End If
+		
+		If currentCol < maxCol Then
+			'werden bei einem Datensatz weniger Spalten geschrieben, werden die restlichen Spalten aufgefüllt 
+			ReDim Preserve columnValuesArray(lb To currentCol+lb-1)  'löschen gf. vorh. Daten
+			ReDim Preserve columnValuesArray(lb To maxCol+lb-1)
+		ElseIf currentCol > maxCol Then
+			ReDim Preserve columnValuesArray(lb To maxCol+lb-1)
+		End If
+		
+		Call WriteToTarget(columnValuesArray)
+		
+		currentCol = 0
+		currentRow = currentRow + 1
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	'per AddColumn hinzugefügte Daten als nächste Zeile schreiben
+	Sub NextRow()
+		
+		On Error GoTo doError
+	
+		
+		'Beim ersten Datensatz die Anzahl der Spalten festsetzen/Einschränken
+		If maxCol = 0 Then 
+			maxCol = NumMax(currentCol, 1)
+			ReDim Preserve hlpData(1 To maxCol)
+		End If
+		
+		If currentCol < maxCol Then
+			'werden bei einem Datensatz weniger Spalten geschrieben, werden die restlichen Spalten aufgefüllt 
+			ReDim Preserve hlpData(1 To currentCol)  'löschen gf. vorh. Daten
+			ReDim Preserve hlpData(1 To maxCol)
+		ElseIf currentCol > maxCol Then
+			'werden bei einem Datensatz mehr Spalten geschrieben, dann ebenfalls kürzen
+			ReDim Preserve hlpData(1 To maxCol)
+		End If
+		
+		Call WriteToTarget(hlpData)
+		
+		currentCol = 0
+		currentRow = currentRow + 1
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	Private Sub WriteToTarget(dataArr)
+		'abstract
+	End Sub
+	
+	Property Get CurrentLine As Long
+		CurrentLine = currentRow
+	End Property
+
+	Property Get CurrentColumn As Integer
+		CurrentColumn = currentCol
+	End Property
+
+	Property Get MaxColumns As Integer
+		MaxColumns = maxCol
+	End Property
+	
+End Class
+%REM
+	Dateibasierte (freefile()/open) Klasse zum Exportieren von CSV-Dateien
+	-> Dateiname/Pfad darf keine Unicode-Zeichen beinhalten. 
+	-> Empfehlung: CSVExportFileStream verwenden
+%END REM
+Class CSVExportFile As CSVExportAbstract
+	
+	Private f As Integer
+	
+	Sub New(filename As String, optCharset As String, doAppend As Integer)
+		
+		On Error GoTo doError
+		
+		f = FreeFile()
+		If optCharSet = "" Then
+			If doAppend Then
+				Open filename For Append As f
+			Else
+				Open filename For Output As f '<- Default
+			End If
+		Else
+			If doAppend Then
+				Open filename For Append As f Charset=optCharset
+			Else
+				Open filename For Output As f Charset=optCharset
+			End If
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("Handle=" & f & "; Filename=" & filename)
+		Close f
+		f = 0
+		On Error GoTo 0
+		Raise
+Ende:
+	End Sub
+	
+	Sub Delete
+		On Error Resume Next
+		If f > 0 Then 
+			Close f
+			f = 0
+		End If 
+	End Sub
+	
+	Private Sub WriteToTarget(dataArr)
+		Print #f, EncodeArray(dataArr);prop_LineDelimiter;
+	End Sub
+	
+End Class
+%REM
+	Abstrakte Basisklasse für spezialisiertere Importklassen. Stellt Basis/Grundgerüst zur Verfügung
+	-> Nicht direkt verwenden!
+%END REM
+Class CSVImportAbstract As CSVHandlerBase
+	
+	Private currentCol As Integer
+	Private currentRow As Long
+	Private maxCol As Integer
+	
+	Private rowMaxCols As Integer
+	
+	Private intCSVLine As String
+
+	Private dec_ResultArray As Variant
+
+	Sub New
+		ReDim dec_ResultArray(1 To 1)
+	End Sub
+
+	Function ReadColumn() As String
+		'If currentCol > maxCol Then maxCol = currentCol 'grösste Spaltenanzahl merken
+		If Not Me.IsEOL() Then
+			currentCol = currentCol + 1
+			ReadColumn = dec_ResultArray(currentCol)
+		End If
+	End Function
+
+	'Rückgabe: das interne Result-Array
+	Function NextRow As Variant
+		
+		On Error GoTo doError
+		
+		Dim rest As Integer
+		Dim lineRead As String
+		Dim Arr
+
+		'ggf. Properties privaten Variablen zuweisen (Performance)
+		If needPropertyAssign Then Call Me.AssignProperties()
+		
+		'-> ggf. doch besser als Callback bzw. Override-methode implementieren, so dass dynamsich von 
+		'Decodevalue() aus nachgeladen werden kann (Auto-Switch Spanning-Prüfung)
+		currentCol = 0
+		
+		If Not Me.IsEOF Then
+			
+			currentRow = currentRow + 1
+			
+			If enc_canDelimit And prop_Delimit_LineDelimiter Then
+				'Zeilenumbrüche In Werten sind beim Einlesen erlaubt und Textbegrenzer wurden nicht deaktiviert
+				'-> Anzahl der Textbegrenzer prüfen. Wenn ungerade, dann sind die Daten unvollständig
+
+				'Direkte Zuweisung, im Normalfall ausreichend
+				'Call Timer_Start("Line.Input")
+				Call ReadFromSource(intCSVLine$)
+				'Call Timer_Stop("Line.Input")
+				
+				'Call Timer_Start("Test.Spanning")
+				rest = (Len(intCSVLine$) - Len(Replace(intCSVLine$, """", "", 1, -1, 5))) Mod 2
+				'Call Timer_Stop("Test.Spanning")
+				
+				'Ist die zeile unvollständig, weiter auslesen, ggf. bis EOF
+				While rest > 0 And Me.isEOF
+					
+					'Print "Found incomplete line at row", currentRow
+					'Print "IntBuffer Last 10 Chars", Right(intBuffer, 10)
+					
+					'Nächste Zeile lesen, zum bisherigen String hinzufügen und erneut prüfen
+					'-> Achtung: hinzufügen mit dem aktuell eingestellten LineDelimiter
+					'Call Timer_Start("Line.Input")
+					Call ReadFromSource(lineRead$)
+					'Call Timer_Stop("Line.Input")
+
+					'Print "lineRead First 10 Chars", Left(LineRead, 10)
+					'Print "lineRead Last 10 Chars", Right(LineRead, 10)
+					
+					intCSVLine$ = intCSVLine$ & prop_LineDelimiter & lineRead$
+					
+					'Call Timer_Start("Test.Spanning")
+					If (Len(lineread$) - Len(Replace(lineRead$, """", "", 1, -1, 5))) Mod 2 > 0 Then
+						'Die zusätzliche Zeile hat ebenfalls eine ungerade Anzahl von Textbegrenzern
+						'-> Dann ist dies das Signal, dass der Datensatz nun vollständig ist
+						'Print "lineRead termination Signal"
+						rest = 0
+					Else
+						'Print "need more."
+					End If
+					'Call Timer_Stop("Test.Spanning")
+				Wend
+				
+			Else
+				'Textbegrenzer wurden deaktiviert oder Zeilenumbrüche sind ausgeschlossen
+				'-> nichts tun, die Zeile sollte damit alle Daten enthalten
+				'Call Timer_Start("Line.Input")
+				Call ReadFromSource(intCSVLine$)
+				'Call Timer_Stop("Line.Input")
+			End If
+
+			'Wir gehen davon aus, dass intBuffer nun eine vollständige Datenzeile ist
+			dec_ResultArray = DecodeLine(intCSVLine$)
+
+		Else
+			'Ergebnisarray löschen
+			ReDim dec_ResultArray(1 To UBound(dec_ResultArray))
+		End If
+		
+		'2013-11-18, dko: merken der Anzahl der Spalten dieser Zeile. in isEOL berücksichtigen
+		'-> Es kann vorkommen, dass es kürzere Zeilen gibt als durch maxCol beschrieben!
+		'-> maxCols dynamisch erweitern, wenn erforderlich
+		rowMaxCols = UBound(dec_ResultArray)
+		If maxCol < rowMaxCols Then maxCol = rowMaxCols
+		
+		'Nach Auslesen der 1. Zeile die maximale Anzahl der Spalten festlegen
+		'If maxCol = 0 Then maxCol = UBound(dec_ResultArray)
+				
+		NextRow = dec_ResultArray
+
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+
+	Private Sub ReadFromSource(targetString As String)
+		'abstract
+	End Sub
+	
+	Property Get IsEOF As Integer
+		'abstract
+	End Property
+	
+	Property Get IsEOL As Integer
+		'IsEOL = currentCol = maxCol
+		IsEOL = currentCol = rowMaxCols
+	End Property
+	
+	Property Get CurrentLine As Long
+		CurrentLine = currentRow
+	End Property
+
+	Property Get CurrentColumn As Integer
+		CurrentColumn = currentCol
+	End Property
+
+	Property Get MaxColumns As Integer
+		MaxColumns = maxCol
+	End Property
+	
+	Property Get CSVLine As String
+		CSVLine = intCSVLine
+	End Property
+	
+End Class
+%REM
+	Dateibasierte (freefile()/open) Klasse zum Importieren von CSV-Dateien
+	-> Dateiname/Pfad darf keine Unicode-Zeichen beinhalten. 
+	-> Empfehlung: CSVImportFileStream verwenden
+%END REM
+Class CSVImportFile As CSVImportAbstract
+	
+	Private f As Integer
+
+	Sub New(filename As String, optCharset As String)
+		
+		On Error GoTo doError
+	
+		f = FreeFile()
+		If optCharSet = "" Then
+			Open filename For Input Shared As f '<- Default
+		Else
+			Open filename For Input Shared As f Charset=optCharset
+		End If
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("Handle=" & f & "; Filename=" & filename)
+		Close f
+		On Error GoTo 0
+		Raise
+ende:
+	End Sub
+	
+	Sub Delete
+		On Error Resume Next
+		If f > 0 Then 
+			Close f
+			f = 0
+		End If 
+	End Sub
+	
+	Private Sub ReadFromSource(targetString As String)
+		Line Input #f%, targetString$
+	End Sub
+
+	Property Get IsEOF As Integer
+		IsEOF = EOF(f)
+	End Property
+	
+End Class
+%REM
+	Abstrakte Basisklasse für streambasierte Importklassen.
+	-> Nicht direkt verwenden!
+%END REM
+Class CSVImportAbstractStream As CSVImportAbstract
+	
+	Private stream As NotesStream
+	Private eolType As Long
+	Private delimiterLen As Integer
+	
+	Private Sub AssignProperties()
+		
+		Call CSVImportAbstract..AssignProperties()
+		
+		Select Case prop_LineDelimiter
+		Case Chr(13) & Chr(10)
+			eoltype = 0
+			delimiterLen = 2
+		Case Chr(13)
+			eoltype = 2
+			delimiterLen = 1
+		Case Chr(10)
+			eoltype = 1
+			delimiterLen = 1
+		End Select
+	End Sub
+	
+	Sub ResetToBeginning()
+		stream.Position = 0
+	End Sub
+	
+	Private Sub ReadFromSource(targetString As String)
+		
+		%REM
+			2020-09-04, dko: Offenbar liest ReadText jetzt nicht mehr inkl. dem EOL-Trenner, bzw. wird die Position bei In-mem-Stream ggf. nicht um den EOL-Trenner weiter nach vorn gesetzt
+			Daher wird im Folgeaufruf evtl. nur eine leere zeile gelesen, bzw. eine Line, die nur den EOL-Trenner selbst enthält.
+			In diesem Fall lesen wir mit der korrigierten Methode dann direkt die nächste Zeile aus
+		%END REM
+		
+		%REM	- Old, aber OK
+		targetString$ = stream.ReadText(0, eolType)
+		If stream.Iseos Then
+			'Ende des Streams: eingehende Prüfung des Zeilenendes erforderlich
+			If Len(targetString$) >= delimiterLen% Then
+				If Right$(targetString$, delimiterLen%) = prop_LineDelimiter$ Then
+					'eol entfernen
+					targetString$ = Left$(targetString$, Len(targetString$)-delimiterLen%)
+				Else
+					'kein eol vorhanden, so belassen
+				End If
+			Else
+				'ohne eol, aber ein Wert vorhanden
+				If Len(targetString$) = 1 Then
+					'nur zurückgeben, wenn kein CTRL-Z
+					If Uni(targetString$) = 26 Then targetString$=""
+				End If 
+			End If
+		Else
+			targetString$ = Left$(targetString$, Len(targetString$)-delimiterLen%)	
+		End If
+		%END REM
+		
+		targetString$ = stream.ReadText(0, eolType)
+		
+		'Print "A", Len(targetString$), stream.Iseos, Left(targetString, 10), targetString$ = prop_LineDelimiter, "#" & Right(targetString, 6) & "#"
+		
+		If Len(targetString$) = delimiterLen Then
+			If targetString$ = prop_LineDelimiter And Not stream.Iseos Then 
+				targetString$ = stream.ReadText(0, eolType)
+				'Print "A2", Len(targetString$), stream.Iseos , Left(targetString, 10), , targetString$ = prop_LineDelimiter, "#" & Right(targetString, 6) & "#"
+			End If
+		End If
+		
+		If stream.Iseos Then
+			'Ende des Streams: eingehende Prüfung des Zeilenendes erforderlich
+			If Len(targetString$) >= delimiterLen% Then
+				If Right$(targetString$, delimiterLen%) = prop_LineDelimiter$ Then
+					'eol entfernen
+					targetString$ = Left$(targetString$, Len(targetString$)-delimiterLen%)
+				Else
+					'kein eol vorhanden, so belassen
+				End If
+			Else
+				'ohne eol, aber ein Wert vorhanden
+				If Len(targetString$) = 1 Then
+					'nur zurückgeben, wenn kein CTRL-Z
+					If Uni(targetString$) = 26 Then targetString$=""
+				End If 
+			End If
+		Else
+			targetString$ = Left$(targetString$, Len(targetString$)-delimiterLen%)	
+		End If
+		
+		'Print "B", Len(targetString$), stream.Iseos , Left(targetString, 10), , targetString$ = prop_LineDelimiter, "#" & Right(targetString, 6) & "#" 
+	
+	End Sub
+	
+	Property Get IsEOF As Integer
+		IsEOF = stream.Iseos
+	End Property
+	
+	Property Get Position As Long
+		Position = stream.Position
+	End Property
+
+	Property Get Size As Long
+		Size = stream.Bytes
+	End Property
+	
+	Property Get ImportStream As NotesStream
+		Set ImportStream = stream
+	End Property
+	
+	Sub Delete
+		On Error Resume Next
+		Call stream.Close()
+	End Sub
+	
+End Class
+%REM
+	Abstrakte Basisklasse für streambasierte Exportklassen.
+	-> Nicht direkt verwenden!
+%END REM
+Class CSVExportAbstractStream As CSVExportAbstract
+	
+	Private stream As NotesStream
+	Private deleteZeroBytesFile As Boolean  'Default false
+	
+	Sub Delete
+		On Error Resume Next
+		If Stream.Bytes = 0 And Not deleteZeroBytesFile Then
+			If needPropertyAssign Then Call Me.AssignProperties() 
+			Call Stream.Writetext(prop_LineDelimiter)
+		End if
+		Call Stream.Close()
+	End Sub
+	
+	Private Sub WriteToTarget(dataArr)
+		Call stream.Writetext( EncodeArray(dataArr) & prop_LineDelimiter )
+	End Sub
+	
+	Property Get StreamText As String
+		Dim pos As Long
+		pos = Stream.Position
+		Stream.Position = 0
+		StreamText = stream.ReadText()
+		Stream.Position = pos
+	End Property
+	
+	Property Get ExportStream As NotesStream
+		Set ExportStream = stream
+	End Property
+
+	Property Set PreserveEmptyFile As Boolean
+		deleteZeroBytesFile = Not PreserveEmptyFile
+	End Property
+End Class
+%REM
+	Eine CSV (CSVImportFileStream, CSVImportMemoryStream, CSVImportFile) anhand der Spaltenköpfe importieren
+%END REM
+Class CSVImportStructured
+
+	Private mycsvImportObject As CSVImportAbstract
+	Private Header List As Integer
+	Private headerRead As Boolean
+
+	Sub New(csvImportObject As CSVImportAbstract)
+		'Parent Sub wird automatisch ausgeführt
+		On Error GoTo doError
+		
+		Set mycsvImportObject = csvImportObject
+
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+Ende:
+	End Sub
+	
+	Sub Delete
+		'auch den zugewiesenen Exportstream schließen
+		On Error Resume next
+		Delete mycsvImportObject
+	End Sub
+	
+	'Header auslesen: ggf. automatisch bei Abgriff der ersten Datenzeile
+	'-> Gleichzeitig: Zugriff auf Header
+	Function ReadHeader()
+		
+		On Error GoTo doerror
+		
+		Dim i As Integer
+		Dim hlp As String
+		Dim firstRow As Variant
+		
+		If Not headerRead Then
+			
+			'Auslesen der 1. Zeile (Überschrift) und Speichern in einer Header-Liste
+			firstRow = mycsvImportObject.NextRow()
+
+			For i = LBound(firstRow) To UBound(firstRow)
+				
+				hlp = firstRow(i)
+				'Doppelte oder leere Spalten verwenden einen generischen Namen (Nummer der Spalte, beginnend bei 1)
+				If IsElement(Header(hlp)) Or hlp = "" Then hlp = "_col-" & (i+1)
+				
+				Header(hlp) = (i+1)
+				
+			Next i
+			
+			headerRead = True
+		End If
+		
+		ReadHeader = Header
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Function
+	
+	'Daten der nächsten Zeile auslesen
+	Function NextRow()
+		
+		On Error GoTo doerror
+		
+		Dim Data List
+		
+		'Header auslesen, sofern nicht manuell erfolgt
+		If Not headerRead Then Call Readheader()
+		
+		'Daten einlesen
+		Call mycsvImportObject.NextRow()
+		ForAll x In Header
+			Data(ListTag(x)) = mycsvImportObject.ReadColumn()
+		End ForAll
+		
+		NextRow = Data
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	'Prüft, ob eine Spalte definiert ist
+	Function isDefined(cc As String) As Integer
+		'Header auslesen, sofern nicht manuell erfolgt
+		If Not headerRead Then Call Readheader()
+		
+		isDefined = IsElement(Header(cc))
+	End Function
+	
+	'Wrapper Properties
+	Property Get CSVLine As String
+		CSVLine = mycsvImportObject.CSVLine
+	End Property 
+	
+	Property Get IsEOF As Boolean
+		isEOF = mycsvImportObject.IsEOF
+	End Property
+
+	Property Get IsEOL As Boolean
+		isEOL = mycsvImportObject.IsEOL
+	End Property
+	
+	Property Get CurrentLine As Long
+		CurrentLine = mycsvImportObject.CurrentLine
+	End Property
+	
+	Property Get CurrentColumn As Integer
+		CurrentColumn = mycsvImportObject.CurrentColumn
+	End Property
+	
+	Property Get MaxColumns As Integer
+		MaxColumns = mycsvImportObject.MaxColumns
+	End Property
+	
+End Class
+%REM
+	Eine CSV (CSVExportFileStream, CSVExportMemoryStream, CSVExportFile) anhand der Spaltenköpfe exportieren
+%END REM
+Class CSVExportStructured
+
+	Private mycsvExportObject As CSVExportAbstract
+	Private Header List As Integer
+	Private headerSet As Boolean
+	Private SuppressHeader As Boolean
+	
+	Sub New(csvExportObject As CSVExportAbstract)
+		'Parent Sub wird automatisch ausgeführt
+		On Error GoTo doError
+		
+		Set mycsvExportObject = csvExportObject
+
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+Ende:
+	End Sub
+	
+	Sub Delete
+		'auch den zugewiesenen Exportstream schließen
+		On Error Resume Next
+		Delete mycsvExportObject
+	End Sub
+	
+	'Header setzen: einmalig definieren, intern umspeichern
+	Sub SetHeader(FL)
+		
+		On Error GoTo doerror
+		
+		If Not headerSet Then
+			ForAll x In FL
+				Header(ListTag(x)) = 1
+			End ForAll
+			
+			'Output Header
+			If Not SuppressHeader Then
+				ForAll x In FL
+					Call mycsvExportObject.AddColumn(ListTag(x))
+				End ForAll
+				Call mycsvExportObject.NextRow()
+			End If
+			
+			headerSet = True
+		End If
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+		
+	End Sub
+	
+	
+	'Daten der nächsten Zeile auslesen
+	Sub NextRow(Data List)
+		
+		On Error GoTo doerror
+		
+		'Header definieren, sofern nicht manuell erfolgt
+		If Not headerSet Then Call SetHeader(Data)
+		
+		'Daten schreiben: Nur die, die im Header definiert sind
+		ForAll x In Header
+			If IsElement(Data(ListTag(x))) Then 
+				Call mycsvExportObject.AddColumn(Data(ListTag(x)))
+			Else
+				Call mycsvExportObject.AddColumn("")
+			End If
+		End ForAll
+		Call mycsvExportObject.NextRow()
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	'Wrapper Properties
+	Property Get CurrentLine As Long
+		CurrentLine = mycsvExportObject.CurrentLine
+	End Property
+	
+	Property Get CurrentColumn As Integer
+		CurrentColumn = mycsvExportObject.CurrentColumn
+	End Property
+	
+	Property Get MaxColumns As Integer
+		MaxColumns = mycsvExportObject.MaxColumns
+	End Property
+	
+End Class
+%REM
+	Streambasierte Klasse zum Importieren von CSV-Dateien
+	-> Input: Dateiname/Pfad
+	-> volle Unicode-Unterstützung für Dateiname/Pfad 
+	-> optCharSet "Unicode" verweden, um Unicode-Daten zu schreiben
+%END REM
+Class CSVImportFileStream As CSVImportAbstractStream
+	
+	Sub New(filename As String, optCharSet As String)
+
+		On Error GoTo doError
+		
+		Dim s As New NotesSession
+		
+		Set stream = s.Createstream()
+		
+		If optCharset <> "" Then
+			Call stream.Open(filename, optCharset)
+		Else
+			Call stream.Open(filename)
+		End If
+
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("Stream Filename=" & filename)
+		Call stream.Close()
+		On Error GoTo 0
+		Raise
+Ende:
+	End Sub
+	
+End Class
+%REM
+	Streambasierte Klasse zum Importieren von CSV-Daten
+	-> Input: NotesStream 
+%END REM
+Class CSVImportMemoryStream As CSVImportAbstractStream
+	
+	Sub New(assignStream As NotesStream)
+		
+		On Error GoTo doError
+
+		Set stream = assignStream	
+		stream.Position = 0
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack("")
+		On Error GoTo 0
+		Raise
+ende:
+	End Sub
+
+End Class
+%REM
+	Streambasierte Klasse zum Exportieren von CSV-Dateien
+	-> Output: Datei
+	-> volle Unicode-Unterstützung für Dateiname/Pfad 
+	-> optCharSet "Unicode" verweden, um Unicode-Daten zu schreiben
+%END REM
+Class CSVExportFileStream As CSVExportAbstractStream
+	
+	Sub New(filename As String, optCharset As String, doAppend As Integer)
+		
+		'übergeordnete wird automatisch aufgerufen
+
+		On Error GoTo doError
+
+		'In-Memory Stream erstellen
+		Dim s As New NotesSession
+		Set stream = s.Createstream()
+		
+		If optCharset <> "" Then
+			Call Stream.Open(filename, optCharset)
+		Else
+			Call Stream.Open(filename)
+		End If
+		If Not doAppend Then Call Stream.Truncate()
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call Errstack("Stream Filename=" & filename)
+		Call Stream.Close()
+		On Error GoTo 0
+		Raise
+Ende:
+	End Sub
+	
+	
+End Class
+%REM
+	Streambasierte Klasse zum Exportieren von CSV-Daten
+	-> Output: NotesStream
+	-> volle Unicode-Unterstützung für Dateiname/Pfad 
+	-> optCharSet "Unicode" verweden, um Unicode-Daten zu schreiben
+%END REM
+Class CSVExportMemoryStream As CSVExportAbstractStream
+	
+	Sub New()
+		'übergeordnete wird automatisch ausgeführt
+
+		'In-Memory Stream erstellen
+		Dim s As New NotesSession
+		Set stream = s.Createstream()
+	End Sub
+	
+End Class
+'++LotusScript Development Environment:2:1:ExportViewAsCsv:1:8
+Function ExportViewAsCsv(db As NotesDatabase, nFilename As String, nView As String, opt List As Byte) As Boolean
+	
+	On Error GoTo stdError
+	
+	Dim dataView As NotesView
+	Dim rows As Long
+	Dim maxcols As Integer
+	Dim c As NotesViewColumn
+	Dim k As Integer
+	Dim csv As New CSVExportFile(nFilename, "", False)
+	Dim vwNav As NotesViewNavigator
+	Dim entry As NotesViewEntry
+	Dim ColVals As Variant
+	Dim xCol, xVal
+	
+	Dim exportCat As Boolean, exportDoc As Boolean, exportTot As Boolean
+	
+	exportCat = Not IsElement(opt("NOCAT"))
+	exportDoc = Not IsElement(opt("NODOC"))
+	exportTot = Not IsElement(opt("NOTOT"))
+	
+	If db Is Nothing Then Exit Function
+	
+	Set dataview = db.getview(nView)  'get the desired view
+	If dataView Is Nothing Then Exit Function
+	
+	Set vwnav= dataview.createViewnav()
+	
+	'Call csv.SetProperty("Delimit_Always", True)
+	
+	rows = 1
+	maxcols = dataview.ColumnCount  'how many columns?
+	
+	ReDim colHidden(maxCols-1) As Boolean
+	ReDim colIdx(maxCols-1) As Long
+	
+	'write Column Titles
+	For K=0 To maxcols-1
+		Set c=dataview.columns(K)
+		colHidden(k) = c.IsHidden
+		colIdx(k) = c.Columnvaluesindex
+		If Not colHidden(k) Then 
+			Call csv.AddColumn(c.Title)
+		End If
+	Next K
+	
+	Call csv.NextRow()
+	
+	Set entry = vwnav.GetFirst()
+	Do While Not (entry Is Nothing)
+		
+		If (entry.Iscategory And exportCat) Or (entry.Isdocument And exportDoc) Or (entry.Istotal And exportTot) Then
+			
+			For k=0 To maxcols-1
+				If Not colHidden(k) Then
+					
+					colVals = entry.Columnvalues(colIdx(k))
+					
+	%REM				
+					If colIdx(k) > UBound(xVal) Then
+						colvals = ""
+					Else
+						colvals = xVal(colIdx(k))
+					End If
+	%END REM
+	
+					Call csv.AddColumn(ColVals)
+				End If
+			Next k
+			
+			Call csv.NextRow()
+		End If
+		
+		Set entry = vwnav.getnext(entry)		
+	Loop
+	
+	ExportViewAsCsv = True
+	
+	GoTo ende
+	
+StdError:
+	On Error Resume Next
+	Call ErrStack("")
+	Call ErrStack("CSVConverter; k=" & k & "; UBound=" & UBound(xVal))
+	Resume ende
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:WriteArrayToCSVFile:1:8
+Function WriteArrayToCSVFile(hlpArr, filename As String) As Integer
+	
+	Dim csv As New CSVTextFileOut(filename)
+	Dim i As Integer
+	
+	For i = 0 To UBound(hlpArr)
+		Call csv.AddColumn("" & hlpArr(i))
+		Call csv.NextRow()
+	Next i
+	
+	WriteArrayToCSVFile = True
+	
+End Function
+
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:1:A_OLD_ExportViewAsCsv:1:8
+Private Function A_OLD_ExportViewAsCsv(db As NotesDatabase, nFilename As String, nView As String) As Integer
+	
+	On Error GoTo stdError
+	
+	Dim dataView As NotesView
+	Dim rows As Long
+	Dim cols As Integer
+	Dim maxcols As Integer
+	Dim c As NotesViewColumn
+	Dim k As Integer
+	Dim csv As New CSVExportFile(nFilename, "", False)
+	Dim csvLine As String
+	Dim vwNav As NotesViewNavigator
+	Dim entry As NotesViewEntry
+	Dim scope As String
+	Dim ColVals As Variant
+	Dim xCol, xVal
+	
+	If db Is Nothing Then Exit Function
+	
+	Set dataview = db.getview(nView)  'get the desired view
+	If dataView Is Nothing Then Exit Function
+	
+	Set vwnav= dataview.createViewnav()
+	
+	Call csv.SetProperty("Delimit_Always", True)
+	
+	rows = 1
+	cols = 1
+	maxcols = dataview.ColumnCount  'how many columns?
+	
+	'write Column Titles
+	For K=1 To maxcols
+		Set c=dataview.columns(K-1)
+		If Not c.IsHidden Then Call csv.AddColumn(c.Title)
+		cols = cols + 1
+	Next K
+	
+	Call csv.NextRow()
+	
+	Set entry = vwnav.GetFirst()
+	Do While Not (entry Is Nothing)
+		For cols=0 To maxcols-1
+			Set xCol = dataview.columns(cols)
+			If Not xCol.IsHidden Then
+				xVal = entry.ColumnValues(xCol.ColumnvaluesIndex)
+				If cols > UBound(xVal) Then
+					colvals=""
+				Else
+					colvals=xVal '(cols)	'subscript =0
+				End If
+				Call csv.AddColumn(ColVals)
+			End If
+		Next cols		
+		Call csv.NextRow()
+		Set entry = vwnav.getnext(entry)		
+	Loop
+	
+	A_OLD_ExportViewAsCsv = True
+	
+	GoTo ende
+	
+StdError:
+	On Error Resume Next
+	Call ErrStack("")
+	Call ErrStack("CSVConverter; cols-1=" & cols-1 & "; UBound=" & UBound(xVal))
+	Resume ende
+	
+ende:
+	
+End Function
+
+
+

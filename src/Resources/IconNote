@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='utf-8'?>
+<note default='true' class='icon' xmlns='http://www.lotus.com/dxl' version='12.0'
+ maintenanceversion='2.2' replicaid='C1258AFC00296AAF'>
+<noteinfo noteid='126' unid='5228E327572B27DCC1258025002BB663' sequence='10'>
+<created><datetime dst='true'>20160905T095727,39+02</datetime></created>
+<modified><datetime dst='true'>20240415T092857,24+02</datetime></modified>
+<revised><datetime dst='true'>20240415T092857,23+02</datetime></revised>
+<lastaccessed><datetime dst='true'>20240415T092857,23+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T133548,97+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=Reiner Hintzen/OU=GF/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=IBVDNO03/O=IBV/C=DE</name><name
+>CN=domino2/O=IBV/C=DE</name><name>CN=domino1/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name
+>CN=domino1/O=IBV/C=DE</name><name>CN=domino2/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name><name
+>CN=IBVDNO03/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<item name='IconBitmap' summary='true'>
+<rawitemdata type='6'>
+AiAgAQAA///////wD///4Af//8AD//4AAH/8AAA/+AAAH/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAA
+D+AAAAfAAAADgAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAcAAAAPwAAAP8AAAD/AAAA/wAAAP
++AAAH/wAAD//8A////gf//////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAA
+DxERERHwAAAAAAAAAAAAAPEd3d3RHwAAAAAAAAAAD//x3Xd33R//8AAAAAAAAPEREdd3d30RER8A
+AAAAAA8R3d3Xd3d93d0R8AAAAADxHXd913d3fdd30R8AAAAA8dd3fdd3d33Xd30fAAAAAPHXd33X
+d3d913d9HwAAAADx13d913d3fdd3fR8AAAAA8dd3fdd3d33Xd30fAAAAAPHXd33Xd3d913d9HwAA
+AA/x13d913d3fdd3fR/wAADxEdd3fdd3d33Xd30RHwAPEd13d33Xd3d913d33RHw8R13d3d913d3
+fdd3d3fRH/HXd3d3fdd3d33Xd3d3fR/x13d3d33Xd3d913d3d30f8dd3d3fR13d3fR13d3d9H/Ed
+3d3dEdd3d30R3d3d0R8PEREd3dEd3d3RHd3RERHwAP/x13d9Ed3dEdd3fR//AAAA8dd3fR13d9HX
+d30fAAAAAPHXd33Xd3d913d9HwAAAADx13d913d3fdd3fR8AAAAA8R3d0dd3d30d3dEfAAAAAA8R
+EREdd3fRERER8AAAAAAA////Ed3dEf///wAAAAAAAAAAAPERER8AAAAAAAAAAAAAAAAP///wAAAA
+AAAAUEECICABAAD/////+A4DgA==
+</rawitemdata></item>
+<item name='$LaunchXPageRunOnServer'><text>0</text></item>
+<item name='$FlagsNoRefresh'><text/></item>
+<item name='$PIRCRefreshModTime'><datetime dst='true'>20240415T092547,18+02</datetime></item>
+<item name='$TemplateModTime'><datetime dst='true'>20240415T075116,59+02</datetime></item>
+<item name='$TemplateServerName'><text>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</text></item>
+<item name='$TemplateFileName'><text>CN=IBVDNO03/O=IBV/C=DE!!VCDEConfig.ntf</text></item>
+<item name='$Daos'><text>0</text></item>
+<item name='$LargeSummary'><text>0</text></item>
+<item name='$Flags'><text>J7fzX</text></item>
+<item name='$TITLE'><text>Vössing CDE Config Store LM
+</text></item></note>
+

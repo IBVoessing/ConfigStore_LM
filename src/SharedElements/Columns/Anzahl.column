@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<note class='view' xmlns='http://www.lotus.com/dxl' version='12.0' maintenanceversion='2.2'
+ replicaid='C1258AFC00296AAF'>
+<noteinfo noteid='182' unid='0AC3576D2511F793C12587CA002BCF3A' sequence='3'>
+<created><datetime>20220114T085830,98+01</datetime></created>
+<modified><datetime dst='true'>20240411T133550,25+02</datetime></modified>
+<revised><datetime>20220114T085831,03+01</datetime></revised>
+<lastaccessed><datetime dst='true'>20240411T133550,24+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T133550,24+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<item name='$FormulaClass' sign='true'><text>1</text></item>
+<item name='$SourceSeqTime'><datetime>20220114T085831,01+01</datetime></item>
+<item name='$SourceSequence'><text>00000001</text></item>
+<item name='$TITLE' sign='true'><text>Anzahl</text></item>
+<item name='$Index' sign='true'><text/></item>
+<item name='$Formula' summary='true' sign='true'><formula compiled='true'>
+QAACABQAAgAkOQAAAAAAAAAA8D8DAAUAHgAZAAMAAgAJAAQAJDkkQ29uZmxpY3QkUkVGAAQABAAA
+AAgAZgADAA==
+</formula></item>
+<item name='$Collation' summary='true'>
+<rawitemdata type='2'>
+BgAAAABE
+</rawitemdata></item>
+<item name='$Totals' sign='true'><textlist><text>1</text></textlist></item>
+<item name='$ViewFormat' summary='true' sign='true'>
+<rawitemdata type='5'>
+AQABAAEACAAQAFZDIAACAAMAFgAAACAAAQACCQUAAAEBAAAAAAICAAAAJDlBbnoWAAIAFAACACQ5
+AAAAAAAAAADwPwMAJgABAAAAAQEACQEAAAoBAQ4KAAABAK0rAQABAAEAAAAAAAAAAABXQwEBAAkA
+AAAAAAAAAAAAAAAAAAAAAACEAAAAAAD//wAAAAAAAAAAAAAAAAAAQgAAAAAAAQD///8ABQD///8A
+AQAAAAAAAAAAAAAAAAABAP///wABAP///wAAAAEAAAAAAAEAAAAAAAEAAAAAAAAACAAAAAAAAQBZ
+QwABAQAAAAEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAALC4DgA==
+</rawitemdata></item>
+<item name='$Comment' sign='true'><text/></item>
+<item name='$Flags'><text>^Y</text></item>
+<item name='$DesignerVersion'><text>8.5.3</text></item></note>
+

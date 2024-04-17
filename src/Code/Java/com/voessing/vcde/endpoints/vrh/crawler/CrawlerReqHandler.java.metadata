@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="286" sequence="19" unid="0C64D1119415A4C2C1258AFC002A046D">
+<created><datetime dst="true">20240411T093856,45+02</datetime></created>
+<modified><datetime dst="true">20240415T110558,46+02</datetime></modified>
+<revised><datetime dst="true">20240415T110334,03+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240415T110558,45+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133552,92+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$Flags"><text>34567Cg~[P</text></item>
+<item name="$TITLE"><text>com/voessing/vcde/endpoints/vrh/crawler/CrawlerReqHandler.java</text></item>
+
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/vcde/endpoints/vrh/crawler/CrawlerReqHandler.java</text></item>
+
+</note>

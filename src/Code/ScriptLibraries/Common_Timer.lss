@@ -1,0 +1,392 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+Option Public
+Option Explicit
+
+%REM
+
+**** INFO ****
+Stellt Performace-Timer mit einer höheren Auflösung als Sekunden bereit. Die Messung erfolgt in TICKS
+Die TICKS können je nach Betriebssystem eine unterschiedliche Basis haben, daher wird auf eine 
+Interpretation in Millisekunden verzichtet
+
+Alle "Timer_*"-Methoden sind Public, sie kapseln die Klassen
+
+Die wichtigsten Methoden sind Timer_Start(str), Timer_Stop(str)
+Die Methode Timer_Report() liefert ein String-Array mit der Auswertung aller deklarierten Timer
+
+**** HISTORY ***
+2011-07-22, dko:
+	- Timer_ReportString(): gibt die Timer_Report()-Ergebnisse als Strng zurück (Semikolon getrennt)
+	- Timer_Report(): Subtimer-Zusammenfassung und Auswertung hinzugefügt
+	- Timer_Enable(switch): Ab- oder Anschalten der Timeraufzeichnungen (Start, Stop) (außer globaler Timer)
+	
+2006-08-23/24/25, dko:
+	- Timer_Reset() hinzugefügt, um alle Timer-Objekte neu zu initialisieren (zu löschen)
+		-> Scripte die von Buttons ausgeführt werden entladen nicht die Script-Lib, 
+			was bei wiederholter Ausführung zu falschen Ergebnissen führt
+	- Globalen Timer hinzugefügt, der beim Start des ersten Timers aktiviert wird => 100%
+
+2005-04-06, dko:
+	- Timer_Report() gibt Plattform und Notes-Version als ersten Eintrag zurück
+
+2005-03-31, dko:
+	- initial Release
+
+
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class MISTimer
+Declare Class MISTimerObjects
+Declare Sub Initialize
+Declare Public Function Timer_GetElapsed(Byval timerStr As String) As Long
+Declare Public Function Timer_ReportString() As String
+Declare Public Sub Timer_Start(Byval timerStr As String)
+Declare Public Function Timer_GetCount(Byval timerStr As String) As Long
+Declare Public Sub Timer_Init(Byval timerStr As String)
+Declare Public Sub Timer_Reset()
+Declare Public Function Timer_Report()
+Declare Public Sub Timer_Enable(switch As Boolean)
+Declare Public Sub Timer_Stop(Byval timerStr As String)
+Declare Function GetThreadInfoTicksSafe() As Long
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private gl_Timer As MISTimerObjects
+Private gl_TotalTimer As MISTimer
+Private gl_TimerEnabled As Integer
+
+Private Const THREADINFO_TICKS         =  6	'LSI_THREAD_TICKS
+Private Const THREADINFO_CALLPROC      = 10	'LSI_THREAD_CALLPROC
+
+
+Private Type SubTimerInfo
+	SubName As String
+	ElapsedTicks As Long
+	InvokedCount As Long
+End Type
+
+Class MISTimer
+	
+	Private cntCalls As Long
+	Private ticksCount As Long
+	Private startTick As Long
+	
+	Private reported As Boolean
+	
+	Sub New
+		cntCalls = 0
+		ticksCount = 0
+		startTick = 0
+	End Sub
+	
+	Sub Stop
+		
+		On Error GoTo doError
+		
+		If Me.Running Then
+			'take snapshot, class MS to lastStartDate, add to global, reset lastStart
+			'ticksCount = ticksCount + GetThreadInfo(THREADINFO_TICKS) - startTick
+			ticksCount = ticksCount + GetThreadInfoTicksSafe() - startTick
+			startTick = 0
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		If Not reported Then
+			reported = True 
+			Print TypeName(Me), "Error"
+			Print GetThreadInfo(THREADINFO_TICKS)
+			Print startTick
+			Print ticksCount
+		End If
+		
+		Resume ende
+
+ende:
+	End Sub
+	
+	Sub Start
+		'first, stop it if it's still running
+		If Me.Running Then Call Me.Stop
+		
+		'init startTick with current ticks
+		startTick = GetThreadInfoTicksSafe() 'GetThreadInfo(THREADINFO_TICKS)
+		
+		'increase start couter
+		cntCalls = cntCalls + 1
+	End Sub
+	
+	Property Get Running
+		Running = startTick <> 0
+	End Property
+	
+	Property Get InvokedCount
+		InvokedCount = cntCalls
+	End Property
+	
+	Property Get ElapsedTicks As Long
+		ElapsedTicks = ticksCount
+		'Wert des noch laufenden Timers hinzufügen 
+		'If Me.Running Then ElapsedTicks = ElapsedTicks + GetThreadInfo(THREADINFO_TICKS) - startTick
+		If Me.Running Then ElapsedTicks = ElapsedTicks + GetThreadInfoTicksSafe() - startTick
+	End Property
+	
+	
+	
+End Class
+
+Class MISTimerObjects
+	
+	Public TimerList List As MISTimer
+	
+	Sub ResetAll()
+		'Alle Objekte freigeben		
+		Forall timers In TimerList
+			Delete TimerList(Listtag(timers)) 
+		End Forall
+		Erase Timerlist		
+	End Sub
+	
+	Sub Delete
+		Call ResetAll()
+	End Sub
+	
+	Sub ReInit(timerStr As String)
+		'add a new timer to the list of all objects or overrides an existing one
+		Set TimerList(timerStr) = New MISTimer
+	End Sub
+	
+	Sub Stop(timerStr As String)
+		'stop this timer
+		If Iselement(TimerList(timerStr)) Then Call TimerList(timerStr).Stop()
+	End Sub
+	
+	Sub Start(timerStr As String)
+		'create timer if it doesn't exist
+		If Not Iselement(TimerList(timerStr)) Then Call Me.ReInit(timerStr)
+		'Start it
+		Call TimerList(timerStr).Start()
+	End Sub
+	
+	Property Get InvokedCount(timerStr As String)
+		If Not Iselement(TimerList(timerStr)) Then
+			InvokedCount = -1
+		Else
+			InvokedCount = TimerList(timerStr).InvokedCount
+		End If
+	End Property
+	
+	Property Get ElapsedTicks(timerStr As String)
+		If Not Iselement(TimerList(timerStr)) Then
+			ElapsedTicks = -1
+		Else
+			ElapsedTicks = TimerList(timerStr).ElapsedTicks
+		End If
+	End Property
+	
+End Class
+
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	If gl_timer Is Nothing Then
+		Set gl_Timer = New MISTimerObjects
+		Set gl_TotalTimer = New MISTimer
+		gl_TimerEnabled = True
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:Timer_GetElapsed:1:8
+Public Function Timer_GetElapsed(Byval timerStr As String) As Long
+	Timer_GetElapsed = gl_Timer.ElapsedTicks(GetThreadInfo(THREADINFO_CALLPROC) & "/" + timerStr)
+End Function
+
+'++LotusScript Development Environment:2:1:Timer_ReportString:5:8
+%REM
+	Function Timer_ReportString
+	Description: Gibt den Timer_Report als String zurück anstatt eines Arrays
+%END REM
+Public Function Timer_ReportString() As String
+	
+	Timer_ReportString = Join(Timer_Report(), ";")
+	
+End Function
+
+
+
+
+
+
+
+
+
+
+
+
+'++LotusScript Development Environment:2:2:Timer_Start:1:8
+Public Sub Timer_Start(Byval timerStr As String)
+	If gl_TimerEnabled Then 
+		Call gl_Timer.Start(GetThreadInfo(THREADINFO_CALLPROC) & "/" + timerStr)
+	End If
+	
+	'Starte Total-Timer wenn nicht aktiv
+	If Not gl_TotalTimer.Running Then Call gl_TotalTimer.Start
+End Sub
+
+
+'++LotusScript Development Environment:2:1:Timer_GetCount:1:8
+Public Function Timer_GetCount(Byval timerStr As String) As Long
+	Timer_GetCount = gl_Timer.InvokedCount(GetThreadInfo(THREADINFO_CALLPROC) & "/" + timerStr)
+End Function
+
+'++LotusScript Development Environment:2:2:Timer_Init:1:8
+Public Sub Timer_Init(Byval timerStr As String)
+	Call gl_Timer.reInit(GetThreadInfo(THREADINFO_CALLPROC) & "/" + timerStr)
+End Sub
+
+'++LotusScript Development Environment:2:2:Timer_Reset:1:8
+Public Sub Timer_Reset()
+	'löscht alle Timer
+	Call gl_Timer.ResetAll()
+	
+	'Total-Timer ebenfalls reinitialisieren
+	Delete gl_TotalTimer
+	Set gl_TotalTimer = New MISTimer
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:Timer_Report:1:8
+Public Function Timer_Report()
+	
+	'TODO: Auswerten der Untersten Objekte
+	
+	'Alle Timer-Objekte auswerten
+	'name, total calls, total ticks, avg ticks per call, ticks percentage compared to all timers ticks
+	Dim session As New NotesSession
+	
+	Dim maxTicks As Long
+	Dim i As Integer, stCount As Integer
+	Dim hlparr() As String
+	Dim c As Long, d As Long
+	Dim SubTimers List As SubTimerInfo
+	Dim sTimerArr
+	Dim sTimer As String
+	Dim st As SubTimerInfo, emptyST As SubTimerInfo
+	Dim tpc As Double
+	
+	'Max Ticks -> from global Timer
+	maxTicks = gl_TotalTimer.ElapsedTicks
+	
+	i = 0
+	Forall timers In gl_Timer.TimerList
+		'get timers count
+		i = i +1
+	End Forall
+	
+	'prepare array
+	If maxTicks > 0 Then
+		Redim hlpArr(i+2)
+		hlpArr(1) = "<TICKSTOTAL>" & maxTicks & "</TICKSTOTAL>"
+		i = 2
+	Else
+		Redim hlpArr(i+1)
+		i = 1
+	End If
+	
+	hlpArr(0) = Trim("Platform: " & session.Platform & ", " & session.NotesVersion)
+	
+	'Fill array with timer info
+	Forall timers In gl_Timer.TimerList
+		c = timers.ElapsedTicks
+		d = timers.InvokedCount
+		
+		'Subtimer zusammenfassen
+		If InStr(ListTag(timers), "/") > 0 Then 
+			sTimerArr = Split(ListTag(timers), "/")
+			sTimer = sTimerArr(UBound(sTimerArr))
+			If sTimer <> "" then
+				If Not IsElement(SubTimers(sTimer)) Then SubTimers(sTimer) = emptyST
+				SubTimers(sTimer).ElapsedTicks = SubTimers(sTimer).ElapsedTicks + c
+				SubTimers(sTimer).InvokedCount = SubTimers(sTimer).InvokedCount + d
+				stCount = stCount + 1
+			End if
+		End If
+		
+		If d=0 Then d=1
+		tpc = Fix(c/d)
+		If tpc = 0 Then tpc = Round(c/d, 2)
+		hlpArr(i) = Listtag(timers) + ": TpC=" & tpc & ", Called=" & d & ", Ticks=" & c
+		If maxTicks > 0 Then
+			'%-Angabe, wenn möglich
+			hlpArr(i) = hlpArr(i) & " (" & Fix((c/maxTicks)*100) & "%)"
+		End If
+		i = i + 1
+	End Forall
+
+	'Sofern vorhanden, jetzt die Subtimer auswerten
+	If stCount > 0 Then
+		'Array vergrößern
+		i = UBound(hlparr) + 1
+		ReDim Preserve hlpArr(i + stCount)
+		hlpArr(i) = "#### Subtimer-Zusammenfassung ####"
+		ForAll subTimer In SubTimers
+			i = i + 1
+			c = subTimer.ElapsedTicks
+			d = subTimer.InvokedCount
+			If d=0 Then d=1
+			tpc = Fix(c/d)
+			If tpc = 0 Then tpc = Round(c/d, 2)
+			hlpArr(i) = ListTag(subTimer) + ": TpC=" & tpc & ", Called=" & d & ", Ticks=" & c
+			If maxTicks > 0 Then
+				'%-Angabe, wenn möglich
+				hlpArr(i) = hlpArr(i) & " (" & Fix((c/maxTicks)*100) & "%)"
+			End If
+		End ForAll
+	End If
+	
+	Timer_Report = hlpArr
+	
+End Function
+
+
+'++LotusScript Development Environment:2:2:Timer_Enable:6:8
+%REM
+	Sub Timer_Enable
+	Description: Ab- oder Wiederanschalten der Timeraufzeichnung
+	-> Hat nur Auswirkungen auf Timer_Init(), Timer_Start(), Timer_Stop()
+%END REM
+Public Sub Timer_Enable(switch As Boolean)
+	
+	gl_TimerEnabled = switch
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Timer_Stop:1:8
+Public Sub Timer_Stop(Byval timerStr As String)
+	If gl_TimerEnabled Then Call gl_Timer.Stop(GetThreadInfo(THREADINFO_CALLPROC) & "/" + timerStr)
+End Sub
+
+
+
+'++LotusScript Development Environment:2:1:GetThreadInfoTicksSafe:5:8
+%REM
+	Function GetThreadInfoTicksSafe
+	sporadisch kommt es zum Overflow. Hier abfangen
+%END REM
+Function GetThreadInfoTicksSafe() As Long
+	
+	On Error GoTo default
+	
+	GetThreadInfoTicksSafe = GetThreadInfo(THREADINFO_TICKS)
+	
+	GoTo ende
+
+default:
+	GetThreadInfoTicksSafe = 0
+	Resume ende
+	
+ende:
+End Function

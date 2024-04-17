@@ -1,0 +1,137 @@
+{
+	"allowedRemoteUsers": ["node js"],
+
+	"anonymousAccess": false,
+	"pathLevelVersion": 1,
+	"resources": {
+		"configurations": {
+			"providerConfig": {
+				"attributes": {
+					"id": {
+						"origin": "#UniversalID#"
+					},
+					"notesUrl": {
+						"origin": "#NotesURL#"
+					},
+					"httpUrl": {
+						"origin": "#HttpURL#"
+					},
+					"ProjektNr": {},
+					"ProjectRID": {},
+					"ProjectUNID": {},
+					"ToolID": {
+						"origin": "ToolName"
+					},
+					"ToolTitle": {},
+					"ToolType": {},
+					"ToolInstanceInfo": {
+						"origin": "Info"
+					},
+					"ToolInstanceUrl": {
+						"origin": "url"
+					},
+					"ToolPictureUrl": {}
+				},
+				"db": "VCDE-Config.nsf",
+				"XXXdb": "VCDE-Config_MP.nsf",
+				"defaultLaxOrigin": true,
+				"defaultNullValue": "",
+				"form": "ToolInstance",
+				"handlerClass": "com.voessing.vcde.endpoints.srs.handler.SrsConfigurationsHandler"
+			},
+			"providerType": "nsf-search"
+		},
+
+		"projects": {
+			"providerConfig": {
+				"attributes": {
+					"id": {
+						"origin": "#UniversalID#"
+					},
+					"ProjektNr": {
+						"laxOrigin": true,
+						"nullValue": ""
+					},
+					"ProjektTitel": {
+						"laxOrigin": true,
+						"nullValue": ""
+					},
+					"SYNC_SOURCEDBREPLICAID": {
+						"laxOrigin": true
+					},
+					"SYNC_SOURCEUNID": {
+						"laxOrigin": true
+					},
+
+					"CurrentUsernameAbbreviated": {
+						"disabled": true,
+						"origin": "#UsernameAbbreviated#"
+					},
+					"CurrentUsernameCanonical": {
+						"disabled": true,
+						"origin": "#UsernameCanonical#"
+					},
+					"AbgeschlossenGesamt": {
+						"disabled": true,
+						"isHidden": false
+					},
+					"Form": {
+						"disabled": true,
+						"isHidden": true,
+						"nullValue": ""
+					},
+					"GPLeiterL": {
+						"disabled": true,
+						"isMultiValue": true
+					},
+					"GPLeiterS": {
+						"disabled": true,
+						"isMultiValue": true
+					},
+					"IsHauptPB": {
+						"disabled": true,
+						"isHidden": true,
+						"nullValue": ""
+					}
+				},
+				"Xconstraint": "IsHauptPB=\"1\" & AbgeschlossenGesamt=\"\" & @Contains(GPLeiterL; \"#UsernameCanonical#\")",
+				"constraint": "IsHauptPB=\"1\" & AbgeschlossenGesamt=\"\"",
+				"db": "GlobProjektListe.nsf",
+				"defaultLaxOrigin": false,
+				"defaultNullValue": "",
+				"form": "Projektblatt",
+				"handlerClass": "com.voessing.vcde.endpoints.srs.handler.SrsMyProjectsHandler",
+				"server": "ibvdno03"
+			},
+			"providerType": "nsf-search"
+		},
+
+		"tools": {
+			"providerConfig": {
+				"attributes": {
+					"id": {
+						"origin": "name"
+					},
+					"deploymentType": {
+						"laxOrigin": true,
+						"origin": "deploymentType"
+					},
+					"title": {
+						"laxOrigin": true,
+						"origin": "Title"
+					},
+					"type": {
+						"laxOrigin": true,
+						"origin": "Type"
+					}
+				},
+				"db": "VCDE-Config.nsf",
+				"defaultLaxOrigin": false,
+				"defaultNullValue": "",
+				"form": "Tool",
+				"Xserver": "ibvdno03"
+			},
+			"providerType": "nsf-search"
+		}
+	}
+}

@@ -1,0 +1,1329 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library Common_NotesHttp
+	Created Mar 17, 2020 by Denis Kopprasch/IT/Duesseldorf/IBV/DE
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "Common_JSON"
+
+
+%REM
+	
+2022-09-29, dko:
+	- On Error 4840 Resume Next hinzugefügt: "HTTP Response Content Type unsupported"
+		-> behandelt das Problem, dass ein JSON-NAV angefordert wurde, aber eine leere Response zurückkommt ("No Content")
+	
+2022-06-22, dko:
+	- PrepareRequest(): Content-type soll/darf nicht bei GET-Requests bzw. soll nur bei POSTs gesetzt werden
+		-> Aufgefallen bei Abruf von DB Lieferantenportal API, die auf den Header mit Ablehung reagierte
+	
+2022-03-07, dko:
+	- HttpLS_GetParamQueryStringEncoded() hinzugefügt
+		- Return: paramNameEncoded=paramValueEncoded
+		
+2021-10-01/04, dko:
+	- HttpLS_CallXSP_Authorized() hinzugefügt
+		- eine XSP mit Domino-Authorisierung aufrufen
+		- Fix: Nach Unauthorized-Fehler wird nun ein neues HttpLS-Objekt generiert, um eine neue Sitzung zu generieren
+
+2021-09-29, dko:
+	- TNotesHttpRequestLS.ReInit(): Private -> Public
+
+2020-09-17, dko:
+	- TNotesHttpRequestLS.ExecuteRequest():
+		- responseText auf den Fehlertext gem. Header setzen, wenn kein anderer responseText zurückkam 
+
+2020-09-16, dko:
+	- On Error 4842 Resume Next hinzugefügt: "Unable to Parse JSON string: The document is empty. offset 0"
+		-> behandelt das Problem, dass ein JSON-NAV angefordert wurde, aber bei Response 500 beispielsweise keiner zu parsen ist
+
+2020-09-11, dko:
+	- THttpDominoBasicAuth Klasse hinzugefügt, die eine Basic Auth gegen den Domino Server ausführt
+	
+'V1.2 - Stand 03.06.2020
+
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class TNotesHttpRequestLS
+Declare Class THttpDominoBasicAuth
+Declare Sub Initialize
+Declare Sub HttpLS_CallSXP_Simple(fullURL As String, timeoutSec As Integer)
+Declare Sub HttpLS_Call_XSPAPI_Authorized(appCredentials As String, fullURL As String, timeoutSec As Integer, optHttpCookieCacheProfileDocName As String)
+Declare Function HttpLS_GetParamQueryStringEncoded(paramName As String, paramValue As String) As String
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private session As NotesSession
+Private db As NotesDatabase
+
+Private Const DEFAULT_APP_CRED = "server-agent-web"
+
+Private evalTempDoc As NotesDocument
+
+Class TNotesHttpRequestLS
+	
+	Private http As NotesHTTPRequest
+	
+	Private encoding As String
+	Private contentType As String
+	
+	Private httpPostData As String
+	
+	Private httpResponseHeaders As Variant
+	Private httpResponseCode As Integer
+	
+	Private httpResponseText As String
+	Private httpResponseJsonNav As NotesJSONNavigator
+	
+	Private RequestHeaderNames As Variant
+	Private RequestHeaderValues As Variant
+	
+	Private httpCookies List As String
+	
+	Private httpTimeoutSec As Integer
+	Private httpMaxRedirects As Integer
+	
+	Private httpPreferUTF8 As Boolean
+	Private httpPreferStrings As Boolean
+	Private httpPreferJsonNavigator As Boolean
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New
+		
+		On Error GoTo doerror
+		
+		Call Reinit(True)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+	
+	%REM
+		Property Set PreferStrings
+		PreferStrings: Controls the format used for the output of international characters.
+		True indicates To Use Unicode For international character output.
+		False indicates To Use UTF8 Byte array For international character output. To be used With the NotesJSONNavigator class.
+		If Not specified, default Is UTF8 Byte array.
+	%END REM
+	Property Set PreferStrings As Boolean
+		httpPreferstrings = PreferStrings
+	End Property
+	
+	Property Set PreferUTF8 As Boolean
+		httpPreferutf8 = PreferUTF8
+	End Property
+	
+	Property Set PreferJsonNavigator As Boolean
+		httpPreferjsonnavigator = PreferJsonNavigator
+	End Property
+	
+	'Reinit/Set Defaults
+	Sub Reinit(resetCookies As Boolean)
+		
+		On Error GoTo doerror
+		
+		httpTimeoutSec = 60	'60s Timeout (connect+read, nehme ich an)
+		
+		'2020-06-02, dko: MaxRedir gesetzt
+		httpMaxredirects = 5
+		
+		Me.Preferstrings = True
+		
+		'Default JSON/UTF-8
+		Me.encoding = "utf-8"
+		Me.contentType = "application/json"
+		
+		If resetCookies Then Erase httpCookies
+		
+		Call ResetHeaders()
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+
+	Private Sub InitBasicHeaders()
+		
+		'Default User Agent
+		Call Me.SetHeaderField("User-Agent", "Voessing TNotesHttpRequestLS/1.2")
+
+		'Default Accept
+		Call Me.SetHeaderField("Accept", "*/*")
+		
+		'Default = no cache
+		Call Me.SetHeaderField("Cache-Control", "no-cache")
+		
+	End Sub
+	
+	%REM
+		Sub AddHeader
+		Description: Comments for Sub
+	%END REM
+	Private Sub AddHeader(headerfield As String, headervalue As String)
+		
+		RequestHeaderNames = ArrayAppend(RequestHeaderNames, headerfield)
+		RequestHeaderValues = ArrayAppend(RequestHeaderValues, headervalue)
+		
+	End Sub
+	
+	Sub SetHeaderField(headerfield As String, headervalue As String)
+		Call AddHeader(headerfield, headervalue)
+	End Sub
+	
+	Sub ResetHeaders()
+		ReDim RequestHeaderNames(0) As String
+		ReDim RequestHeaderValues(0) As String
+		Call InitBasicHeaders()
+	End Sub
+	
+	Sub SetCookie(cookieName As String, cookieValue As String)
+		httpCookies(cookieName) = cookieValue
+	End Sub
+
+	Function GetCookie(cookieName As String) As String
+		If IsElement(httpCookies(cookieName)) Then 
+			GetCookie = httpCookies(cookieName)
+		End if
+	End Function
+	
+	'gibt es bei NotesHTTPRequest nicht
+	Sub setBasicAuth(username As String, password As String)
+		
+		On Error GoTo doerror
+		
+		Call Me.SetHeaderField("Authorization", "Basic " & strEncodeBase64(username + ":" + password) )
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+	
+	'gibt es bei NotesHTTPRequest nicht
+	Sub SetBearerAuth(token As String)
+		
+		On Error GoTo doerror
+		
+		Call Me.SetHeaderField("Authorization", "Bearer " & token)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+	
+	%REM
+		Sub UpdateContentType
+		Description: Comments for Sub
+	%END REM
+	Private Sub UpdateContentType()
+		If encoding = "" Then
+			Call Me.SetHeaderField("Content-Type", contentType)
+		Else
+			Call Me.SetHeaderField("Content-Type", contentType + ";charset=" + encoding)
+		End If
+	End Sub
+	
+	Sub SetContentType(contentType As String, optEncoding As String)
+		
+		On Error GoTo doerror
+		
+		Me.contentType = contentType
+		Me.encoding = optEncoding
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+	
+	Function doPatch(url As String, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPatch = doPatchInt(url, httpTimeoutsec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	Function doPatch2(url As String, timeoutSec As Integer, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPatch2 = doPatchInt(url, timeoutSec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Function doPatchInt
+		Description: Comments for Function
+	%END REM
+	Private Function doPatchInt(url As String, timeoutSec As Integer, data As String) As Integer
+
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		On Error 4840 Resume Next	'HTTP Response Content Type unsupported
+		
+		'Request vorbereiten
+		Call Me.PrepareRequest(data, timeoutSec)
+
+		'Ausführen und aufbereiten der Resultate
+		Dim result As Variant
+		
+		If httpPreferJsonNavigator Then
+			Set result = http.Patch(url, Me.httpPostData)
+		Else
+			result = http.Patch(url, Me.httpPostData)
+		End If
+
+		doPatchInt = Me.ExecuteRequest(result)		
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Sub ApplyHeaderFields
+		Description: Comments for Sub
+	%END REM
+	Private Sub PrepareRequest(optPostData As String, requestTimeoutSec As Integer)
+		
+		On Error GoTo doerror
+		
+		If Len(optPostData) = 0 Then
+			httpPostData = ""
+		Else
+			
+			%REM
+	es ist offenbar nicht notwendig, eine separate Konvertierung durchzuführen. Getestet zuletzt mit personio, Patch
+
+			'Auto-convert zu UTF-8, wenn encoding nicht auf etwas anderes steht
+			If LCase(Me.encoding) = "utf-8" Then
+				httpPostData = str2UTF8(optPostData)
+			Else
+				httpPostData = optPostData
+			End If
+%END REM
+			httpPostData = optPostData
+			
+			'2022-06-22, dko: Add Content type/Encoding Header once
+			'-> Nicht bei GET Requests setzen
+			'-> später ggf. anpassen und auf die Methode schauen, im Moment wird nur auf POST-Body > 0 geschaut
+			Call Me.UpdateContentType()
+			
+		End If
+
+		'Important: immer neu erstellen
+		Set http = session.Createhttprequest()
+		
+		'den frischen Http-Request bestücken
+		http.Timeoutsec = httpTimeoutSec
+		http.Maxredirects = httpMaxredirects
+		
+		http.Preferutf8 = httpPreferUTF8
+		http.Preferstrings = httpPreferStrings
+		http.Preferjsonnavigator = httpPreferJsonNavigator
+
+		'Anwenden der Header
+		Dim i As Integer
+		For i = 1 To UBound(Me.RequestHeaderNames)
+			Call http.SetHeaderField(Me.RequestHeaderNames(i), Me.RequestHeaderValues(i))
+		Next i
+
+		'Anwenden der Cookies
+		'-> mehrfaches SetHeaderField("Cookie", "a=b") führt automatisch zur Verkettung der einzelnen Werte mit Semikolon
+		Dim cookieStr As String
+		ForAll cookieValue In Cookies
+			If cookieValue = "" Then
+				cookieStr = ListTag(cookieValue)
+			Else
+				cookieStr = ListTag(cookieValue) & "=" & cookieValue
+			End If
+			Call http.SetHeaderField("Cookie", cookieStr)
+		End ForAll
+		
+		'Reset der Response-Variablen
+		Me.httpResponseText = ""		
+		Me.httpResponseCode = 0
+		Me.httpResponseHeaders = ""
+		Set Me.httpResponseJsonNav = Nothing
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Sub
+	
+	
+	Function doGet(url As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doGet = doGetInt(url, httpTimeoutsec)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	
+	Function doGet2(url As String, TimeoutSec As Integer) As Integer
+		
+		On Error GoTo doerror
+		
+		doGet2 = doGetInt(url, TimeoutSec)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	
+	%REM
+		Function doGetInt
+		Description: Comments for Function
+	
+	Private Function doGetInt(url As String, Timeoutsec As Integer) As Integer
+
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		On Error 4840 Resume Next	'HTTP Response Content Type unsupported
+		 
+		'Request vorbereiten
+		Call Me.PrepareRequest("", Timeoutsec)
+
+		'Ausführen und aufbereiten der Resultate
+		Dim result As Variant
+		
+		If httpPreferJsonNavigator Then
+			Set result = http.Get(url)
+		Else
+			result = http.Get(url)
+		End If
+
+		doGetInt = Me.ExecuteRequest(result)		
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+%END REM	
+	
+	'Problem hier: bisher ist die 4840 hier nie aufgetreten. Das Handling analog der anderen Prozeduren funktioniert hier nicht direkt,
+	'da auch beispielsweise Dateien abgerufen werden, was mit preferNotesJsonnav und Set nicht kompatibel ist
+	'Daher zurückgestellt auf ursprünglichen Stand, bis wir das besser machen können bzw. die aufrufdenden Stellen angepasst haben
+	Private Function doGetInt(url As String, Timeoutsec As Integer) As Integer
+
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		
+		'Request vorbereiten
+		Call Me.PrepareRequest("", Timeoutsec)
+
+		doGetInt = Me.ExecuteRequest(http.Get(url))
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	
+	Function doPost(url As String, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPost = doPostInt(url, httpTimeoutsec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	
+	Function doPost2(url As String, TimeoutSec As Integer, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPost2 = doPostInt(url, Timeoutsec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+
+
+	%REM
+		Function doPostInt
+		Description: Comments for Function
+	%END REM
+	Private Function doPostInt(url As String, TimeoutSec As Integer, data As String) As Integer
+
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		On Error 4840 Resume Next	'HTTP Response Content Type unsupported
+		
+		'Request vorbereiten
+		Call Me.PrepareRequest(data, TimeoutSec)
+
+		'Ausführen und aufbereiten der Resultate
+		Dim result As Variant
+		
+		If httpPreferJsonNavigator Then
+			Set result = http.Post(url, Me.httpPostData)
+		Else
+			result = http.Post(url, Me.httpPostData)
+		End If
+
+		doPostInt = Me.ExecuteRequest(result)		
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+
+	Function doPut(url As String, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPut = doPutInt(url, httpTimeoutsec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+
+	Function doPut2(url As String, TimeoutSec As Integer, postData As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doPut2 = doPutInt(url, Timeoutsec, postData)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	Private Function doPutInt(url As String, TimeoutSec As Integer, data As String) As Integer
+
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		On Error 4840 Resume Next	'HTTP Response Content Type unsupported
+		
+		'Request vorbereiten
+		Call Me.PrepareRequest(data, TimeoutSec)
+
+		'Ausführen und aufbereiten der Resultate
+		Dim result As Variant
+		
+		If httpPreferJsonNavigator Then
+			Set result = http.Put(url, Me.httpPostData)
+		Else
+			result = http.Put(url, Me.httpPostData)
+		End If
+
+		doPutInt = Me.ExecuteRequest(result)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	
+	
+	Function doDelete(url As String) As Integer
+		
+		On Error GoTo doerror
+		
+		doDelete = doDeleteInt(url, httpTimeoutsec)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	'BNI:14.11.2019
+	'New Function
+	Function doDelete2(url As String, TimeoutSec As Integer) As Integer
+		
+		On Error GoTo doerror
+		
+		doDelete2 = doDeleteInt(url, Timeoutsec)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Function doDelete2
+		Description: Comments for Function
+	%END REM
+	Private Function doDeleteInt(url As String, TimeoutSec As Integer) As Integer
+		
+		On Error GoTo doerror
+		On Error 4842 Resume Next	'Unable to Parse JSON string: The document is empty. offset 0
+		On Error 4840 Resume Next	'HTTP Response Content Type unsupported
+
+		'Request vorbereiten
+		Call Me.PrepareRequest("", TimeoutSec)
+
+		'Ausführen und aufbereiten der Resultate
+		Dim result As Variant
+		
+		If httpPreferJsonNavigator Then
+			Set result = http.DeleteResource(url)
+		Else
+			result = http.DeleteResource(url)
+		End If
+
+		doDeleteInt = Me.ExecuteRequest(result)
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+		
+	End Function
+	
+	
+	
+	'gibt es bei NotesHTTPRequest nicht
+	Property Set TimeoutSec As Integer
+		httpTimeoutsec = TimeoutSec
+	End Property
+	
+	Property Set MaxRedirects As Integer
+		httpMaxredirects = MaxRedirects
+	End Property
+
+	%REM
+		Function getResponseString
+		Description: Comments for Function
+	%END REM
+	Function getResponseString() As String
+		getResponseString = Me.httpResponseText
+	End Function
+	
+	Function getResponseJsonNavigator() As NotesJSONNavigator
+		Set getResponseJsonNavigator = Me.httpResponseJsonNav
+	End Function
+	
+	Function getResponseCode() As Integer
+		getResponseCode = Me.httpResponseCode
+	End Function
+	
+	Function getResponseHeader(hdrKey As String) As Variant
+		
+		On Error GoTo doerror
+		
+		'Default=leer, d.h. nicht vorhanden
+		getResponseHeader = ""
+		
+		'Abgriff der Http-Header, Stop beim 1. Treffer
+		ForAll hdr In Me.httpResponseHeaders
+			If strBegins("" & hdr, hdrKey & ":", 5) Then
+				getResponseHeader = Trim(Mid$(hdr, Len(hdrKey & ":")+1))
+			End If
+		End ForAll
+
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		getResponseHeaders: durchreichen der Headers (als Array)
+	%END REM
+	Function getResponseHeaders() As Variant
+		
+		On Error GoTo doerror
+		
+		getResponseHeaders = Me.httpResponseHeaders
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	%REM
+		Sub ExecuteRequest
+		Aufbereiten der Resultate
+	%END REM
+	Private Function ExecuteRequest(response) As Integer
+		
+		On Error GoTo doerror
+		
+		'ResponseCode funktioniert nicht so wie bei Java.
+		'-> es wird beispielsweise Http/1.1 100 Continue und Http/1.1 442 Unprocessable Entry gleichzeitig zurückgegeben
+		'-> Selbst parsen
+		Dim sx As NotesStream
+		Dim hlpArr
+		Dim strCookie As String
+		
+		
+		
+		If http.Preferjsonnavigator Then
+			
+			On Error Resume Next
+			Set Me.httpResponseJsonNav = response
+
+			'2020-09-11, dko: Bei einem Fehler ist der JSON Nav evtl. leer, dann versuchen wir die Response als text auszulesen
+			If TypeName(response) = "STRING" Then
+				'1) Response ist ggf. Unicode - einmal in einen Stream schreiben und zurücklesen
+				'-> mit preferStrings ist es sicher unicode!
+				Set sx = Session.Createstream()
+				
+				On Error Resume Next
+				Call sx.Writetext(response, EOL_NONE)
+				On Error GoTo doError
+				
+				sx.Position = 0
+				Me.httpResponseText = sx.Readtext()
+				Call sx.Close()
+			End If
+			
+			On Error GoTo doError
+			
+		Else
+			
+			'1) Response ist ggf. Unicode - einmal in einen Stream schreiben und zurücklesen
+			'-> mit preferStrings ist es sicher unicode!
+			Set sx = Session.Createstream()
+			
+			On Error Resume Next
+			Call sx.Writetext(response, EOL_NONE)
+			On Error GoTo doError
+			
+			sx.Position = 0
+			Me.httpResponseText = sx.Readtext()
+			Call sx.Close()
+
+		End If
+		
+		'2) Header übernehmen/auslesen
+		Me.httpResponseHeaders = http.GetResponseHeaders()
+		
+		'merken, ob ein ResponseText zurückkam, oder ob wir diesen mit dem Fehlertext belegen könnten
+		Dim emptyHttpResponse As Boolean
+		emptyHttpResponse = Me.httpResponseText = ""
+		
+		'Parsing
+		ForAll headerValue In Me.httpResponseHeaders
+			
+			'Print headerValue
+			
+			'Parse Response Code: Es können mehrere solcher Header auftreten. Wir nehmen den letzten
+			If strBegins("" & headerValue, "HTTP/", 5) Then
+				
+				hlpArr = Split(headerValue, " ")
+				If UBound(hlpArr) > 0 Then
+					If IsNumeric(hlpArr(1)) Then
+						
+						Me.httpResponseCode = CInt(hlparr(1))
+
+						'zurücksetzen des Textes, wenn wir diesen aus einem anderen Fehler bereits gesetzt haben könnten
+						If emptyHttpResponse Then Me.httpResponseText = ""
+
+						If UBound(hlpArr) > 1 And emptyHttpResponse And Me.httpResponseCode > 300 Then
+							'Ab Element 2 alles als Text interpretieren und als responseString setzen
+							hlpArr(0) = ""
+							hlpArr(1) = ""
+							Me.httpResponseText = Array2String(hlpArr, " ", True)
+						End If
+						
+					End If
+				End If
+				
+			ElseIf strBegins("" & headerValue, "Set-Cookie", 5) Then
+
+				'Set-Cookie automatisch anwenden
+				strCookie = Trim(StrLeft(Mid$(headerValue & ";", 12), ";"))
+				If InStr(strCookie, "=") Then
+					'= enthalten->Key=Value
+					Me.httpCookies(StrLeft(strCookie, "=")) = Mid$(strCookie, Len(StrLeft(strCookie, "="))+2)
+				Else
+					Me.httpCookies(strCookie) = ""
+				End If
+
+			End If
+			
+		End ForAll
+		
+		ExecuteRequest = Me.httpResponseCode
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0 
+		Raise
+
+ende:
+	End Function
+	
+	'Direktzugriff auf das Http-Objekt
+	Property Get httpObject As NotesHTTPRequest
+		Set httpObject = http
+	End Property
+	
+	'Direktzugriff auf Cookies
+	Property Get Cookies
+		Cookies = httpCookies
+	End Property
+	
+	'Direktzugriff auf Cookies
+	Property Set Cookies
+		
+		Erase httpCookies
+		
+		ForAll v In Cookies
+			httpCookies(ListTag(v)) = v	
+		End ForAll
+		
+	End Property
+	
+End Class
+
+%REM
+	Class THttpDominoBasicAuth
+	Anmelden am Notes-Server mit Basic Auth
+%END REM
+Class THttpDominoBasicAuth
+	
+	Private tokenConfigDoc As NotesDocument
+	
+	Private ltpa As String
+	Private ltpa2 As String
+	
+	Private authDisabled As Boolean
+	
+	Private userName As String
+	Private password As String
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New(tokenProfileName As String)
+
+		'Wurde ein token-Profildokumentname angegeben, dann dieses abgreifen und die Token auslesen
+		If tokenProfileName <> "" Then
+			Set tokenConfigDoc = db.Getprofiledocument(tokenProfileName)
+			Call ReadLTPAFromConfig()
+		End If
+		
+	End Sub
+
+	%REM
+		Sub SetAuthToAppCredentials
+		Anmeldedaten werden über den Vössing App Credentials Store ausgelesen
+	%END REM
+	Sub SetAuthToAppCredentials(appCredentialsName As String)
+		
+		On Error GoTo doError
+		
+		Call SetAuthToUser(GetAppAccessCredentialsByName(appCredentialsName, "userName"), GetAppAccessCredentialsByName(appCredentialsName, "password"))
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		authDisabled = True	'Abschalten von Neuversuchen
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	%REM
+		Sub SetAuthToUsername
+		Anmeldedaten werden explizit übergeben
+	%END REM
+	Sub SetAuthToUser(userName As String, password As String)
+		Me.userName = userName
+		Me.password = password
+	End Sub
+	
+	%REM
+		isUnauthenticatedResponse
+		Überprüfen, ob die Response-Header einen Hinweis auf einen Unauthorized-Request enthalten
+	%END REM
+	Function isUnauthenticatedResponse(notesHttp As TNotesHttpRequestLS) As Boolean
+		
+		On Error GoTo doError
+		On Error 13 Resume Next	'Type mismatch - z.B. nach einem 500er Fehler
+		
+		'Ist es ein Redirect oder Unauthorized -> Neues Token holen und erneut versuchen
+		isUnauthenticatedResponse = _
+		Not IsNull(ArrayGetIndex(notesHttp.getResponseHeaders(), "HTTP/1.1 302 Found", 5)) Or _
+		Not IsNull(ArrayGetIndex(notesHttp.getResponseHeaders(), "HTTP/1.1 401 Unauthorized", 5))
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	%REM
+		Sub SetAuthToUsername
+		Anmeldedaten werden explizit übergeben
+	%END REM
+	Sub Authorize(notesHttp As TNotesHttpRequestLS, ResetAuth As Boolean)
+		
+		On Error GoTo doError
+		
+		'EXIT COND
+		If authDisabled Then GoTo ende
+		
+		If ResetAuth Then
+			ltpa = ""
+			ltpa2 = "" 
+		End If
+		
+		If ltpa = "" Or ltpa2 = "" Then
+			
+			'Print "", "need Request"
+			
+			Dim auth As New TNotesHttpRequestLS
+			Dim respCode As Integer
+			
+			'Credentials aus dem Store
+			Call auth.setBasicAuth(userName, password)
+			auth.TimeoutSec = 10
+			
+			respCode = auth.doGet(GetSystemVar("HTTP_ROOT") & "/api/APILogin.nsf")
+
+			'Print "", "auth Request", respCode
+			
+			If respCode = 200 Then
+				
+				ltpa = auth.GetCookie("LtpaToken")
+				ltpa2 = auth.GetCookie("LtpaToken2")
+				
+				Call WriteLTPAToConfig()
+				
+				If ltpa = "" Or ltpa2 = "" Then
+					authDisabled = True	'Abschalten von Neuversuchen
+				End If
+				
+			Else
+				authDisabled = True	'Abschalten von Neuversuchen
+			End If
+			
+			'TODO: Log Auth Disabled
+
+		End If
+		
+		'Cookies auf den übergebenen Request anwenden
+		If Not authDisabled Then
+			Call notesHttp.SetCookie("LtpaToken", ltpa)
+			Call notesHttp.SetCookie("LtpaToken2", ltpa2)
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		authDisabled = True	'Abschalten von Neuversuchen
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+
+
+	%REM
+		Sub WriteLTPAToConfig
+		Auslesen und anwenden der (längere zeit gültigen) LTPA-Tokens aus der Konfig
+	%END REM
+	Private Sub ReadLTPAFromConfig()
+		
+		On Error GoTo doError
+		
+		If Not tokenConfigDoc Is Nothing Then
+			ltpa = GetFirstItemValue(tokenConfigDoc, "_LtpaToken")
+			ltpa2 = GetFirstItemValue(tokenConfigDoc, "_LtpaToken2")
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+
+	%REM
+		Sub WriteLTPAToConfig
+		Speichern der (längere zeit gültigen) LTPA-Tokens in der Konfig zur wiederverwendung
+	%END REM
+	Private Sub WriteLTPAToConfig()
+		
+		On Error GoTo doError
+		
+		If Not tokenConfigDoc Is Nothing Then
+			Call tokenConfigDoc.ReplaceItemvalue("_LtpaToken", ltpa)
+			Call tokenConfigDoc.ReplaceItemvalue("_LtpaToken2", ltpa2)
+			Call tokenConfigDoc.Save(True, False)
+		End If
+		
+		GoTo ende
+		
+doError:
+		On Error Resume Next
+		Call ErrStack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:	
+	End Sub
+	
+End Class
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	If session Is Nothing Then
+		Set session = New NotesSession
+		Set db = session.CurrentDatabase
+		Set evalTempDoc = New NotesDocument(db)
+	End If
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:2:HttpLS_CallSXP_Simple:4:8
+%REM
+	XPAGE anonym aufrufen (via Agent, um Prozesse im java-Kontext abzuarbeiten)
+%END REM
+Sub HttpLS_CallSXP_Simple(fullURL As String, timeoutSec As Integer)
+	
+	On Error GoTo doError
+	
+	Dim httpLs As New TNotesHttpRequestLS
+	Dim respCode As Integer
+	Dim html As String
+	
+	httpLs.PreferUTF8 = True
+	httpLs.PreferStrings = True
+	
+	'Print Now(), "HttpLS_CallSXP_Simple() Start"
+	
+	If timeoutSec > 0 Then 
+		respCode = httpLs.doGet2(fullURL, timeoutSec)
+	Else
+		'Use Default Timeout
+		respCode = httpLs.doGet(fullURL)
+	End If
+	
+	'Print Now(), "HttpLS_CallSXP_Simple() Ende, Code: " & respCode
+	
+	html = httpLs.getResponseString()
+	
+	If respCode <> 200 Or Left(html, 5) = "Error" Then
+		Print Now(), "HttpLS code " & respCode & " for URL: " & fullURL
+		Call LogError(html)
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+
+
+
+
+'++LotusScript Development Environment:2:2:HttpLS_Call_XSPAPI_Authorized:4:8
+%REM
+	XPAGE, die als API Helper dient (also leer/JSON zurückgibt), mit AppCredentials-Authorisierung aufrufen (via Agent, um Prozesse im java-Kontext abzuarbeiten)
+%END REM
+Sub HttpLS_Call_XSPAPI_Authorized(appCredentials As String, fullURL As String, timeoutSec As Integer, optHttpCookieCacheProfileDocName As String)
+	
+	On Error GoTo doError
+	
+	Dim lsdominoAuth As THttpDominoBasicAuth
+	Dim lsHttp As TNotesHttpRequestLS
+	
+	Dim respCode As Integer
+	Dim respText As String
+	Dim tryCount As Byte, maxTries As Byte
+	
+	'Durchgang
+	tryCount = 1
+
+	'maximale Anzahl von wiederholungen: nur bei Verwendung des HttpCaches sollte ein Retry stattfinden, da das gecachte Cookie abgelaufen sein kann
+	If optHttpCookieCacheProfileDocName = "" Then
+		maxTries = 1
+	Else
+		maxTries = 2
+	End If
+	
+	'Http Setup
+	Set lsdominoAuth = New THttpDominoBasicAuth(optHttpCookieCacheProfileDocName)
+	If appCredentials = "" Then
+		Call lsdominoAuth.SetAuthToAppCredentials(DEFAULT_APP_CRED)
+	Else
+		Call lsdominoAuth.SetAuthToAppCredentials(appCredentials)
+	End If
+	
+retry:
+	Set lsHttp = New TNotesHttpRequestLS
+	Call lsHttp.SetContentType("application/json", "utf-8")
+	
+	If timeoutSec > 0 Then 
+		lsHttp.TimeoutSec = timeoutSec
+	Else
+		'Use Default Timeout
+		lsHttp.TimeoutSec = 240	'max. 4 Minuten warten
+	End If
+	
+	Call lsdominoAuth.Authorize(lsHttp, (tryCount > 1))
+
+	'Exec request
+	respCode = lsHttp.doGet(fullURL)
+	respText = lsHttp.getResponseString()
+
+	'Handle Auth Errors
+	If lsdominoAuth.isUnauthenticatedResponse(lsHttp) Then
+		
+		Print "Durchlauf " & tryCount & ", unauthorized"
+
+		'max 2 Durchläufe (=1 Retry), danach alles deaktivieren
+		If tryCount < maxTries Then
+			tryCount = tryCount + 1
+			GoTo reTry			
+		End If
+
+	End If
+	
+	'Log Errors
+	If respCode <> 200 Then
+		Print Now(), "HttpLS code " & respCode & " for URL: " & fullURL
+		Call LogError(fullURL & "; " & respCode & ": " & Left(respText, 250))
+	End If
+
+	Call Timer_Stop("")
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Sub
+
+
+
+
+'++LotusScript Development Environment:2:1:HttpLS_GetParamQueryStringEncoded:5:8
+%REM
+	Function HttpLS_EncodeParam
+	Description: Comments for Function
+%END REM
+Function HttpLS_GetParamQueryStringEncoded(paramName As String, paramValue As String) As String
+	
+	On Error GoTo doError
+	
+	Dim hlpArr
+	
+	Call evalTempDoc.ReplaceItemValue("paramName", paramName)
+	Call evalTempDoc.ReplaceItemValue("paramValue", paramValue)
+	
+	hlpArr = Evaluate("@URLEncode(""UTF-8""; paramName:paramValue)", evalTempDoc)
+	
+	'Fix 0D0A->00 Problem bei URLEncode
+	hlpArr(0) = strReplace(hlpArr(0), "%00", "%0A", 5)
+	hlpArr(1) = strReplace(hlpArr(1), "%00", "%0A", 5)
+	
+	HttpLS_GetParamQueryStringEncoded = Join(hlpArr, "=")
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error Goto 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+
+
+
+

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="filter" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="406" sequence="14" unid="56D4B3547008E82BC125875F00272228">
+<created><datetime dst="true">20210929T090726,48+02</datetime></created>
+<modified><datetime dst="true">20240411T133556,19+02</datetime></modified>
+<revised><datetime dst="true">20230809T130816,03+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133556,18+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133556,18+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+
+
+<item name="$Comment" sign="true"><text>CDRT</text></item>
+<item name="$TITLE" sign="true"><text>Common_NotesHttp</text></item>
+<item name="$DesignerVersion" sign="true"><text>8.5.3</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$POID"><datetime dst="true">20230809T130816,03+02</datetime></item></note>

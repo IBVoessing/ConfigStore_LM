@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="1d2" sequence="2" unid="720151588983F872C1258A70003FDCD3">
+<created><datetime>20231123T123732,99+01</datetime></created>
+<modified><datetime dst="true">20240411T133551,00+02</datetime></modified>
+<revised><datetime>20231123T123733,07+01</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133550,99+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133550,99+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Niklas Der/OU=GF/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Niklas Der/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$MimeType" sign="true"><text>text/html</text></item>
+<item name="$Flags"><text>345Cg&gt;Q</text></item>
+<item name="$MimeCharSet" sign="true"><text>UTF-8</text></item>
+<item name="$TITLE" sign="true"><text>vcde.html</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>vcde.html</text></item></note>

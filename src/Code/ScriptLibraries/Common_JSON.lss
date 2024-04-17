@@ -1,0 +1,1361 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library Common_JSON
+	Created Apr 8, 2021 by Denis Kopprasch/IT/Duesseldorf/IBV/DE
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "Common_Funcs"
+Use "Common_Timer"
+
+%REM
+
+2024-02-22, dko:
+	- GetJSONElementByPointerEx(): Erweiterung Array-Element-Abgriff ala @Subset(): -1 = letztes Element, -2 vorletztes etc.
+
+2024-02-16, dko:
+	- GetJSONElementByPointerEx(): Verbesserte Variante, die auch JsonArray-Elemente adressieren kann und Nav/Arr/Obj entgegennimmt
+	- GetJSONElementByPointer() -> verwendet intern GetJSONElementByPointerEx()
+
+2023-08-25, dko:
+	- GetFilteredScopeArray(): defaultUserScope als Parameter hinzugefügt. 
+		-> Da es vorkommen kann, dass Vorgabescope = "eigene" statt "relevante" gesetzt ist, aber User kein Prfil hat (Fall Nicolaus)
+
+2022-04-28, dko:
+	- db.Open() -> db.OpenWithFailover()
+
+2021-09-29, dko:
+	- neu: GetJSONLongByPointer()
+
+2021-04-08, dko:
+	- getJSONxxxx()-Routinen aus Common_NotesHttp übernommen
+	- populatePictureURL() aus Common_JSONFuncs übernommen und auf neue TLsNotesJsonXXX-Klassen umgestellt
+	 
+%END REM
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Private Class TBackendLookupViewProvider
+Declare Class TLsNotesJsonObjectsLoader
+Declare Private Class TLsNotesJsonObjectsLoaderInstance
+Declare Class TLsSSAppUserNotificationSettings
+Declare Sub Initialize
+Declare Function GetJSONLongByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Long) As Long
+Declare Function GetJSONValueByPointerAsObject(obj As NotesJSONObject, pointer As String) As Variant
+Declare Function GetJSONIntegerByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Integer) As Integer
+Declare Function GetJSONElementByPointerEx(obj As Variant, ByVal pointer As String) As NotesJSONElement
+Declare Function GetJSONStringArrayByPointer(jsonObj As NotesJSONObject, configName As String)
+Declare Function GetJSONNavElementByName(nav As NotesJSONNavigator, ByVal strName As String) As NotesJSONElement
+Declare Function GetJSONValueByPointer(obj As NotesJSONObject, pointer As String) As Variant
+Declare Function GetJSONNavValueByName(nav As NotesJSONNavigator, ByVal strName As String) As Variant
+Declare Function GetJSONElementByPointer(obj As NotesJSONObject, ByVal pointer As String) As NotesJSONElement
+Declare Function GetJSONDoubleByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Double) As Double
+Declare Function PopulatePictureURL(db As NotesDatabase, strConfApp As String, doc As NotesDocument, fieldConfigList List As String, strJSONTag As String) As Boolean
+Declare Function GetJSONNavValueByNameAsObject(nav As NotesJSONNavigator, ByVal strName As String) As Variant
+Declare Function GetJSONVariantByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Variant) As Variant
+Declare Function GetJSONStringByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As String) As String
+Declare Function GetJSONBooleanByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Boolean) As Boolean
+Declare Function GetJSONNavElementByPointer(nav As NotesJSONNavigator, ByVal pointer As String) As NotesJSONElement
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Private session As NotesSession
+Private glLookupViewProvider As TBackendLookupViewProvider
+%REM
+	Class TBackendLookupViewProvider
+	Backend-View-Config-Provider: Konfig-Daten für einen Schlüssel aus einer Lookup-View der aktuellen DB lesen
+%END REM
+Private Class TBackendLookupViewProvider
+	
+	Private providerList List As TLsNotesJsonObjectsLoaderInstance
+	
+	%REM
+		Function GetProviderInstance
+		Provider identifizieren und einmalig anbinden bei Bedarf
+	%END REM
+	Private Function GetProviderInstance(db As NotesDatabase, strConfApp As String) As TLsNotesJsonObjectsLoaderInstance
+		
+		On Error GoTo doError
+		
+		Dim key As String
+		
+		key = LCase(db.Filepath & "/" & strConfApp)
+		
+		If Not IsElement(providerList(key)) Then
+			
+			Dim config As Variant
+			
+			'Abgriff der Konfigurationsparameter
+			config = GetBackendConfig(db, strConfApp)
+			
+			Set providerList(key) = New TLsNotesJsonObjectsLoaderInstance(db, config)
+		End If
+		
+		Set GetProviderInstance = providerList(key)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	
+	%REM
+		Function GetJSONFromView
+		Description: Comments for Function
+	%END REM
+	Function GetJSONObjects(db As NotesDatabase, strConfApp As String, keyArr, exactMatch As Boolean, useObjectCache As Boolean)
+		
+		On Error GoTo doError
+		
+		Dim providerInstance As TLsNotesJsonObjectsLoaderInstance
+		
+		'Init/Reuse Provider Config
+		Set providerInstance = Me.GetProviderInstance(db, strConfApp)
+		
+		'Provider erledigt die Arbeit
+		GetJSONObjects = providerInstance.GetJSONObjectperKey(keyArr, exactMatch, useObjectCache)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	
+End Class
+
+
+%REM
+	Class TLsNotesJsonObjectsLoader
+	INDEV: Unklar, ob bereits zuverlässig bzgl. Umlaute etc.
+%END REM
+Class TLsNotesJsonObjectsLoader
+	
+	Private Source List As Variant
+	Private providerList List As TLsNotesJsonObjectsLoaderInstance
+	
+	%REM
+		Function GetPredefinedConfig
+		Description: Comments for Function
+	%END REM
+	Function GetPredefinedConfig(ByVal cfgName As String) As Variant
+		
+		On Error GoTo doError
+		
+		cfgName = UCase(cfgName)
+		
+		Select Case cfgName
+			Case "KONTAKTDB_PERSONS"
+				GetPredefinedConfig = CreateConfig(session.CurrentDatabase.Server, "Kontaktdatenbank.nsf", "(LookUpMultiJSON2)", 2)
+			Case "SSAPP_USERNOTIFICATIONCONFIG"
+				GetPredefinedConfig = CreateConfig(session.CurrentDatabase.Server, "SelfserviceUserData.nsf", "(LookUpCustomNotificationConfigMulti)", 1)
+			Case "ACTLOG_CATEGORIES"
+				GetPredefinedConfig = CreateConfig(session.CurrentDatabase.Server, "IBVActivityLogging.nsf", "(LookUpJSONCategoriesById)", 1)
+			Case Else
+				GetPredefinedConfig = ""
+		End Select
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:	
+	End Function
+	
+	Function CreateConfig(dbServer As String, dbFilepath As String, viewName As String, colIdx As Integer) As Variant
+		
+		ReDim config(3)
+		
+		config(0) = dbServer
+		config(1) = dbFilepath
+		config(2) = viewName
+		config(3) = colIdx
+		
+		CreateConfig = config
+		
+	End Function
+	
+	'config = BackendConfig-Format
+	'0 server
+	'1 dbname
+	'2 view
+	'3 colIdx
+	Private Function GetAppKey(config As Variant) As String
+		GetAppKey = LCase(Join(config, "*"))
+	End Function
+	
+	Private Function GetProviderInstance(config As Variant) As TLsNotesJsonObjectsLoaderInstance
+		
+		On Error GoTo doError
+		
+		Dim key As String
+		
+		key = LCase(GetAppkey(config))
+		
+		If Not IsElement(providerList(key)) Then
+			Set providerList(key) = New TLsNotesJsonObjectsLoaderInstance(session.Currentdatabase, config)
+		End If
+		
+		Set GetProviderInstance = providerList(key)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	'Funktion zum Vorabinitialisieren einer Instanz, liefert true, wenn angebunden
+	Function InitInstance(Config As Variant) As Boolean
+
+		Dim providerInstance As TLsNotesJsonObjectsLoaderInstance
+		
+		'Init/Reuse Provider Config
+		Set providerInstance = Me.GetProviderInstance(Config)
+		
+		InitInstance = providerInstance.isActive
+		
+	End Function
+	
+	
+	%REM
+		Function GetJSONObjectPerKey
+		Pro KEY ein OBJECT oder NOTHING liefern (also Single Object Lookup f. mehrere Keys)
+	%END REM
+	Function GetJSONObjectPerKey(Config As Variant, keyArr, exactMatch As Boolean, useObjectCache As Boolean)
+		
+		On Error GoTo doError
+		
+		'initialisiert Instanz auch
+		Dim providerInstance As TLsNotesJsonObjectsLoaderInstance
+		
+		'Init/Reuse Provider Config
+		Set providerInstance = Me.GetProviderInstance(Config)
+		
+		'Provider erledigt die Arbeit
+		GetJSONObjectPerKey = providerInstance.GetJSONObjectPerKey(keyArr, exactMatch, useObjectCache)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	
+End Class
+
+%REM
+	Class TLsNotesJsonObjectsLoaderInstance
+	Description: Comments for Class
+%END REM
+Private Class TLsNotesJsonObjectsLoaderInstance
+	
+	Private cachedNavigators List As NotesJSONNavigator
+	
+	Private colIdx As Integer
+	
+	Private sourceDBNeedClose As Boolean
+	Private sourceDB As NotesDatabase 
+	Private sourceLookupView As NotesView
+	
+	Private active As Boolean
+	
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New(db As NotesDatabase, config As Variant)
+		
+		On Error GoTo doerror
+
+		'config = BackendConfig
+		'0 server
+		'1 dbname
+		'2 view
+		'3 colIdx
+		
+		'Parameter colIdx muss numerisch sein
+		colIdx = CInt(config(3))
+		
+		If IsEqualValues(LCase(db.Server & "!!" & db.Filepath), LCase(config(0) & "!!" & config(1))) Then
+			'Konfig beschreibt die gleiche DB: Nicht neu öffnen, sondern verwenden
+			Set sourceDB = db
+		Else
+			'andere DB: öffnen
+			'Info: wird hier eine DB geöffnet, die bereits in einem anderen provider geöffnet ist, sollte das keine Schwierigkeiten verursachen
+			Set sourceDB = New NotesDatabase("", "")
+			Call sourceDB.OpenWithFailover(config(0), config(1))
+			If Not sourceDB.Isopen And sourceDB.Server = "" Then
+				Call sourceDB.OpenWithFailover(GetSystemVar("ADMIN_SERVER"), config(1))
+			End If
+			sourceDBNeedClose = True
+		End If 
+		
+		'View anbinden
+		Set sourceLookupView = GetGlobalView(sourceDB, "" & config(2))
+		sourceLookupView.Autoupdate = False
+		
+		active = Not sourceLookupView Is Nothing
+		
+		GoTo ende
+		
+doerror:
+		'Silent: nur inaktiv schalten
+		active = False
+		Resume Ende
+		
+ende:
+	End Sub
+	
+	Sub Delete
+		On Error Resume Next
+		If active And sourceDBNeedClose Then Call sourceDB.Close()
+	End Sub
+	
+	%REM
+		Property Get isActive
+		Description: Comments for Property Get
+	%END REM
+	Property Get isActive As Boolean
+		isActive = active
+	End Property
+	
+	
+	%REM
+		Function GetJsonObject
+		Description: Comments for Function
+	%END REM
+	Private Function GetJsonObject(nav As NotesJSONNavigator) As NotesJSONObject
+		
+		Dim el As NotesJSONElement
+		
+		Set el = nav.Getelementbyname("data")
+		Set GetJsonObject = el.Value
+		
+	End Function
+	
+	%REM
+		Function GetFromCache
+		Description: Comments for Function
+	%END REM
+	Private Function GetJSONObjectFromNAVCache(key As String) As NotesJSONObject
+		
+		If Not cachedNavigators(key) Is Nothing Then
+			Set GetJSONObjectFromNAVCache = GetJsonObject(cachedNavigators(key)) 'cachedNavigators(key).Getelementbyname("data").Value
+		End If
+		
+	End Function
+	
+	%REM
+		Nachschlagen in Ansicht und Abgriff der Wertee als JSON Objekt
+		Liefert ein Array der gleichen Länge wie keyArr mit entsprechenden Objekten oder Nothing, wenn nicht gefunden
+	%END REM
+	Function GetJSONObjectPerKey(keyArr, exactMatch As Boolean, useObjectCache As Boolean)
+		
+		On Error GoTo doerror
+		
+		Dim nav As NotesJSONNavigator
+		'		Dim el As NotesJSONElement
+		
+		Dim ve As NotesViewEntry
+		Dim i As Integer
+		Dim strJson As String
+		Dim isCached As Boolean
+		
+		Call Timer_Start(TypeName(Me))
+		
+		Dim varArrJSONObjs() As NotesJSONObject
+		
+		'Anzahl der Elemente im Ergebnis = Anzahl der Schlüssel im Array
+		ReDim varArrJSONObjs(LBound(keyArr) To UBound(keyArr)) As NotesJSONObject
+		
+		For i = LBound(keyArr) To UBound(keyArr)
+			
+			If useObjectCache Then isCached = IsElement(cachedNavigators(keyArr(i)))
+			
+			If isCached Then
+				'aus cache verwenden
+				Stop
+				Set varArrJSONObjs(i) = GetJSONObjectFromNAVCache("" & keyArr(i))
+			Else
+				'nicht im Cache oder Cache deaktiviert: nachschlagen
+				If keyArr(i) <> "" Then
+					
+					Set nav = Nothing
+					
+					Set ve = sourceLookupView.GetEntryByKey(keyArr(i), exactMatch)
+					If Not ve Is Nothing Then
+						
+						strJson = Trim(ve.Columnvalues(colIdx))
+						If strJSON <> "" Then 
+							'Set varArrJSONObjs(i) = readJSON(strJson)
+							
+							Set nav = session.Createjsonnavigator("{""data"": " & strJson & "}")
+							'							Set el = nav.Getelementbyname("data")
+							Set varArrJSONObjs(i) = GetJsonObject(nav)
+
+						End If
+						
+					End If
+
+					'in cache aufnehmen
+					'If useObjectCache Then Set cachedNavigators(keyArr(i)) = nav
+					'2021-04-08, dko: ACHTUNG: Wird der nav nicht gehalten, wird das JSON-Objekt im Rücksprung auf den Caller LEER.
+					'-> daher IMMER speichern, aber ggf. den cache nicht benutzen, wenn useCache false ist
+					Set cachedNavigators(keyArr(i)) = nav
+
+				End If
+				
+			End If
+			
+		Next i
+		
+		GetJSONObjectPerKey = varArrJSONObjs
+		
+		Call Timer_Stop(TypeName(Me))
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+End Class
+
+Class TLsSSAppUserNotificationSettings
+	
+	Private ldr As TLsNotesJsonObjectsLoader
+	
+	Private cacheUserMailSetting List As NotesJSONObject
+	Private Config As Variant
+	
+	Private active As Boolean
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Sub New
+		
+		On Error GoTo doError
+		
+		Set ldr = New TLsNotesJsonObjectsLoader()
+		
+		'Config = ldr.CreateConfig(session.CurrentDatabase.Server, "SelfserviceUserData.nsf", "(LookUpCustomNotificationConfigMulti)", 1)
+		Config = ldr.GetPredefinedConfig("SSAPP_USERNOTIFICATIONCONFIG")
+		active = ldr.InitInstance(Config)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Sub
+	
+	%REM
+		Function GetUsernameCanonical
+		Description: Comments for Function
+	%END REM
+	Private Function GetUsernameCanonical(entry As String) As String
+		
+		On Error GoTo doError
+		
+		Dim atPos As Integer, slashPos As Integer
+		Dim isEmailAdress As Boolean, isNotesName As Boolean
+		
+		slashPos = InStr(1, entry, "/", 5)
+		
+		'E-Mail-Adresse im Format xxxx@domain.zz
+		atPos = InStr(1, entry, "@", 5)
+		isEmailAdress = atPos > 0 And InStr(atPos+1, entry, ".", 5) > atPos
+		
+		'bei uns sind Notes-namen immer mit mind. 2 Slashes im kanonischen/abbrev-Format versehen
+		isNotesName = Not isEmailAdress And slashPos > 0 And InStr(slashPos+1, entry, "/", 5) > slashPos
+		
+		'nur Notes-Namen im kanonoschen oder Abbrev-Format verarbeiten (keine E-mail-Adresse)
+		If isNotesName Then
+			
+			'Convert to Canonical (from potentially Abbrev)
+			Dim nn As New NotesName(entry)
+			GetUsernameCanonical = nn.Canonical
+			
+		End If
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+	
+	%REM
+		Function GetFilteredArray
+		Abgriff + Cache der gespeicherten Einstellungen eines Benutzers
+	%END REM
+	Private Function GetUsersettings(userNameCanonical As String) As NotesJSONObject
+		
+		On Error GoTo doError
+	
+		Dim json As NotesJSONObject
+		Dim jsonArr
+		
+		'check Cache/populate
+		If Not IsElement(cacheUserMailSetting(LCase(userNameCanonical))) Then
+			
+			Call Timer_Start("Lookup")
+			
+			'user-Setting noch nicht im cache: 1x nachschlagen und auswerten
+			ReDim hlpArr(0)
+			
+			'Schlüssel nachschlagen, exakt, ohne caching, da wir eigenen Cache verwenden
+			hlpArr(0) = userNameCanonical
+			jsonArr = ldr.GetJSONObjectPerKey(Config, hlpArr, True, False)
+			
+			Set json = jsonArr(0)
+			Set cacheUserMailSetting(LCase(userNameCanonical)) = json
+			
+			Call Timer_Stop("Lookup")
+			
+		End If
+		
+		Set GetUsersettings = cacheUserMailSetting(LCase(userNameCanonical))
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+	End Function
+		
+
+	%REM
+		Function GetFilteredScopeArray
+		Description: Comments for Function
+	%END REM
+	Function GetFilteredScopeArray(arr, feedCat As String, scope As String, notificationType As String, defaultNotification As Boolean, defaultUserScope As String)
+
+		On Error GoTo doError
+		
+		Dim json As NotesJSONObject, feedCatObject As NotesJSONObject
+		
+		Dim i As Integer
+		Dim userNameCanonical As String
+		
+		Dim usrSetting As Boolean
+		Dim usrScope As String
+		
+		Dim retArr
+		
+		Call Timer_Start("")
+		
+		retArr = arr
+		
+		'nur anlaufen, wenn aktiv
+		If active Then
+			
+			For i = 0 To UBound(retArr)
+				
+				'Ermitteln des kanonischen benutzernamens - wnen es kein Benutzer ist, dann Leersteing
+				userNameCanonical = GetUsernameCanonical("" & retArr(i))
+				
+				'Default: Default=wie übergeben annehmen, z.B. für kein Usersettings-Profil, keine Kategorie, kein Mail-Setting vorhanden etc. 
+				usrSetting = defaultNotification
+
+				usrScope = defaultUserScope
+				If usrScope = "" Then usrScope = "2" 'default für alle = 2 als maximaler Fallback, galt bis 2023-08-25 für alles
+				
+				If userNameCanonical <> "" Then
+					
+					'sicherstellen, dass wir die kanonische Variante des ggf. im Abbrev-Format gespeicherten Namens hinterlegen
+					retArr(i) = userNameCanonical
+					
+					Set json = GetUsersettings(userNameCanonical)
+					
+					If Not json Is Nothing Then
+						
+						'Abgriff der feedCat aus dem JSON-Konfigurationsobjekt
+						Set feedCatObject = GetJSONValueByPointerAsObject(json, feedCat)
+
+						If Not feedCatObject Is Nothing Then
+							usrScope = GetJSONStringByPointer(feedCatObject, "scope", usrScope)
+							usrSetting = GetJSONBooleanByPointer(feedCatObject, notificationType, usrSetting)
+						End If
+
+					End If
+					
+					'Wenn User mail=aus konfiguriert hat, jetzt den Namen in der Liste leer setzen
+					If notificationType = "feed" Then
+						'feed: das setting des notification-typs bleibt unberücksichtigt (nur für SSApp-Filter relevant)
+						'ist scope 1 angefordert, darf user 1 oder 2 haben -> d.h. scope = 1-Anforderungen sind hne Auswirkung
+						'-> effektiv nur aktiv werden bei scope=2 and userScope=1
+						If scope<>"1" And usrScope<>scope Then
+							retArr(i) = ""
+						End If
+					Else
+						'mail, cnx: scope UND setting des notification-typs berücksichtigen
+						If Not usrSetting Or (scope<>"1" And usrScope<>scope) Then
+							'Print "DEBUG: " & TypeName(Me) & ": Removed entry " & retArr(i)
+							retArr(i) = ""
+						End If
+					End If
+					
+				End If	'isNotesName
+				
+			Next i
+			
+		End If
+
+		GetFilteredScopeArray = cnvVarArray(retArr, True)
+		
+		GoTo ende
+		
+doerror:
+		On Error Resume Next
+		Call Errstack(TypeName(Me))
+		On Error GoTo 0
+		Raise
+		
+ende:
+		On Error Resume Next
+		Call Timer_Stop("")
+		
+	End Function
+	
+End Class
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+	If session Is Nothing Then
+		Set session = New NotesSession
+	End If
+	
+	If glLookupViewProvider Is Nothing Then
+		Set glLookupViewProvider = New TBackendLookupViewProvider
+	End If
+	
+End Sub
+
+'++LotusScript Development Environment:2:1:GetJSONLongByPointer:5:8
+%REM
+	Function GetJSONLongByPointer
+	Description: Comments for Function
+%END REM
+Function GetJSONLongByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Long) As Long
+	
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONLongByPointer = v
+	Else
+		GetJSONLongByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONValueByPointerAsObject:2:8
+'Für Set-Zuweisungen und "Nothing"-Prüfung. Gibnt Nothing zurück, wenn der Wert nicht existiert oder kein Notes-Object ist 
+Function GetJSONValueByPointerAsObject(obj As NotesJSONObject, pointer As String) As Variant
+
+	On Error GoTo doError
+	
+	Dim e As NotesJSONElement
+	
+	Set e = GetJSONElementByPointer(obj, pointer)
+	
+	If Not e Is Nothing Then
+		If IsObject(e.Value) Then
+			Set GetJSONValueByPointerAsObject = e.Value
+		Else
+			'wenn wir ein Object erwarten, können wir keinen einfachen Datentypü oder Null zurückgeben, da das in Konflikt mit "Set xxx = " steht
+			'-> in dem Fall also auch Nothing hier zurückgeben
+			Set GetJSONValueByPointerAsObject = Nothing
+		End If
+	Else
+		Set GetJSONValueByPointerAsObject = Nothing
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONIntegerByPointer:1:8
+Function GetJSONIntegerByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Integer) As Integer
+	
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONIntegerByPointer = v
+	Else
+		GetJSONIntegerByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+		
+ende:
+
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONElementByPointerEx:6:8
+%REM
+	Function GetNotesJSONElementByPointerEx
+	- unterstützt als Eingabeparameter JsonNavigaotr, JsonArray und JsonObject
+	- unterstützt den 0-based JsonArray-Zugriff
+%END REM
+Function GetJSONElementByPointerEx(obj As Variant, ByVal pointer As String) As NotesJSONElement
+	
+	On Error GoTo doError
+	On Error 4843 Resume Next	'verhindert Fehler bei Abgriff xx.Getelementbyname()
+	
+	Dim hlpJsonNav As NotesJSONNavigator
+	Dim hlpJsonArr As NotesJSONArray
+	Dim hlpJsonObj As NotesJSONObject
+	
+	Dim hlpElement As NotesJSONElement
+	
+	Dim hlpArr
+	Dim i As Integer, start As Integer
+	Dim hlpLong As Long
+	
+	'Exit Cond.
+	If Not IsObject(obj) Then GoTo ende
+	If obj Is Nothing Then GoTo ende
+	
+	If TypeName(obj) = "NOTESJSONNAVIGATOR" Then
+		
+		Set hlpJsonNav = obj
+		
+		'direkt per Pointer versuchen
+		If Not strBegins(pointer, "/", 5) Then pointer = "/" & pointer
+		
+		Set GetJSONElementByPointerEx = hlpJsonNav.Getelementbypointer(pointer)
+	
+	Else
+		
+		If TypeName(obj) = "NOTESJSONARRAY" Then
+			Set hlpJsonArr = obj
+		ElseIf TypeName(obj) = "NOTESJSONOBJECT" Then
+			Set hlpJsonObj = obj
+		Else
+			'alles andere ist unzulässig
+			GoTo ende
+		End If
+
+		'führenden Slash nicht berücksichtigen
+		hlpArr = Split(pointer, "/")
+		start = LBound(hlpArr)
+		If strBegins(pointer, "/", 5) Then start = start + 1
+	
+		For i = start To UBound(hlpArr)
+			
+			'2024-02-06, dko: Fix: schlägt Getelementbyname() fehl, ist hlpElement unverändert, das ist dann falsch, daher zurücksetzen
+			Set hlpElement = Nothing
+			
+			If Not hlpJsonObj Is Nothing Then
+				
+				Set hlpElement = hlpJsonObj.Getelementbyname(hlpArr(i))
+				
+			ElseIf Not hlpJsonArr Is Nothing Then
+				
+				'das abzugreifende Element muss ein numerischer Index sein, sonst Abbruch
+				If Not IsNumeric(hlpArr(i)) Then Exit For
+				
+				'Index prüfen: Notation ist analog GetElementByPointer 0-based
+				hlpLong = CLng(hlpArr(i))
+				
+				'2024-02-22, dko: Erweiterung ala @Subset(): -1 = letztes Element, -2 vorletztes etc.
+				If hlpLong < 0 Then	hlpLong = hlpJsonArr.Size + hlpLong
+				
+				'Abgriff mit Getnthelement() ist 1-based, also anpassen
+				hlpLong = hlpLong + 1
+				
+				'wenn außerhalb der Array-Bounds, dann Abbruch
+				If hlpLong < 1 Or hlpLong > hlpJsonArr.Size Then Exit For
+				
+				Set hlpElement = hlpJsonArr.Getnthelement(hlpLong)
+			End If
+			
+			If Not hlpElement Is Nothing Then
+				If i = UBound(hlpArr) Then
+					'letztes Element
+					Set GetJSONElementByPointerEx = hlpElement
+				Else
+					'weiter durcharbeiten: Es muss ein Objekt sein, sonst stimmt was nicht
+					If IsObject(hlpElement.Value) Then
+						
+						Set hlpJsonArr = Nothing
+						Set hlpJsonObj = Nothing
+						
+						'Unterscheidung: kann JSON-Array oder JSON-Object sein
+						If hlpElement.Type = Jsonelem_type_array Then
+							Set hlpJsonArr = hlpElement.Value
+						Else
+							Set hlpJsonObj = hlpElement.Value
+						End If
+	
+					Else
+						Exit For
+					End If
+				End If
+			Else
+				Exit For
+			End If
+			
+		Next i
+	
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("pointer: " & pointer & "; i=" & i)
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONStringArrayByPointer:1:8
+Function GetJSONStringArrayByPointer(jsonObj As NotesJSONObject, configName As String)
+	
+	On Error GoTo doError
+	
+	Dim jsonArr As NotesJSONArray
+	Dim resArray
+	Dim occurence As Long
+	
+	ReDim resArray(0) As String
+	
+	Set jsonArr = GetJSONValueByPointerAsObject(jsonObj, configName)
+	
+	If Not jsonArr Is Nothing Then
+		
+		Dim hlp As NotesJSONElement
+		
+		Set hlp = jsonArr.Getfirstelement()
+		While Not hlp Is Nothing
+			
+			occurence = occurence + 1
+			
+			'1. Element: auf Index 0 legen, alle anderen dann anhängen
+			If occurence = 1 Then
+				resArray(0) = hlp.Value
+			Else
+				resArray = ArrayAppend(resArray, hlp.Value)
+			End If
+			
+			Set hlp = jsonArr.Getnextelement()
+		Wend
+		
+	End If
+	
+	GetJsonStringArrayByPointer = resArray
+	
+	GoTo ende
+		
+doError:
+	On Error Resume Next
+	Call ErrStack("property: " & configName)
+	On Error GoTo 0
+	Raise			
+	
+ende:
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONNavElementByName:5:8
+%REM
+	Function GetJSONNavElementByName
+	Description: Comments for Function
+%END REM
+Function GetJSONNavElementByName(nav As NotesJSONNavigator, ByVal strName As String) As NotesJSONElement
+	
+	On Error GoTo doError
+	On Error 4843 Resume Next
+	
+	Set GetJSONNavElementByName = nav.Getelementbyname(strName)
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONValueByPointer:3:8
+
+'Dies soll die neue GetJSONValueByPointer werden
+Function GetJSONValueByPointer(obj As NotesJSONObject, pointer As String) As Variant
+
+	On Error GoTo doError
+	
+	Dim e As NotesJSONElement
+	
+	Set e = GetJSONElementByPointer(obj, pointer)
+	
+	If Not e Is Nothing Then
+		If IsObject(e.Value) Then
+			GetJSONValueByPointer = Null
+		Else
+			GetJSONValueByPointer = e.Value
+		End If
+	Else
+		GetJSONValueByPointer = Null
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONNavValueByName:5:8
+%REM
+	Function GetJSONNavValueByName
+	Description: Comments for Function
+%END REM
+Function GetJSONNavValueByName(nav As NotesJSONNavigator, ByVal strName As String) As Variant
+	
+	On Error GoTo doError
+	
+	Dim e As NotesJSONElement
+	
+	Set e = GetJSONNavElementByName(nav, strName)
+	
+	If Not e Is Nothing Then
+		If IsObject(e.Value) Then
+			GetJSONNavValueByName = Null
+		Else
+			GetJSONNavValueByName = e.Value
+		End If
+	Else
+		GetJSONNavValueByName = Null
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONElementByPointer:5:8
+%REM
+	Function GetNotesJSONElementByPointer
+	-> benutzt GetNotesJSONElementByPointerEx()
+%END REM
+Function GetJSONElementByPointer(obj As NotesJSONObject, ByVal pointer As String) As NotesJSONElement
+	
+	'Umgestellt auf auf GetJsonElementByPointerEx()
+	Set GetJSONElementByPointer = GetJSONElementByPointerEx(obj, pointer)
+	
+	%REM
+	'Alte Version: Unterstützt keine Arrays im Pointer!
+		
+	On Error GoTo doError
+	On Error 4843 Resume Next	'verhindert Fehler bei Abgriff hlpObj.Getelementbyname(hlpArr(i))
+	
+	Dim hlpElement As NotesJSONElement
+	Dim hlpObj As NotesJSONObject
+	
+	Dim hlpArr
+	Dim i As Integer, start As Integer
+	
+	hlpArr = Split(pointer, "/")
+	
+	'führenden Slash nicht berücksichtigen
+	start = LBound(hlpArr)
+	If strBegins(pointer, "/", 5) Then start = start + 1
+	
+	Set hlpObj = obj
+	
+	For i = start To UBound(hlpArr)
+		
+		'2024-02-06, dko: Fix: schlägt Getelementbyname() fehl, ist hlpElement unverändert, das ist dann falsch, daher zurücksetzen
+		Set hlpElement = Nothing	
+		
+		Set hlpElement = hlpObj.Getelementbyname(hlpArr(i))	
+		
+		If Not hlpElement Is Nothing Then
+			If i = UBound(hlpArr) Then
+				'letztes Element
+				Set GetJSONElementByPointer = hlpElement
+			Else
+				'weiter durcharbeiten: Es muss ein Objekt sein, sonst stimmt was nicht
+				If IsObject(hlpElement.Value) Then
+					Set hlpObj = hlpElement.Value
+				Else
+					Exit For
+				End If
+			End If
+		Else
+			Exit For
+		End If
+		
+	Next i
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("pointer: " & pointer & "; i=" & i)
+	On Error GoTo 0
+	Raise
+	
+ende:
+	%END REM
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONDoubleByPointer:5:8
+%REM
+	Function GetJSONDoubleByPointer
+	Description: Comments for Function
+%END REM
+Function GetJSONDoubleByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Double) As Double
+
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONDoubleByPointer = v
+	Else
+		GetJSONDoubleByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+		
+End Function
+
+'++LotusScript Development Environment:2:1:PopulatePictureURL:6:8
+%REM
+	Function PopulatePictureURL
+	Jeweils den ersten Wert aus jedem per fieldConfigList spezifiziertem Feld verwenden und URL ins Zielfeld schreiben
+	Gibt true zurück, wenn etwas relevantes geändert wurde
+%END REM
+Function PopulatePictureURL(db As NotesDatabase, strConfApp As String, doc As NotesDocument, fieldConfigList List As String, strJSONTag As String) As Boolean
+	
+	On Error GoTo doError
+
+	Dim nn As NotesName
+	
+	Dim i As Integer
+	Dim value As String
+	Dim jsonObjects
+	Dim changed As Boolean
+	
+	ReDim keyArr(0) As String
+	
+	'Auslesen der ersten Werte aus allen Quellfeldern, Umwandeln als Abbrev Name und keyArr bestücken
+	i = 0
+	ForAll targetURLFieldName In fieldConfigList
+		
+		ReDim Preserve keyArr(i)
+		
+		value = GetFirstItemValue(doc, ListTag(targetURLFieldName))
+		If value <> "" Then
+			Set nn = New NotesName(value)
+			keyArr(i) = nn.Abbreviated
+		End If
+		
+		i = i + 1
+	End ForAll
+	
+	'Alle Personen nachschlagen, Object-Cache verwenden
+	jsonObjects = glLookupViewProvider.GetJSONObjects(db, strConfApp, keyArr, True, True)
+	
+	'Verarbeiten der Ergebnisse
+	i = 0
+	ForAll targetURLFieldName In fieldConfigList
+		
+		If Not jsonObjects(i) Is Nothing Then
+			'Abgriff des Wertes aus dem JSON
+			'value = jsonObjects(i).GetItemValue(strJSONTag)
+			value = GetJSONStringByPointer(jsonObjects(i), strJSONTag, "")
+		Else
+			value = ""
+		End If
+		
+		'Default Pic, wenn leer
+		If value = "" Then value = "./ProfilPicDummy.png"
+		
+		changed = changed Or ReplaceUnequalItemSingleValue(doc, targetURLFieldName, value)
+		
+		i = i + 1
+	End ForAll
+	
+	PopulatePictureURL = changed
+	
+	GoTo ende
+	
+doerror:
+	On Error Resume Next
+	Call Errstack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONNavValueByNameAsObject:6:8
+
+%REM
+	Function GetJSONNavValueByNameAsObject
+	Description: Comments for Function
+%END REM
+Function GetJSONNavValueByNameAsObject(nav As NotesJSONNavigator, ByVal strName As String) As Variant
+	
+	On Error GoTo doError
+	
+	Dim e As NotesJSONElement
+	
+	Set e = GetJSONNavElementByName(nav, strName)
+	
+	If Not e Is Nothing Then
+		If IsObject(e.Value) Then
+			Set GetJSONNavValueByNameAsObject = e.Value
+		Else
+			Set GetJSONNavValueByNameAsObject = Nothing
+		End If
+	Else
+		Set GetJSONNavValueByNameAsObject = Nothing
+	End If
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONVariantByPointer:6:8
+
+%REM
+	Function GetJSONVariantByPointer
+	Description: Comments for Function
+%END REM
+Function GetJSONVariantByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Variant) As Variant
+	
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONVariantByPointer = v
+	Else
+		GetJSONVariantByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+
+ende:
+	
+End Function
+
+'++LotusScript Development Environment:2:1:GetJSONStringByPointer:1:8
+Function GetJSONStringByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As String) As String
+	
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONStringByPointer = v
+	Else
+		GetJSONStringByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+
+ende:
+
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONBooleanByPointer:1:8
+Function GetJSONBooleanByPointer(jsonObj As NotesJSONObject, configName As String, defaultValue As Boolean) As Boolean
+	
+	On Error GoTo doError
+	
+	Dim v As Variant
+	
+	v = GetJSONValueByPointer(jsonObj, configName)
+	
+	If Not IsNull(v) Then
+		GetJSONBooleanByPointer = v
+	Else
+		GetJSONBooleanByPointer = defaultValue
+	End If
+	
+	GoTo ende
+
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+'++LotusScript Development Environment:2:1:GetJSONNavElementByPointer:6:8
+
+%REM
+	Function GetJSONNavElementByPointer
+	Description: Comments for Function
+%END REM
+Function GetJSONNavElementByPointer(nav As NotesJSONNavigator, ByVal pointer As String) As NotesJSONElement
+	
+	On Error GoTo doError
+	On Error 4843 Resume Next
+	
+	If Not strBegins(pointer, "/", 5) Then pointer = "/" & pointer
+	Set GetJSONNavElementByPointer = nav.Getelementbypointer(pointer)
+	
+	GoTo ende
+	
+doError:
+	On Error Resume Next
+	Call ErrStack("")
+	On Error GoTo 0
+	Raise
+	
+ende:
+	
+End Function
+
+
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="filter" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="42a" sequence="16" unid="5B37B3D038BF419DC12586BC004CC34F">
+<created><datetime dst="true">20210419T155827,35+02</datetime></created>
+<modified><datetime dst="true">20240411T133556,37+02</datetime></modified>
+<revised><datetime>20231218T124920,27+01</datetime></revised>
+<lastaccessed><datetime dst="true">20240411T133556,36+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133556,36+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE" sign="true"><text>Common_Funcs</text></item>
+<item name="$PublicAccess"><text>1</text></item>
+
+
+
+
+
+<item name="$Comment"><text>CDRT</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$POID"><datetime>20231218T124920,27+01</datetime></item></note>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="496" sequence="4" unid="FD9B56C09652E673C125884B005393AE">
+<created><datetime dst="true">20220523T171252,94+02</datetime></created>
+<modified><datetime dst="true">20240415T092551,25+02</datetime></modified>
+<revised><datetime dst="true">20220523T171253,03+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240415T092551,24+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240415T092551,24+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE"><text>viSrs-0.1.5.1.jar</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+<item name="$Flags"><text>34567Cg~,</text></item>
+
+
+
+
+
+<item name="$FileNames" sign="true"><text>viSrs-0.1.5.1.jar</text></item></note>

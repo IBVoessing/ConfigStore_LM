@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="37e" sequence="103" unid="D363A9FA62965103C12587A30036E52A">
+<created><datetime>20211206T105936,10+01</datetime></created>
+<modified><datetime dst="true">20240415T092549,45+02</datetime></modified>
+<revised><datetime dst="true">20240415T075116,58+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240415T092549,44+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240411T133555,42+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Reiner Hintzen/OU=GF/O=IBV/C=DE</name><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$TITLE"><text>endpoints.xsp</text></item>
+<item name="$Flags"><text>gC~4K</text></item>
+
+
+
+<item name="$DesignerVersion"><text>8.5.1</text></item>
+
+
+<item name="$FileNames" sign="true"><text>endpoints.xsp</text></item>
+
+</note>

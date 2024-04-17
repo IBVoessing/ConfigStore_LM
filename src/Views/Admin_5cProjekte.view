@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='utf-8'?>
+<note class='view' xmlns='http://www.lotus.com/dxl' version='12.0' maintenanceversion='2.2'
+ replicaid='C1258AFC00296AAF'>
+<noteinfo noteid='1c2' unid='A6309B3E5C281884C1258A3700454141' sequence='3'>
+<created><datetime dst='true'>20230927T143626,89+02</datetime></created>
+<modified><datetime dst='true'>20240411T133550,82+02</datetime></modified>
+<revised><datetime>20240305T150651,27+01</datetime></revised>
+<lastaccessed><datetime dst='true'>20240411T133550,81+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20240411T133550,81+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE</name></wassignedby>
+<item name='$FormatNote' summary='true' sign='true'>
+<rawitemdata type='4'>
+AQD55WhewaipNmK2KwAlgCXB
+</rawitemdata></item>
+<item name='$FormulaClass' sign='true'><text>1</text></item>
+<item name='$Readers' sign='true' readers='true'><textlist><text>DB-Entwickler</text><text
+>LocalDomainServers</text><text>[Administration]</text></textlist></item>
+<item name='$TITLE' sign='true'><text>Admin\Projekte</text></item>
+<item name='$Index' sign='true'><text/></item>
+<item name='$Formula' summary='true' sign='true'><formula compiled='true'>
+igACADAAAgAkNwUACgBQcm9qZWN0Q0lEAQABAC0AIgIFAAoAUHJvamVjdFBOciICAwACAAwAAgAk
+M6QAAwAFABwAFwADAAIAAgAJACQ3JDMkQ29uZmxpY3QABAAEAAAAIgAFAAQARm9ybQEADQBQcm9q
+ZWN0Q29uZmlnAAoCAwAHAAoABAAJTDFT
+</formula></item>
+<item name='$Collation' summary='true'>
+<rawitemdata type='2'>
+GAACAABECGYAAAACAAFmAAIAAgAkNyQz
+</rawitemdata></item>
+<item name='$Collation1' summary='true'>
+<rawitemdata type='2'>
+DwABAABECGYAAAACACQ3
+</rawitemdata></item>
+<item name='$Collation2' summary='true'>
+<rawitemdata type='2'>
+DwABAABECWYAAAACACQ3
+</rawitemdata></item>
+<item name='$ViewFormat' summary='true' sign='true'>
+<rawitemdata type='5'>
+AQACAAgACgAAAFZDAQMCABQAnAAAAKwABQAECgABAAAAAAAAAAICAAAAVkMFAAIACAAOAAAAaQAB
+AAAJAAAAAAAAAAAAAgIAAAAkN3Byb2plY3RDSUQgLVBOUiAtS1NUnAAHAE4ARwBQcm9qZWN0Q0lE
+ICsgIi0iICsgUHJvamVjdFBOcisgQElmKFByb2plY3RLU1Q9IiI7ICIiOyAiLSIgKyBQcm9qZWN0
+S1NUKQAHAAoAAwAJMVMAAgAwAAIAJDcFAAoAUHJvamVjdENJRAEAAQAtACICBQAKAFByb2plY3RQ
+TnIiAgMABwASAAsACTBSMVMyUzNTNFMAJDNnZYRuZGVydA4AAgAMAAIAJDOkAAMAJgABAAAAAQEA
+CQEAAAoBAQ4KAAABAK0rAQABAAEAAAAAAAAAAABXQwEBAAkAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAD//wAAAAAAAAAAAAAAAAAAV0MBAQAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAAAAAAAA
+AAAAAAAAAEIAEAAAAAEA////AAUA////AAEAAAAAAAAAAAAAAAAAAQD///8AAQD///8AAAABAAAA
+AAABAAAAAAABAAAAAAAAAAgAAAAAAAEA
+</rawitemdata></item>
+<item name='$Fonts' sign='true'><textlist><text>5</text><text>53</text><text
+>Consolas</text></textlist></item>
+<item name='$Comment' sign='true'><text/></item>
+<item name='$Flags'><text>Y</text></item>
+<item name='$DesignerVersion'><text>8.5.3</text></item>
+<item name='$V5ACTIONS' sign='true'>
+<rawitemdata type='1'>
+vRw/AAAAAQABAAAAAQAAAAAAAAAAAAAACAACAHn/bAABAPDw8AABAAAAAAAJAAAAAAABAPDw8AAA
+AB8AAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAPz/OgAAAAAAAQAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAEAAAAAAAAAAAAAAAAAAAC+/yIBAAABAAAAnwEAABAAAAAAAAAAREIgS29uZmlndXJh
+dGlvbvwACADGAOcAAQAOAEFkbWluaXN0cmF0aW9uRwLnAAEADQBLb25maWd1cmF0aW9uAEcCHQKv
+AJAAJAACACInAAAAAAAAAQANAEtvbmZpZ3VyYXRpb24A7QKuAGwAAgANAAAAAAAAAAEABwBXYXJu
+dW5nAAEASABTaWUgc2luZCBuaWNodCBiZXJlY2h0aWd0LCBkaWUgS29uZmlndXJhdGlvbiBkZXIg
+RGF0ZW5iYW5rIHp1IGJlYXJiZWl0ZW6wA64ABAC1AwMABwAgABkACTZTOFM5UzEzUzE2UzIwUzIz
+UzI3UzI5UwAAAAgAKwADAAcADAAFAAkwUzBFAL7/YgAAAAEAAACfAQAAGgAAAAAAAABuZXVlIFBy
+b2pla3QgS29uZmlndXJhdGlvbjIAAAAkAAIA6AMAAAAAAAABAA0AUHJvamVjdENvbmZpZwDtAgMA
+BwAMAAUACTBTMEUA
+</rawitemdata></item></note>
+
