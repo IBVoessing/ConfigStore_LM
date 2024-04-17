@@ -4,7 +4,12 @@ import java.util.Arrays;
 import java.util.List;
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.voessing.common.TRestConsumerEx;
-import com.voessing.common.TVAppCredStore;
+import com.voessing.common.TVAppCredStore2;
+
+import lotus.domino.NotesException;
+
+import org.openntf.domino.utils.Factory;
+import org.openntf.domino.utils.Factory.SessionType;
 
 public class TrelloAPI {
 
@@ -29,14 +34,16 @@ public class TrelloAPI {
         }
     }
 
-    public TrelloAPI() {
+    public TrelloAPI() throws NotesException {
         api = new TRestConsumerEx("");
         api.setLogLevel(logLevel);
 
-        baseUrl = TVAppCredStore.getValueByName(CREDSTORE_KEY, "baseUrl");
+        TVAppCredStore2 credStore = new TVAppCredStore2(Factory.getSession(SessionType.NATIVE));
 
-        String apiKey = TVAppCredStore.getValueByName(CREDSTORE_KEY, "apiKey");
-        String apiToken = TVAppCredStore.getValueByName(CREDSTORE_KEY, "apiToken");
+        baseUrl = credStore.getValueByName(CREDSTORE_KEY, "baseUrl");
+
+        String apiKey = credStore.getValueByName(CREDSTORE_KEY, "apiKey");
+        String apiToken = credStore.getValueByName(CREDSTORE_KEY, "apiToken");
 
         String authHeader = "OAuth oauth_consumer_key=\"" + apiKey + "\", oauth_token=\"" + apiToken + "\"";
         api.addRequestHeader("Authorization", authHeader);
