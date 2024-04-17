@@ -1,4 +1,4 @@
-package com.voessing.vcde.tooladapter.handler;
+package com.voessing.vcde.tooladapter.handlers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,13 +8,15 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.voessing.api.adapter.TrelloAPI;
 import com.voessing.common.TNotesUtil;
 
+import lotus.domino.NotesException;
+
 public class TrelloHandler {
     private final String VCDE_ADMIN_TASKS_BOARD_ID = "66162a1deef60aea4cc681f7";
     private final String VCDE_ADMIN_TASKS_LIST_ID = "661668d9b485dff1f9488151";
     private TrelloAPI trelloAPI;
     private Map<String, String> labels; 
 
-    public TrelloHandler() {
+    public TrelloHandler() throws NotesException {
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
     }
