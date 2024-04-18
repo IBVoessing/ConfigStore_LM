@@ -20,6 +20,8 @@ import com.voessing.common.TNotesUtil;
 import com.voessing.vcde.tooladapter.interfaces.ExecutableAdapter;
 import com.voessing.vcde.tooladapter.models.TrelloTask;
 import com.voessing.vcde.tooladapter.models.TrelloTask.Card;
+import com.voessing.vcde.tooladapter.models.TrelloTask.Card.CheckItem;
+import com.voessing.vcde.tooladapter.models.TrelloTask.Card.Checklist;
 
 import lotus.domino.Document;
 import lotus.domino.NotesException;
@@ -69,9 +71,22 @@ public class TrelloHandler implements ExecutableAdapter {
 		card.start = dateToIsoString(new Date());
 		card.due = dateToIsoString(addWeekToDate(new Date()));
         card.idMembers =  getTrelloAdminIds(tool);
+
+        Vector<String> checklists = tool.getItemValue("adminChecklist");
+        List<CheckItem> checklistsList = new ArrayList<>();
+        for(String checklist : checklists){
+            CheckItem checkItem = new CheckItem();
+            checkItem.name = checklist;
+            checklistsList.add(checkItem);
+        }
+
+        Checklist checklist = new Checklist();
+        checklist.name = "Do this or you will be replaced by a robot";
+        checklist.checkItems = checklistsList;
 		
 		TrelloTask task = new TrelloTask();
 		task.card = card;
+        task.card.checklists = Arrays.asList(checklist);
 
 		JsonJavaObject result = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, gson.toJson(task));
 
@@ -103,10 +118,9 @@ public class TrelloHandler implements ExecutableAdapter {
         description.append("\n\n");
 
         description.append("Handlungsempfehlung:\n");
-        description.append("1. blah blah blah \n");
-        description.append("2. blah blah blah \n");
-        description.append("3. blah blah blah \n\n");
-
+        description.append(tool.getItemValueString("adminInstruction"));
+        description.append("\n\n");
+        
         description.append(membersToInstructions(body));
         description.append("\n");   
 
@@ -285,7 +299,7 @@ public class TrelloHandler implements ExecutableAdapter {
             JsonJavaObject createdCheckItem = trelloAPI.createCheckItem(checklistId, checkItemObj);
 
             // check if checkitem was created successfully
-            if(!isResponeValid(checkItemObj)){
+            if(!isResponeValid(createdCheckItem)){
                 throw new Exception("Error creating checkitem: " + createdCheckItem);
             }
         }
