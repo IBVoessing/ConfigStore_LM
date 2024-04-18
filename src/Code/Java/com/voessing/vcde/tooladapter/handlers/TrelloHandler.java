@@ -32,6 +32,8 @@ public class TrelloHandler implements ExecutableAdapter {
     private TrelloAPI trelloAPI;
     private Map<String, String> labels; 
 
+    private Map<String, String> templateContext = new HashMap<>();
+
     private Gson gson = new Gson();
 
     public TrelloHandler() throws NotesException {
@@ -41,6 +43,9 @@ public class TrelloHandler implements ExecutableAdapter {
 
     @Override
     public JsonJavaObject excecute(Document request, Document tool, JsonJavaObject body) throws Exception {
+
+        buildTemplateContext(request, tool);
+
         String projectPNr = request.getItemValueString("ProjectPNr");
         if(projectPNr == null || projectPNr.isEmpty()){
             projectPNr = "N/A";
@@ -51,6 +56,23 @@ public class TrelloHandler implements ExecutableAdapter {
 		createAdminTask(task, projectPNr, false);
         return task;
     }
+
+    private void buildTemplateContext(Document request, Document tool) throws NotesException {
+        templateContext.putAll(docToMap(request, "request"));
+        templateContext.putAll(docToMap(tool, "tool"));
+    }
+
+    private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
+		keyPrefix = "$" + keyPrefix + ".";
+		Map<String, String> map = new HashMap<>();
+
+		for(Object itemKey: doc.getItems()){
+			String key = itemKey.toString();
+			map.put(keyPrefix + key, doc.getItemValueString(key));
+		}
+
+		return map;
+	}
 
     private List<String> getTrelloAdminIds(Document tool) throws NotesException{
         Vector adminDocUNIDs = tool.getItemValue("adminUnids");
@@ -118,7 +140,7 @@ public class TrelloHandler implements ExecutableAdapter {
         description.append("\n\n");
 
         description.append("Handlungsempfehlung:\n");
-        description.append(tool.getItemValueString("adminInstruction"));
+        description.append(populateTemplate(tool.getItemValueString("adminInstruction")));
         description.append("\n\n");
         
         description.append(membersToInstructions(body));
@@ -130,9 +152,18 @@ public class TrelloHandler implements ExecutableAdapter {
         description.append(body.toString());
 
         return description.toString();
-    }
+        }
 
-    private String membersToInstructions(JsonJavaObject body){
+        private String populateTemplate(String input) {
+            
+            for (Map.Entry<String, String> entry : templateContext.entrySet()) {
+                input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$"), entry.getValue());
+            }
+
+            return input;
+        }
+
+        private String membersToInstructions(JsonJavaObject body){
         List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("tiMembers");
         
         StringBuilder instructions = new StringBuilder();
