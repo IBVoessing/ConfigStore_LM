@@ -1,6 +1,7 @@
 package com.voessing.vcde.tooladapter.handlers;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -43,19 +44,31 @@ public class TrelloHandler implements ExecutableAdapter {
             projectPNr = "N/A";
         }
 
-        JsonJavaObject task = createTask(body, tool);
+        JsonJavaObject task = createTask(request, tool, body);
 
 		createAdminTask(task, projectPNr, false);
         return task;
     }
 
-    private JsonJavaObject createTask(JsonJavaObject body, Document tool) throws JsonException, NotesException{
+    private List<String> getTrelloAdminIds(Document tool) throws NotesException{
+        Vector adminDocUNIDs = tool.getItemValue("adminUnids");
+        List<String> adminIds = new ArrayList<>();
+
+        for (Object unid : adminDocUNIDs) {
+            Document adminDoc = tool.getParentDatabase().getDocumentByUNID(unid.toString());
+            adminIds.add(adminDoc.getItemValueString("trelloId"));
+        }
+
+        return adminIds;   
+    }
+
+    private JsonJavaObject createTask(Document request, Document tool, JsonJavaObject body) throws JsonException, NotesException{
 		Card card = new Card();
-		card.name = "Test Card";
-		card.desc = body.toString();
+		card.name = "Neue ToolInstanz für das Tool " + tool.getItemValueString("Title") + " erstellen";
+		card.desc = generateDescription(request, tool, body);   
 		card.start = dateToIsoString(new Date());
 		card.due = dateToIsoString(addWeekToDate(new Date()));
-        //card.idMembers =  tool.getItemValue("adminUnids");
+        card.idMembers =  getTrelloAdminIds(tool);
 		
 		TrelloTask task = new TrelloTask();
 		task.card = card;
@@ -64,6 +77,61 @@ public class TrelloHandler implements ExecutableAdapter {
 
 		return result;
 	}
+
+    private String generateDescription(Document request, Document tool, JsonJavaObject body) throws NotesException{
+        StringBuilder description = new StringBuilder();
+        description.append("Es wurde eine neue ToolInstanz für das Tool ");
+        description.append(tool.getItemValueString("Title"));
+        description.append(" beantragt.\n\n");
+
+        description.append("Projekt: ");
+        description.append(request.getItemValueString("ProjectTitle"));
+        description.append(" (");
+        description.append(request.getItemValueString("ProjectPNr"));
+        description.append(")\n\n");
+        
+        description.append("Gewünschter Name der ToolInstanz: ");
+        description.append(body.get("tiTitle"));
+        description.append("\n\n");
+
+        description.append("Beschreibung:\n");
+        description.append(body.get("tiDescription"));
+        description.append("\n\n");
+
+        description.append("Verantwortlicher/ Besitzer: ");
+        description.append(body.get("tiOwner"));
+        description.append("\n\n");
+
+        description.append("Handlungsempfehlung:\n");
+        description.append("1. blah blah blah \n");
+        description.append("2. blah blah blah \n");
+        description.append("3. blah blah blah \n\n");
+
+        description.append(membersToInstructions(body));
+        description.append("\n");   
+
+        description.append("Bitte beachten Sie, dass die ToolInstanz innerhalb einer Woche erstellt werden muss.\n\n");
+
+        description.append("Payload:\n");
+        description.append(body.toString());
+
+        return description.toString();
+    }
+
+    private String membersToInstructions(JsonJavaObject body){
+        List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("tiMembers");
+        
+        StringBuilder instructions = new StringBuilder();
+        instructions.append("Folgende Personen sollen hinzugefügt werden:\n");
+        
+        for(JsonJavaObject member : members){
+            instructions.append(member.get("firstname")).append(" ").append(member.get("lastname")).append(" - ");
+            instructions.append(member.get("emailaddress"));
+            instructions.append("\n");
+        }
+
+        return instructions.toString();
+    }
 
 	private String dateToIsoString(Date date) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
