@@ -49,13 +49,20 @@ public class TrelloAPI {
         api.addRequestHeader("Authorization", authHeader);
     }
 
-    public Object get(String apiCommand) throws Exception {
+    private JsonJavaObject createResponse(Object body) {
+        JsonJavaObject response = new JsonJavaObject();
+        response.put("body", body);
+        response.put("httpStatus", api.getLastResponseCode());
+        return response;
+    }
+
+    public JsonJavaObject get(String apiCommand) throws Exception {
         return get(apiCommand, 0);
     }
 
-    public Object get(String apiCommand, int attempt) throws Exception {
+    public JsonJavaObject get(String apiCommand, int attempt) throws Exception {
         try {
-            return api.doGet(baseUrl + apiCommand);
+            return createResponse(api.doGet(baseUrl + apiCommand));
         } catch (Exception e) {
             if (attempt < MAX_RETRIES) {
                 return get(apiCommand, attempt + 1);
@@ -65,13 +72,14 @@ public class TrelloAPI {
         }
     }
 
-    public Object post(String apiCommand, JsonJavaObject body) throws Exception {
+    public JsonJavaObject post(String apiCommand, JsonJavaObject body) throws Exception {
         return post(apiCommand, body, 0);
     }
 
-    public Object post(String apiCommand, JsonJavaObject body, int attempt) throws Exception {
+    public JsonJavaObject post(String apiCommand, JsonJavaObject body, int attempt) throws Exception {
         try {
-            return api.doPost(baseUrl + apiCommand, body);
+            Object response = api.doPost(baseUrl + apiCommand, body);
+            return createResponse(response);
         } catch (Exception e) {
             if (attempt < MAX_RETRIES) {
                 return post(apiCommand, body, attempt + 1);
@@ -81,33 +89,34 @@ public class TrelloAPI {
         }
     }
 
-    public Object createCard(JsonJavaObject card) throws Exception {
+    public JsonJavaObject createCard(JsonJavaObject card) throws Exception {
         verfiyPostObject(card, Type.CARD);
-        return api.doPost(baseUrl + "/cards", card);
+        JsonJavaObject response = post("/cards", card);
+        return response;
     }
 
-    public Object createChecklist(String cardId, JsonJavaObject checklist) throws Exception {
+    public JsonJavaObject createChecklist(String cardId, JsonJavaObject checklist) throws Exception {
         verfiyPostObject(checklist, Type.CHECKLIST);
-        return api.doPost(baseUrl + "/cards/" + cardId + "/checklists", checklist);
+        return post("/cards/" + cardId + "/checklists", checklist);
     }
 
-    public Object createCheckItem(String checklistId, JsonJavaObject checkitem) throws Exception {
+    public JsonJavaObject createCheckItem(String checklistId, JsonJavaObject checkitem) throws Exception {
         verfiyPostObject(checkitem, Type.CHECKITEM);
-        return api.doPost(baseUrl + "/checklists/" + checklistId + "/checkItems", checkitem);
+        return post("/checklists/" + checklistId + "/checkItems", checkitem);
     }
 
-    public Object createLabel(String boardId, JsonJavaObject label) throws Exception {
+    public JsonJavaObject createLabel(String boardId, JsonJavaObject label) throws Exception {
         verfiyPostObject(label, Type.LABEL);
-        return api.doPost(baseUrl + "/boards/" + boardId + "/labels", label);
+        return post("/boards/" + boardId + "/labels", label);
     }
 
-    public Object getLabels(String boardId) throws Exception {
-        return api.doGet(baseUrl + "/boards/" + boardId + "/labels");
+    public JsonJavaObject getLabels(String boardId) throws Exception {
+        return get("/boards/" + boardId + "/labels");
     }
 
-    public Object createWebhook(JsonJavaObject webhook) throws Exception {
+    public JsonJavaObject createWebhook(JsonJavaObject webhook) throws Exception {
         verfiyPostObject(webhook, Type.WEBHOOK);
-        return api.doPost(baseUrl + "/webhooks", webhook);
+        return post("/webhooks", webhook);
     }   
 
     private void verfiyPostObject(JsonJavaObject postObject, Type type) throws Exception {
