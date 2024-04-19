@@ -9,9 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
+
+import lotus.domino.Item;
 
 import com.google.gson.Gson;
 import com.ibm.commons.util.io.json.JsonException;
+import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
@@ -60,6 +64,7 @@ public class TrelloHandler implements ExecutableAdapter {
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
         templateContext.putAll(docToMap(request, "request"));
         templateContext.putAll(docToMap(tool, "tool"));
+        TNotesUtil.logEvent(templateContext.toString());
     }
 
     private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
@@ -68,11 +73,109 @@ public class TrelloHandler implements ExecutableAdapter {
 
 		for(Object itemKey: doc.getItems()){
 			String key = itemKey.toString();
-			map.put(keyPrefix + key, doc.getItemValueString(key));
+
+            //map.put(keyPrefix + key, value);
+
+            if(doc.getItemValue(key).isEmpty()){
+                // if the item has no value, we skip it
+                continue;
+            }
+            else if (doc.getItemValue(key).size() == 1) {
+                String value = itemToString(doc, key);
+                processValue(keyPrefix, key, value, map);
+            } else {
+                // for multi value items, we need to use processValue for each value
+                for (int i = 0; i < doc.getItemValue(key).size(); i++) {
+                    processValue(keyPrefix, key + "[" + i + "]", doc.getItemValue(key).elementAt(i).toString(), map);
+                }
+            }
 		}
 
 		return map;
 	}
+
+    private void processValue(String keyPrefix, String key, String value, Map<String, String> map) {
+        value = value.trim();
+        // check if the value is a JsonJavaArray or JsonJavaObject
+        if (value.startsWith("[") && value.endsWith("]")) {
+            try {
+                Object parsedValue = JsonParser.fromJson(JsonJavaFactory.instanceEx, value);
+                if (parsedValue instanceof JsonJavaArray) {
+                    resolveJsonToMap(keyPrefix + key, new ArrayList((JsonJavaArray) parsedValue), map);
+                } else {
+                    resolveJsonToMap(keyPrefix + key + ".", (ArrayList) parsedValue, map);
+                }
+            } catch (Exception e) {
+                TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
+            }
+        } else if (value.startsWith("{") && value.endsWith("}")) {
+            try {
+                JsonJavaObject json = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, value);
+                resolveJsonToMap(keyPrefix + key + ".", json, map);
+            } catch (Exception e) {
+                TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
+            }
+        } else {
+            map.put(keyPrefix + key, value);
+        }
+    }
+
+    private void resolveJsonToMap(String keyPrefix, JsonJavaObject json, Map<String, String> map) {
+        for (Map.Entry<String, Object> entry : json.entrySet()) {
+            String key = keyPrefix + entry.getKey();
+            Object value = entry.getValue();
+
+            if (value instanceof JsonJavaObject) {
+                // If the value is a JsonJavaObject, recursively resolve it
+                resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
+            } else if (value instanceof List) {
+                // If the value is a JsonJavaArray, handle it
+                List array = (List) value;
+                for (int i = 0; i < array.size(); i++) {
+                    Object arrayValue = array.get(i);
+                    if (arrayValue instanceof JsonJavaObject) {
+                        // If the array element is a JsonJavaObject, recursively resolve it
+                        resolveJsonToMap(key + "[" + i + "].", (JsonJavaObject) arrayValue, map);
+                    } else if (arrayValue instanceof List) {
+                        resolveJsonToMap(key + "[" + i + "]", (List) arrayValue, map);
+                    } else {
+                        // Otherwise, just add it to the map
+                        map.put(key + "[" + i + "]", arrayValue.toString());
+                    }
+                }
+            } else {
+                // Otherwise, just add it to the map
+                map.put(key, value.toString());
+            }
+        }
+    }
+
+    private void resolveJsonToMap(String keyPrefix, List array, Map<String, String> map) {
+        for (int i = 0; i < array.size(); i++) {
+            Object value = array.get(i);
+            String key = keyPrefix + "[" + i + "]";
+    
+            if (value instanceof JsonJavaObject) {
+                resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
+            } else if (value instanceof List) {
+                resolveJsonToMap(key, (List) value, map);
+            } else {
+                map.put(key, value.toString());
+            }
+        }
+    }
+
+    private String itemToString(Document doc, String key) {
+        try {
+            Item item = doc.getFirstItem(key);
+            String res = item.getText();
+            item.recycle();
+            return res;
+        } catch (NotesException e) {
+            TNotesUtil.logEvent("Error in itemToString: " + e.getMessage());
+        }
+        return null;
+    }
 
     private List<String> getTrelloAdminIds(Document tool) throws NotesException{
         Vector adminDocUNIDs = tool.getItemValue("adminUnids");
@@ -157,14 +260,14 @@ public class TrelloHandler implements ExecutableAdapter {
         private String populateTemplate(String input) {
             
             for (Map.Entry<String, String> entry : templateContext.entrySet()) {
-                input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$"), entry.getValue());
+                input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.").replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
             }
 
             return input;
         }
 
         private String membersToInstructions(JsonJavaObject body){
-        List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("tiMembers");
+        List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("apiMembers");
         
         StringBuilder instructions = new StringBuilder();
         instructions.append("Folgende Personen sollen hinzugefügt werden:\n");
