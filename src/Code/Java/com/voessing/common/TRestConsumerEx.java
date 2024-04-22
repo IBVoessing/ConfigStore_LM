@@ -98,7 +98,7 @@ public class TRestConsumerEx extends TJsonRestServices {
 	public TRestConsumerEx(String optJsonDateFormat) {
 		super(optJsonDateFormat);
 
-		allowMethods("PATCH");
+		//allowMethods("PATCH");
 
 		// einmalig instanziieren
 		restTrustMgr = new TrustManager[] {new X509TrustManager() {

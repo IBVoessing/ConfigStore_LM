@@ -124,7 +124,7 @@ public class TJsonRestConsumerEx extends TJsonRestServices {
 		super(optJsonDateFormat);
 
 		// fix to allow PATCH method
-		allowMethods(TJsonRestServices.HTTP_PATCH);
+		//allowMethods(TJsonRestServices.HTTP_PATCH);
 		
 		//einmalig instanziieren
 		restTrustMgr = new TrustManager[] { new X509TrustManager() {
