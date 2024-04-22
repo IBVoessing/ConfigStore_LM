@@ -10,7 +10,9 @@ public class TrelloTask {
 		public String desc;
 		public String due;
 		public String start;
+		public String idList;
 		public List<String> idMembers;
+		public List<String> idLabels;
 		
 		public List<Checklist> checklists;
 		
