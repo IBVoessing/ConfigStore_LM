@@ -13,6 +13,7 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.common.TGlobalConfig;
 import com.voessing.vcde.endpoints.vrh.resources.VCDEShared;
+import com.voessing.vcde.tooladapter.handlers.TeamsTeamHandler;
 import com.voessing.vcde.tooladapter.handlers.TrelloHandler;
 import com.voessing.vcde.tooladapter.models.TrelloTask;
 import com.voessing.vcde.tooladapter.models.TrelloTask.Card;
@@ -32,6 +33,8 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 	Database db; 
 
 	Document requestDoc, toolDoc;
+
+	String toolName;
 
 	@Override
 	protected VrhResourceHandlerConfig provideConfig(VrhResourceHandlerConfig initialConfig, Map<String, String[]> parameterMap) throws Exception {
@@ -67,13 +70,24 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 		JsonJavaObject body = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, capturedPayloadRaw);
 		loadDocuments(body);
 
-		//String adapter = toolDoc.getItemValueString("deploymentType");
-		String adapter = "ADMIN_TASK"; // dev only
+		String adapter = toolDoc.getItemValueString("provisioningType");
+		
+		if(adapter.isEmpty()) {
+			adapter = "admin";
+		}
+
+		// if adapter is set to api, use the toolName as adapter
+		if(adapter.equals("api")){
+			adapter = toolName;
+		}
+
 		System.out.println("DEBUG => Adapter: " + adapter);
 		
 		switch (adapter) {
-			case "ADMIN_TASK":
-				return new TrelloHandler().excecute(requestDoc, toolDoc, body).toString();		
+			case "admin":
+				return new TrelloHandler().excecute(requestDoc, toolDoc, body).toString();
+			case "MST-TEAM":
+				return new TeamsTeamHandler().excecute(requestDoc, toolDoc, body).toString();		
 			default:
 				throw new VrhException(404,"Adapter not set in Tool Document!");
 		}
@@ -85,5 +99,8 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 
 		requestDoc = db.getDocumentByUNID(requestUNID);
 		toolDoc = db.getDocumentByUNID(toolUNID);
+
+		// set toolName to identify the right provisioning
+		toolName = toolDoc.getItemValueString("name");
 	}
 }
