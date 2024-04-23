@@ -687,7 +687,13 @@ public class TRestConsumerEx extends TJsonRestServices {
 
 			lastResponseCode = urlCon.getResponseCode();
 			lastResponseMessage = urlCon.getResponseMessage();
-			lastResponseHeaders = urlCon.getHeaderFields();
+			// urlCon.getHeaderFields() returns a unmodifiable Map, so we have to create a new one to be able to modify it
+			lastResponseHeaders = new HashMap(urlCon.getHeaderFields());
+			
+			//fix null entry in header
+			if (lastResponseHeaders.containsKey(null)) {
+				lastResponseHeaders.remove(null);
+			}
 
 			doLog("urlCon.getResponseCode(): " + lastResponseCode + ": " + lastResponseMessage, 3);
 
