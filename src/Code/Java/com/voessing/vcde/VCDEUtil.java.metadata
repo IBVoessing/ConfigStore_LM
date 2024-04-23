@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="4d2" sequence="4" unid="1C912450A2E751D7C1258B08003135F5">
+<created><datetime dst="true">20240423T105730,77+02</datetime></created>
+<modified><datetime dst="true">20240423T105736,12+02</datetime></modified>
+<revised><datetime dst="true">20240423T105736,11+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240423T105736,11+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240423T105730,78+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$Flags"><text>34567Cg~[</text></item>
+<item name="$TITLE"><text>com/voessing/vcde/VCDEUtil.java</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/vcde/VCDEUtil.java</text></item></note>
