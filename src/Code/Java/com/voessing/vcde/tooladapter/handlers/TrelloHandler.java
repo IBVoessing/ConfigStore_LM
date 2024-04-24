@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 import lotus.domino.Item;
 
@@ -60,7 +61,50 @@ public class TrelloHandler implements ExecutableAdapter {
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
         templateContext.putAll(docToMap(request, "request"));
         templateContext.putAll(docToMap(tool, "tool"));
+        generateComputedValues(request, tool);
         TNotesUtil.logEvent(templateContext.toString());
+    }
+
+    private void generateComputedValues(Document request, Document tool) throws NotesException {
+        // Compute values based on the request and tool documents
+        // and add them to the templateContext with the "$computed." prefix
+    
+        // Compute a member list from the request document
+        String memberList = computeMemberList(request);
+        templateContext.put("$computed.memberList", memberList);
+    
+        // More computed values can be added here...
+    }
+
+    private String computeMemberList(Document request) throws NotesException {
+        StringBuilder memberList = new StringBuilder();
+
+        Vector<String> rawMembers = request.getItemValue("apiMembers");
+        List<JsonJavaObject> members = convertToMVStrToJson(rawMembers).stream().peek(member -> member.remove("id")).collect(Collectors.toList());
+        
+        int counter = 1;
+        for (JsonJavaObject member : members) {
+            String memberLine = member.entrySet().stream()
+                    .map(entry -> entry.getKey() + ": " + entry.getValue())
+                    .collect(Collectors.joining(" | "));
+            memberList.append(counter + ". " + memberLine).append("\n");
+            counter++;
+        }
+        
+        return memberList.toString();
+    }
+
+    private List<JsonJavaObject> convertToMVStrToJson(Vector<String> input){
+        List<JsonJavaObject> result = new ArrayList<>();
+        for (String item : input) {
+            try {
+                result.add( (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, item));
+            } catch (JsonException e) {
+                e.printStackTrace();
+                TNotesUtil.logEvent("Error converting item to Json: " + e.getMessage());
+            }
+        }
+        return result;
     }
 
     private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
@@ -216,69 +260,18 @@ public class TrelloHandler implements ExecutableAdapter {
         return result;
     }
 
-    private String generateDescription(Document request, Document tool, JsonJavaObject body) throws NotesException{
-        JsonJavaObject apiAttributes = body.getAsObject("apiAttributes");
-        
-        StringBuilder description = new StringBuilder();
-        description.append("Es wurde eine neue ToolInstanz für das Tool ");
-        description.append(tool.getItemValueString("Title"));
-        description.append(" beantragt.\n\n");
+    private String generateDescription(Document request, Document tool, JsonJavaObject body) throws NotesException {
+        return populateTemplate(tool.getItemValueString("adminInstruction"));
+    }
 
-        description.append("Projekt: ");
-        description.append(request.getItemValueString("ProjectTitle"));
-        description.append(" (");
-        description.append(request.getItemValueString("ProjectPNr"));
-        description.append(")\n\n");
-        
-        description.append("Gewünschter Name der ToolInstanz: ");
-        description.append(apiAttributes.get("displayName"));
-        description.append("\n\n");
+    private String populateTemplate(String input) {
 
-        description.append("Beschreibung:\n");
-        description.append(apiAttributes.get("description"));
-        description.append("\n\n");
-
-        description.append("Verantwortlicher/ Besitzer: ");
-        description.append(apiAttributes.get("owner"));
-        description.append("\n\n");
-
-        description.append("Handlungsempfehlung:\n");
-        description.append(populateTemplate(tool.getItemValueString("adminInstruction")));
-        description.append("\n\n");
-        
-        description.append(membersToInstructions(body));
-        description.append("\n");   
-
-        description.append("Bitte beachten Sie, dass die ToolInstanz innerhalb einer Woche erstellt werden muss.\n\n");
-
-        description.append("Payload:\n");
-        description.append(body.toString());
-
-        return description.toString();
+        for (Map.Entry<String, String> entry : templateContext.entrySet()) {
+            input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.")
+                    .replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
         }
 
-        private String populateTemplate(String input) {
-            
-            for (Map.Entry<String, String> entry : templateContext.entrySet()) {
-                input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.").replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
-            }
-
-            return input;
-        }
-
-        private String membersToInstructions(JsonJavaObject body){
-        List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("apiMembers");
-        
-        StringBuilder instructions = new StringBuilder();
-        instructions.append("Folgende Personen sollen hinzugefügt werden:\n");
-        
-        for(JsonJavaObject member : members){
-            instructions.append(member.get("firstname")).append(" ").append(member.get("lastname")).append(" - ");
-            instructions.append(member.get("emailaddress"));
-            instructions.append("\n");
-        }
-
-        return instructions.toString();
+        return input;
     }
 
 	private String dateToIsoString(Date date) {
