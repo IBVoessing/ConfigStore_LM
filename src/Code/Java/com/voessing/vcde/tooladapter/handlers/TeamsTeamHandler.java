@@ -46,7 +46,7 @@ public final class TeamsTeamHandler implements ExecutableAdapter {
     private JsonJavaObject getConversationMember(JsonJavaObject member) {
         JsonJavaObject conversationMember = new JsonJavaObject();
         conversationMember.put("@odata.type", "#microsoft.graph.aadUserConversationMember");
-        conversationMember.put("roles", Arrays.asList("member"));
+        conversationMember.put("roles", Arrays.asList(member.get("role")));
         conversationMember.put("user@odata.bind", "https://graph.microsoft.com/v1.0/users('" + member.get("emailaddress") + "')");
         return conversationMember;
     }
