@@ -15,8 +15,6 @@ import com.voessing.common.TGlobalConfig;
 import com.voessing.vcde.endpoints.vrh.resources.VCDEShared;
 import com.voessing.vcde.tooladapter.handlers.TeamsTeamHandler;
 import com.voessing.vcde.tooladapter.handlers.TrelloHandler;
-import com.voessing.vcde.tooladapter.models.TrelloTask;
-import com.voessing.vcde.tooladapter.models.TrelloTask.Card;
 import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
 import com.voessing.xapps.utils.vrh.handler.VrhHttpHandler;
@@ -52,15 +50,7 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 
 	@Override
 	protected String doGet(HttpServletRequest request) throws Exception {
-		TrelloTask trelloTask = new TrelloTask();
-		Card card = new Card();
-		card.name = "Test Card";
-		card.desc = "Test Description";
-		trelloTask.card = card;
-
-		Gson gson = new Gson();
-
-		return gson.toJson(trelloTask);
+		return "";
 	}
 
 	@Override

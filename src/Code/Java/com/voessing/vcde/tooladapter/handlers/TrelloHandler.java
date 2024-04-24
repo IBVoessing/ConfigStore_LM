@@ -22,10 +22,6 @@ import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.api.adapter.TrelloAPI;
 import com.voessing.common.TNotesUtil;
 import com.voessing.vcde.tooladapter.interfaces.ExecutableAdapter;
-import com.voessing.vcde.tooladapter.models.TrelloTask;
-import com.voessing.vcde.tooladapter.models.TrelloTask.Card;
-import com.voessing.vcde.tooladapter.models.TrelloTask.Card.CheckItem;
-import com.voessing.vcde.tooladapter.models.TrelloTask.Card.Checklist;
 
 import lotus.domino.Document;
 import lotus.domino.NotesException;
@@ -189,36 +185,40 @@ public class TrelloHandler implements ExecutableAdapter {
         return adminIds;   
     }
 
-    private JsonJavaObject createTask(Document request, Document tool, JsonJavaObject body) throws JsonException, NotesException{
-		Card card = new Card();
-		card.name = "Neue ToolInstanz für das Tool " + tool.getItemValueString("Title") + " erstellen";
-		card.desc = generateDescription(request, tool, body);   
-		card.start = dateToIsoString(new Date());
-		card.due = dateToIsoString(addWeekToDate(new Date()));
-        card.idMembers =  getTrelloAdminIds(tool);
+    private JsonJavaObject createTask(Document request, Document tool, JsonJavaObject body) throws JsonException, NotesException {
+        JsonJavaObject card = new JsonJavaObject();
+        card.put("name", "Neue ToolInstanz für das Tool " + tool.getItemValueString("Title") + " erstellen");
+        card.put("desc", generateDescription(request, tool, body));
+
+        card.put("start", dateToIsoString(new Date()));
+        card.put("due", dateToIsoString(addWeekToDate(new Date())));
+        card.put("idMembers", getTrelloAdminIds(tool));
 
         Vector<String> checklists = tool.getItemValue("adminChecklist");
-        List<CheckItem> checklistsList = new ArrayList<>();
-        for(String checklist : checklists){
-            CheckItem checkItem = new CheckItem();
-            checkItem.name = checklist;
+        List<JsonJavaObject> checklistsList = new ArrayList<>();
+        for (String checklist : checklists) {
+            JsonJavaObject checkItem = new JsonJavaObject();
+            checkItem.put("name", checklist);
             checklistsList.add(checkItem);
         }
 
-        Checklist checklist = new Checklist();
-        checklist.name = "Do this or you will be replaced by a robot";
-        checklist.checkItems = checklistsList;
-		
-		TrelloTask task = new TrelloTask();
-		task.card = card;
-        task.card.checklists = Arrays.asList(checklist);
+        JsonJavaObject checklist = new JsonJavaObject();
+        checklist.put("name", "Do this or you will be replaced by a robot");
+        checklist.put("checkItems", checklistsList);
 
-		JsonJavaObject result = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, gson.toJson(task));
+        card.put("checklists", Arrays.asList(checklist));
 
-		return result;
-	}
+        JsonJavaObject task = new JsonJavaObject();
+        task.put("card", card);
+
+        JsonJavaObject result = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, gson.toJson(task));
+
+        return result;
+    }
 
     private String generateDescription(Document request, Document tool, JsonJavaObject body) throws NotesException{
+        JsonJavaObject apiAttributes = body.getAsObject("apiAttributes");
+        
         StringBuilder description = new StringBuilder();
         description.append("Es wurde eine neue ToolInstanz für das Tool ");
         description.append(tool.getItemValueString("Title"));
@@ -231,15 +231,15 @@ public class TrelloHandler implements ExecutableAdapter {
         description.append(")\n\n");
         
         description.append("Gewünschter Name der ToolInstanz: ");
-        description.append(body.get("tiTitle"));
+        description.append(apiAttributes.get("displayName"));
         description.append("\n\n");
 
         description.append("Beschreibung:\n");
-        description.append(body.get("tiDescription"));
+        description.append(apiAttributes.get("description"));
         description.append("\n\n");
 
         description.append("Verantwortlicher/ Besitzer: ");
-        description.append(body.get("tiOwner"));
+        description.append(apiAttributes.get("owner"));
         description.append("\n\n");
 
         description.append("Handlungsempfehlung:\n");
