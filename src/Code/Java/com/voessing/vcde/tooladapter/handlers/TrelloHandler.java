@@ -38,7 +38,7 @@ public class TrelloHandler implements ExecutableAdapter {
     }
 
     @Override
-    public JsonJavaObject excecute(Document request, Document tool, JsonJavaObject body) throws Exception {
+    public JsonJavaObject excecute(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws Exception {
 
         buildTemplateContext(request, tool);
 

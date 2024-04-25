@@ -20,7 +20,7 @@ public final class TeamsTeamHandler implements ExecutableAdapter {
     private GraphAPI api = new GraphAPI();
     
     @Override
-	public JsonJavaObject excecute(Document request, Document tool, JsonJavaObject body) throws Exception {
+	public JsonJavaObject excecute(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws Exception {
         String teamId = createToolInstance(body.getAsObject("apiAttributes"));
 
         // sleep for 2 seconds to give the API some time to create the team

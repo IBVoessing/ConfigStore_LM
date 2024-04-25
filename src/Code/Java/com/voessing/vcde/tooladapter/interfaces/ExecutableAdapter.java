@@ -6,6 +6,6 @@ import lotus.domino.Document;
 
 public interface ExecutableAdapter {
 	
-	JsonJavaObject excecute(Document request, Document tool, JsonJavaObject body) throws Exception;
+	JsonJavaObject excecute(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws Exception;
 
 }
