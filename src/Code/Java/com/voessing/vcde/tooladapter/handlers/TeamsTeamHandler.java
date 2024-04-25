@@ -10,17 +10,20 @@ import java.util.stream.Collectors;
 
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.voessing.api.adapter.GraphAPI;
-import com.voessing.vcde.tooladapter.interfaces.ExecutableAdapter;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
 
 import lotus.domino.Document;
 
-public final class TeamsTeamHandler implements ExecutableAdapter {
+public final class TeamsTeamHandler extends BaseHandler{
 
     private GraphAPI api = new GraphAPI();
+
+    public TeamsTeamHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) {
+        super(crudEntity, httpMethod, request, tool, body);
+    }
     
     @Override
-	public JsonJavaObject excecute(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws Exception {
+	public JsonJavaObject excecute() throws Exception {
         String teamId = createToolInstance(body.getAsObject("apiAttributes"));
 
         // sleep for 2 seconds to give the API some time to create the team

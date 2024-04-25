@@ -18,13 +18,12 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.api.adapter.TrelloAPI;
 import com.voessing.common.TNotesUtil;
-import com.voessing.vcde.tooladapter.interfaces.ExecutableAdapter;
 
 import lotus.domino.Document;
 import lotus.domino.Item;
 import lotus.domino.NotesException;
 
-public class TrelloHandler implements ExecutableAdapter {
+public class TrelloHandler extends BaseHandler {
     private final String VCDE_ADMIN_TASKS_BOARD_ID = "66162a1deef60aea4cc681f7";
     private final String VCDE_ADMIN_TASKS_LIST_ID = "661668d9b485dff1f9488151";
     private TrelloAPI trelloAPI;
@@ -32,13 +31,14 @@ public class TrelloHandler implements ExecutableAdapter {
 
     private Map<String, String> templateContext = new HashMap<>();
 
-    public TrelloHandler() throws NotesException {
+    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws NotesException {
+        super(crudEntity, httpMethod, request, tool, body);
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
     }
 
     @Override
-    public JsonJavaObject excecute(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws Exception {
+    public JsonJavaObject excecute() throws Exception {
 
         buildTemplateContext(request, tool);
 

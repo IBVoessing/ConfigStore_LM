@@ -1,6 +1,5 @@
 package com.voessing.vcde.endpoints.vrh.crawler;
 
-import java.io.IOException;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -8,8 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
-import com.google.gson.Gson;
-import com.ibm.commons.util.io.json.JsonException;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
@@ -107,9 +104,9 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 		
 		switch (adapter) {
 			case "admin":
-				return new TrelloHandler().excecute(crudEntity, httpMethod, requestDoc, toolDoc, body).toString();
+				return new TrelloHandler(crudEntity, httpMethod, requestDoc, toolDoc, body).excecute().toString();
 			case "MST-TEAM":
-				return new TeamsTeamHandler().excecute(crudEntity, httpMethod, requestDoc, toolDoc, body).toString();
+				return new TeamsTeamHandler(crudEntity, httpMethod, requestDoc, toolDoc, body).excecute().toString();
 			default:
 				throw new VrhException(404, "Adapter not set in Tool Document!");
 		}

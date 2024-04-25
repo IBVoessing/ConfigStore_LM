@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="4da" sequence="5" unid="7F0B11FF7857488DC1258B0A002E5B88">
+<created><datetime dst="true">20240425T102620,88+02</datetime></created>
+<modified><datetime dst="true">20240425T102739,39+02</datetime></modified>
+<revised><datetime dst="true">20240425T102739,38+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240425T102739,38+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240425T102620,89+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$Flags"><text>34567Cg~[</text></item>
+<item name="$TITLE"><text>com/voessing/vcde/tooladapter/handlers/BaseHandler.java</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/vcde/tooladapter/handlers/BaseHandler.java</text></item></note>
