@@ -27,11 +27,12 @@ public class TrelloHandler extends BaseHandler {
     private final String VCDE_ADMIN_TASKS_BOARD_ID = "66162a1deef60aea4cc681f7";
     private final String VCDE_ADMIN_TASKS_LIST_ID = "661668d9b485dff1f9488151";
     private TrelloAPI trelloAPI;
-    private Map<String, String> labels; 
+    private Map<String, String> labels;
 
     private Map<String, String> templateContext = new HashMap<>();
 
-    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws NotesException {
+    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body)
+            throws NotesException {
         super(crudEntity, httpMethod, request, tool, body);
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
@@ -39,18 +40,15 @@ public class TrelloHandler extends BaseHandler {
 
     @Override
     public JsonJavaObject excecute() throws Exception {
-        // we only need it for the TI POST request as this is the only request where we use templating
-        if(this.crudEntity.equals("TI") && this.httpMethod.equals("POST")){
-            buildTemplateContext(request, tool);
-        }
-        
-		createAdminTask(createTask(), getProjectPNr(), false);
+        buildTemplateContext(request, tool);
+
+        createAdminTask(createTask(), getProjectPNr(), false);
         return new JsonJavaObject("success", "Weee Wooo Weee Wooo");
     }
 
-    private String getProjectPNr() throws NotesException{
+    private String getProjectPNr() throws NotesException {
         String projectPNr = request.getItemValueString("ProjectPNr");
-        if(projectPNr == null || projectPNr.isEmpty()){
+        if (projectPNr == null || projectPNr.isEmpty()) {
             projectPNr = "N/A";
         }
         return projectPNr;
@@ -66,11 +64,11 @@ public class TrelloHandler extends BaseHandler {
     private void generateComputedValues(Document request, Document tool) throws NotesException {
         // Compute values based on the request and tool documents
         // and add them to the templateContext with the "$computed." prefix
-    
+
         // Compute a member list from the request document
         String memberList = computeMemberList(request);
         templateContext.put("$computed.memberList", memberList);
-    
+
         // More computed values can be added here...
     }
 
@@ -79,8 +77,9 @@ public class TrelloHandler extends BaseHandler {
         StringBuilder memberList = new StringBuilder();
 
         Vector<String> rawMembers = request.getItemValue("apiMembers");
-        List<JsonJavaObject> members = convertToMVStrToJson(rawMembers).stream().peek(member -> member.remove("id")).collect(Collectors.toList());
-        
+        List<JsonJavaObject> members = convertToMVStrToJson(rawMembers).stream().peek(member -> member.remove("id"))
+                .collect(Collectors.toList());
+
         int counter = 1;
         for (JsonJavaObject member : members) {
             String memberLine = member.entrySet().stream()
@@ -89,15 +88,15 @@ public class TrelloHandler extends BaseHandler {
             memberList.append(counter + ". " + memberLine).append("\n");
             counter++;
         }
-        
+
         return memberList.toString();
     }
 
-    private List<JsonJavaObject> convertToMVStrToJson(Vector<String> input){
+    private List<JsonJavaObject> convertToMVStrToJson(Vector<String> input) {
         List<JsonJavaObject> result = new ArrayList<>();
         for (String item : input) {
             try {
-                result.add( (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, item));
+                result.add(parseToJson(item));
             } catch (JsonException e) {
                 e.printStackTrace();
                 TNotesUtil.logEvent("Error converting item to Json: " + e.getMessage());
@@ -107,19 +106,18 @@ public class TrelloHandler extends BaseHandler {
     }
 
     private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
-		keyPrefix = "$" + keyPrefix + ".";
-		Map<String, String> map = new HashMap<>();
+        keyPrefix = "$" + keyPrefix + ".";
+        Map<String, String> map = new HashMap<>();
 
-		for(Object itemKey: doc.getItems()){
-			String key = itemKey.toString();
+        for (Object itemKey : doc.getItems()) {
+            String key = itemKey.toString();
 
-            //map.put(keyPrefix + key, value);
+            // map.put(keyPrefix + key, value);
             Vector<?> itemValue = doc.getItemValue(key);
-            if(itemValue.isEmpty()){
+            if (itemValue.isEmpty()) {
                 // if the item has no value, we skip it
                 continue;
-            }
-            else if (itemValue.size() == 1) {
+            } else if (itemValue.size() == 1) {
                 String value = itemToString(doc, key);
                 processValue(keyPrefix, key, value, map);
             } else {
@@ -129,10 +127,10 @@ public class TrelloHandler extends BaseHandler {
                     processValue(keyPrefix, key + "[" + i + "].", itemValue.elementAt(i).toString(), map);
                 }
             }
-		}
+        }
 
-		return map;
-	}
+        return map;
+    }
 
     private void processValue(String keyPrefix, String key, String value, Map<String, String> map) {
         value = value.trim();
@@ -146,7 +144,7 @@ public class TrelloHandler extends BaseHandler {
             }
         } else if (value.startsWith("{") && value.endsWith("}")) {
             try {
-                JsonJavaObject json = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, value);
+                JsonJavaObject json = parseToJson(value);
                 resolveJsonToMap(keyPrefix + key + ".", json, map);
             } catch (Exception e) {
                 TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
@@ -190,7 +188,7 @@ public class TrelloHandler extends BaseHandler {
         for (int i = 0; i < array.size(); i++) {
             Object value = array.get(i);
             String key = keyPrefix + "[" + i + "]";
-    
+
             if (value instanceof JsonJavaObject) {
                 resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
             } else if (value instanceof List) {
@@ -213,7 +211,7 @@ public class TrelloHandler extends BaseHandler {
         return null;
     }
 
-    private List<String> getTrelloAdminIds(Document tool) throws NotesException{
+    private List<String> getTrelloAdminIds(Document tool) throws NotesException {
         Vector<?> adminDocUNIDs = tool.getItemValue("adminUnids");
         List<String> adminIds = new ArrayList<>();
 
@@ -222,7 +220,7 @@ public class TrelloHandler extends BaseHandler {
             adminIds.add(adminDoc.getItemValueString("trelloId"));
         }
 
-        return adminIds;   
+        return adminIds;
     }
 
     @SuppressWarnings("unchecked")
@@ -234,63 +232,27 @@ public class TrelloHandler extends BaseHandler {
         card.put("due", dateToIsoString(addWeekToDate(new Date())));
         card.put("idMembers", getTrelloAdminIds(tool));
 
+        // build description
+        JsonJavaObject cardConfig = parseToJson(tool.getItemValueString("adminInstruction"));
+        // get the exact entity config
+        JsonJavaObject entityConfig = cardConfig.getAsObject(httpMethod).getAsObject(crudEntity);
+
+        card.put("name", fillTemplate(entityConfig.getAsString("cardName")));
+        card.put("desc", fillTemplate(entityConfig.getAsString("cardDesc")));
+
         JsonJavaObject checklist = new JsonJavaObject();
-        checklist.put("name", "Do this or you will be replaced by a robot");
+        checklist.put("name", fillTemplate(entityConfig.getAsString("checklistName")));
 
-        switch (httpMethod) {
-            case "POST":
-                switch (crudEntity) {
-                    case "TI":
-                        card.put("name", "Create new ToolInstance for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", buildDescription(tool.getItemValueString("adminInstruction")));
+        List<String> adminChecklist = (List<String>) entityConfig.get("checklistItems");
+        List<JsonJavaObject> checkItems = new ArrayList<>();
 
-                        Vector<String> adminChecklist = tool.getItemValue("adminChecklist");
-                        List<JsonJavaObject> checkItems = new ArrayList<>();
-                        for (String instruction : adminChecklist) {
-                            JsonJavaObject checkItem = new JsonJavaObject();
-                            checkItem.put("name", instruction);
-                            checkItems.add(checkItem);
-                        }
-                        checklist.put("checkItems", checkItems);
-
-                        break;
-                    case "TIM":
-                        card.put("name", "Create new ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", "TODO add description: Case TIM POST");
-                        addToChecklist(Arrays.asList("Add the user to the tool!", "Create the TIM Document for the user"), checklist);
-                        break;
-                }
-                break;
-            case "PATCH":
-                switch (crudEntity) {
-                    case "TI":
-                        card.put("name", "Update ToolInstance for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", "TODO add description: Case TI PATCH");
-                        addToChecklist(Arrays.asList("Update the tool!", "Update the TI Document!"), checklist);
-                        break;
-                    case "TIM":
-                        card.put("name", "Update ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", "TODO add description: Case TIM PATCH");
-                        addToChecklist(Arrays.asList("Update the user in the tool!", "Update the TIM Document!"), checklist);
-                        break;
-                }
-                break;
-            case "DELETE":
-                switch (crudEntity) {
-                    case "TI":
-                        card.put("name", "Delete ToolInstance for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", "TODO add description: Case TI DELETE");
-                        addToChecklist(Arrays.asList("Delete the tool!", "Delete the TI Document!"), checklist);
-                        break;
-                        case "TIM":
-                        card.put("name", "Delete ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
-                        card.put("desc", "TODO add description: Case TIM DELETE");
-                        addToChecklist(Arrays.asList("Delete the user in the tool!", "Delete the TIM Document"), checklist);
-                        break;
-                }
-                break;
+        for (String instruction : adminChecklist) {
+            JsonJavaObject checkItem = new JsonJavaObject();
+            checkItem.put("name", fillTemplate(instruction));
+            checkItems.add(checkItem);
         }
 
+        checklist.put("checkItems", checkItems);
         card.put("checklists", Arrays.asList(checklist));
 
         JsonJavaObject task = new JsonJavaObject();
@@ -299,17 +261,11 @@ public class TrelloHandler extends BaseHandler {
         return task;
     }
 
-    private void addToChecklist(List<String> checkItems, JsonJavaObject checklist) throws NotesException {
-        List<JsonJavaObject> checkItemsList = new ArrayList<>();
-        for (String checkItem : checkItems) {
-            JsonJavaObject checkItemObj = new JsonJavaObject();
-            checkItemObj.put("name", checkItem);
-            checkItemsList.add(checkItemObj);
-        }
-        checklist.put("checkItems", checkItemsList);
+    private JsonJavaObject parseToJson(String input) throws JsonException {
+        return (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, input);
     }
 
-    private String buildDescription(String input) {
+    private String fillTemplate(String input) {
 
         for (Map.Entry<String, String> entry : templateContext.entrySet()) {
             input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.")
@@ -319,24 +275,24 @@ public class TrelloHandler extends BaseHandler {
         return input;
     }
 
-	private String dateToIsoString(Date date) {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-		return sdf.format(date);
-	}
+    private String dateToIsoString(Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+        return sdf.format(date);
+    }
 
-	private Date addWeekToDate(Date date) {
-		Calendar c = Calendar.getInstance();
-		c.setTime(date);
-		c.add(Calendar.WEEK_OF_YEAR, 1);
-		return c.getTime();
-	}
+    private Date addWeekToDate(Date date) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.add(Calendar.WEEK_OF_YEAR, 1);
+        return c.getTime();
+    }
 
-    private boolean isResponeValid(JsonJavaObject response){
+    private boolean isResponeValid(JsonJavaObject response) {
         int httpStatus = response.getInt("httpStatus");
         return response != null && httpStatus >= 200 && httpStatus < 300;
     }
 
-    public void createAdminTask(JsonJavaObject task, String projectPNr, boolean createWebhook) throws Exception{
+    public void createAdminTask(JsonJavaObject task, String projectPNr, boolean createWebhook) throws Exception {
         // get card object from task
         JsonJavaObject card = getCardFromTask(task);
         // add the id of the list where the card should be created
@@ -346,7 +302,7 @@ public class TrelloHandler extends BaseHandler {
         // try to create the card
         JsonJavaObject createdCard = trelloAPI.createCard(card);
         // check if card was created successfully
-        if(!isResponeValid(createdCard)){
+        if (!isResponeValid(createdCard)) {
             throw new Exception("Error creating card: " + createdCard);
         }
 
@@ -358,12 +314,12 @@ public class TrelloHandler extends BaseHandler {
         List<Object> checklists = getChecklistsFromTask(task);
 
         // add checklists to card
-        if(checklists != null && !checklists.isEmpty()){
+        if (checklists != null && !checklists.isEmpty()) {
             addChecklistsToCard(checklists, cardId);
         }
 
         // create webhook
-        if(createWebhook){
+        if (createWebhook) {
             createWebhook(cardId);
         }
     }
@@ -375,23 +331,23 @@ public class TrelloHandler extends BaseHandler {
         JsonJavaObject webhookResp = trelloAPI.createWebhook(webhook);
 
         // check if webhook was created successfully
-        if(!isResponeValid(webhookResp)){
+        if (!isResponeValid(webhookResp)) {
             throw new Exception("Error creating webhook: " + webhookResp);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private String getLabel(String projecPNr) throws Exception{
+    private String getLabel(String projecPNr) throws Exception {
 
         // check if label is already in cache
-        if(labels.containsKey(projecPNr)){
+        if (labels.containsKey(projecPNr)) {
             return labels.get(projecPNr);
         }
 
         // update labels cache
         JsonJavaObject labelsResp = trelloAPI.getLabels(VCDE_ADMIN_TASKS_BOARD_ID);
 
-        if(!isResponeValid(labelsResp)){
+        if (!isResponeValid(labelsResp)) {
             throw new Exception("Error getting labels: " + labelsResp);
         }
 
@@ -402,7 +358,7 @@ public class TrelloHandler extends BaseHandler {
         }
 
         // check if label is now in cache
-        if(labels.containsKey(projecPNr)){
+        if (labels.containsKey(projecPNr)) {
             return labels.get(projecPNr);
         }
 
@@ -412,7 +368,7 @@ public class TrelloHandler extends BaseHandler {
         label.put("color", "green");
         JsonJavaObject newLabel = trelloAPI.createLabel(VCDE_ADMIN_TASKS_BOARD_ID, label);
 
-        if(!isResponeValid(newLabel)){
+        if (!isResponeValid(newLabel)) {
             throw new Exception("Error creating label: " + newLabel);
         }
 
@@ -426,30 +382,30 @@ public class TrelloHandler extends BaseHandler {
         return newLabelId;
     }
 
-    private JsonJavaObject getCardFromTask(JsonJavaObject task) throws Exception{
+    private JsonJavaObject getCardFromTask(JsonJavaObject task) throws Exception {
         JsonJavaObject card = TNotesUtil.deepCopyJsonObject(task);
         card = card.getAsObject("card");
-        
-        if(card == null){
+
+        if (card == null) {
             throw new Exception("No card object found in task");
         }
-        
+
         card.remove("checklists");
 
         return card;
     }
 
-    private List<Object> getChecklistsFromTask(JsonJavaObject task) throws Exception{
+    private List<Object> getChecklistsFromTask(JsonJavaObject task) throws Exception {
         return task.getAsObject("card").getAsList("checklists");
     }
 
     private void addChecklistsToCard(List<Object> checklists, String cardId) throws Exception {
-        for(Object checklist : checklists){
+        for (Object checklist : checklists) {
             JsonJavaObject checklistObj = (JsonJavaObject) checklist;
             JsonJavaObject createdChecklist = trelloAPI.createChecklist(cardId, checklistObj);
 
             // check if checklist was created successfully
-            if(!isResponeValid(createdChecklist)){
+            if (!isResponeValid(createdChecklist)) {
                 throw new Exception("Error creating checklist: " + createdChecklist);
             }
 
@@ -460,19 +416,19 @@ public class TrelloHandler extends BaseHandler {
             // add checkitems to checklist
             List<Object> checkItems = checklistObj.getAsList("checkItems");
 
-            if(checkItems != null && !checkItems.isEmpty()){
+            if (checkItems != null && !checkItems.isEmpty()) {
                 addCheckItemsToChecklist(checkItems, checklistId);
             }
         }
     }
 
     private void addCheckItemsToChecklist(List<Object> checkItems, String checklistId) throws Exception {
-        for(Object checkItem : checkItems){
+        for (Object checkItem : checkItems) {
             JsonJavaObject checkItemObj = (JsonJavaObject) checkItem;
             JsonJavaObject createdCheckItem = trelloAPI.createCheckItem(checklistId, checkItemObj);
 
             // check if checkitem was created successfully
-            if(!isResponeValid(createdCheckItem)){
+            if (!isResponeValid(createdCheckItem)) {
                 throw new Exception("Error creating checkitem: " + createdCheckItem);
             }
         }
