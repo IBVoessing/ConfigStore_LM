@@ -280,7 +280,7 @@ public class TrelloHandler extends BaseHandler {
                     case "TI":
                         card.put("name", "Delete ToolInstance for the tool " + tool.getItemValueString("Title"));
                         card.put("desc", "TODO add description: Case TI DELETE");
-                        addToChecklist(Arrays.asList("Delete the user in the tool!", "Delete the TI Document!"), checklist);
+                        addToChecklist(Arrays.asList("Delete the tool!", "Delete the TI Document!"), checklist);
                         break;
                         case "TIM":
                         card.put("name", "Delete ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
