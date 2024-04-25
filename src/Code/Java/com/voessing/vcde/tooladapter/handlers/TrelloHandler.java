@@ -10,12 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
-import lotus.domino.Item;
-
-import com.google.gson.Gson;
 import com.ibm.commons.util.io.json.JsonException;
-import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
@@ -24,6 +21,7 @@ import com.voessing.common.TNotesUtil;
 import com.voessing.vcde.tooladapter.interfaces.ExecutableAdapter;
 
 import lotus.domino.Document;
+import lotus.domino.Item;
 import lotus.domino.NotesException;
 
 public class TrelloHandler implements ExecutableAdapter {
@@ -33,8 +31,6 @@ public class TrelloHandler implements ExecutableAdapter {
     private Map<String, String> labels; 
 
     private Map<String, String> templateContext = new HashMap<>();
-
-    private Gson gson = new Gson();
 
     public TrelloHandler() throws NotesException {
         trelloAPI = new TrelloAPI();
@@ -60,7 +56,51 @@ public class TrelloHandler implements ExecutableAdapter {
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
         templateContext.putAll(docToMap(request, "request"));
         templateContext.putAll(docToMap(tool, "tool"));
+        generateComputedValues(request, tool);
         TNotesUtil.logEvent(templateContext.toString());
+    }
+
+    private void generateComputedValues(Document request, Document tool) throws NotesException {
+        // Compute values based on the request and tool documents
+        // and add them to the templateContext with the "$computed." prefix
+    
+        // Compute a member list from the request document
+        String memberList = computeMemberList(request);
+        templateContext.put("$computed.memberList", memberList);
+    
+        // More computed values can be added here...
+    }
+
+    @SuppressWarnings("unchecked")
+    private String computeMemberList(Document request) throws NotesException {
+        StringBuilder memberList = new StringBuilder();
+
+        Vector<String> rawMembers = request.getItemValue("apiMembers");
+        List<JsonJavaObject> members = convertToMVStrToJson(rawMembers).stream().peek(member -> member.remove("id")).collect(Collectors.toList());
+        
+        int counter = 1;
+        for (JsonJavaObject member : members) {
+            String memberLine = member.entrySet().stream()
+                    .map(entry -> entry.getKey() + ": " + entry.getValue())
+                    .collect(Collectors.joining(" | "));
+            memberList.append(counter + ". " + memberLine).append("\n");
+            counter++;
+        }
+        
+        return memberList.toString();
+    }
+
+    private List<JsonJavaObject> convertToMVStrToJson(Vector<String> input){
+        List<JsonJavaObject> result = new ArrayList<>();
+        for (String item : input) {
+            try {
+                result.add( (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, item));
+            } catch (JsonException e) {
+                e.printStackTrace();
+                TNotesUtil.logEvent("Error converting item to Json: " + e.getMessage());
+            }
+        }
+        return result;
     }
 
     private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
@@ -71,18 +111,19 @@ public class TrelloHandler implements ExecutableAdapter {
 			String key = itemKey.toString();
 
             //map.put(keyPrefix + key, value);
-
-            if(doc.getItemValue(key).isEmpty()){
+            Vector<?> itemValue = doc.getItemValue(key);
+            if(itemValue.isEmpty()){
                 // if the item has no value, we skip it
                 continue;
             }
-            else if (doc.getItemValue(key).size() == 1) {
+            else if (itemValue.size() == 1) {
                 String value = itemToString(doc, key);
                 processValue(keyPrefix, key, value, map);
             } else {
                 // for multi value items, we need to use processValue for each value
-                for (int i = 0; i < doc.getItemValue(key).size(); i++) {
-                    processValue(keyPrefix, key + "[" + i + "]", doc.getItemValue(key).elementAt(i).toString(), map);
+                for (int i = 0; i < itemValue.size(); i++) {
+                    // .toString() might not work for all domino item types
+                    processValue(keyPrefix, key + "[" + i + "].", itemValue.elementAt(i).toString(), map);
                 }
             }
 		}
@@ -96,11 +137,7 @@ public class TrelloHandler implements ExecutableAdapter {
         if (value.startsWith("[") && value.endsWith("]")) {
             try {
                 Object parsedValue = JsonParser.fromJson(JsonJavaFactory.instanceEx, value);
-                if (parsedValue instanceof JsonJavaArray) {
-                    resolveJsonToMap(keyPrefix + key, new ArrayList((JsonJavaArray) parsedValue), map);
-                } else {
-                    resolveJsonToMap(keyPrefix + key + ".", (ArrayList) parsedValue, map);
-                }
+                resolveJsonToMap(keyPrefix + key, (List<?>) parsedValue, map);
             } catch (Exception e) {
                 TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
             }
@@ -126,14 +163,14 @@ public class TrelloHandler implements ExecutableAdapter {
                 resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
             } else if (value instanceof List) {
                 // If the value is a JsonJavaArray, handle it
-                List array = (List) value;
+                List<?> array = (List<?>) value;
                 for (int i = 0; i < array.size(); i++) {
                     Object arrayValue = array.get(i);
                     if (arrayValue instanceof JsonJavaObject) {
                         // If the array element is a JsonJavaObject, recursively resolve it
                         resolveJsonToMap(key + "[" + i + "].", (JsonJavaObject) arrayValue, map);
                     } else if (arrayValue instanceof List) {
-                        resolveJsonToMap(key + "[" + i + "]", (List) arrayValue, map);
+                        resolveJsonToMap(key + "[" + i + "].", (List<?>) arrayValue, map);
                     } else {
                         // Otherwise, just add it to the map
                         map.put(key + "[" + i + "]", arrayValue.toString());
@@ -146,7 +183,7 @@ public class TrelloHandler implements ExecutableAdapter {
         }
     }
 
-    private void resolveJsonToMap(String keyPrefix, List array, Map<String, String> map) {
+    private void resolveJsonToMap(String keyPrefix, List<?> array, Map<String, String> map) {
         for (int i = 0; i < array.size(); i++) {
             Object value = array.get(i);
             String key = keyPrefix + "[" + i + "]";
@@ -154,7 +191,7 @@ public class TrelloHandler implements ExecutableAdapter {
             if (value instanceof JsonJavaObject) {
                 resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
             } else if (value instanceof List) {
-                resolveJsonToMap(key, (List) value, map);
+                resolveJsonToMap(key + ".", (List<?>) value, map);
             } else {
                 map.put(key, value.toString());
             }
@@ -174,7 +211,7 @@ public class TrelloHandler implements ExecutableAdapter {
     }
 
     private List<String> getTrelloAdminIds(Document tool) throws NotesException{
-        Vector adminDocUNIDs = tool.getItemValue("adminUnids");
+        Vector<?> adminDocUNIDs = tool.getItemValue("adminUnids");
         List<String> adminIds = new ArrayList<>();
 
         for (Object unid : adminDocUNIDs) {
@@ -185,10 +222,11 @@ public class TrelloHandler implements ExecutableAdapter {
         return adminIds;   
     }
 
+    @SuppressWarnings("unchecked")
     private JsonJavaObject createTask(Document request, Document tool, JsonJavaObject body) throws JsonException, NotesException {
         JsonJavaObject card = new JsonJavaObject();
         card.put("name", "Neue ToolInstanz für das Tool " + tool.getItemValueString("Title") + " erstellen");
-        card.put("desc", generateDescription(request, tool, body));
+        card.put("desc", buildDescription(tool.getItemValueString("adminInstruction")));
 
         card.put("start", dateToIsoString(new Date()));
         card.put("due", dateToIsoString(addWeekToDate(new Date())));
@@ -211,74 +249,17 @@ public class TrelloHandler implements ExecutableAdapter {
         JsonJavaObject task = new JsonJavaObject();
         task.put("card", card);
 
-        JsonJavaObject result = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, gson.toJson(task));
-
-        return result;
+        return task;
     }
 
-    private String generateDescription(Document request, Document tool, JsonJavaObject body) throws NotesException{
-        JsonJavaObject apiAttributes = body.getAsObject("apiAttributes");
-        
-        StringBuilder description = new StringBuilder();
-        description.append("Es wurde eine neue ToolInstanz für das Tool ");
-        description.append(tool.getItemValueString("Title"));
-        description.append(" beantragt.\n\n");
+    private String buildDescription(String input) {
 
-        description.append("Projekt: ");
-        description.append(request.getItemValueString("ProjectTitle"));
-        description.append(" (");
-        description.append(request.getItemValueString("ProjectPNr"));
-        description.append(")\n\n");
-        
-        description.append("Gewünschter Name der ToolInstanz: ");
-        description.append(apiAttributes.get("displayName"));
-        description.append("\n\n");
-
-        description.append("Beschreibung:\n");
-        description.append(apiAttributes.get("description"));
-        description.append("\n\n");
-
-        description.append("Verantwortlicher/ Besitzer: ");
-        description.append(apiAttributes.get("owner"));
-        description.append("\n\n");
-
-        description.append("Handlungsempfehlung:\n");
-        description.append(populateTemplate(tool.getItemValueString("adminInstruction")));
-        description.append("\n\n");
-        
-        description.append(membersToInstructions(body));
-        description.append("\n");   
-
-        description.append("Bitte beachten Sie, dass die ToolInstanz innerhalb einer Woche erstellt werden muss.\n\n");
-
-        description.append("Payload:\n");
-        description.append(body.toString());
-
-        return description.toString();
+        for (Map.Entry<String, String> entry : templateContext.entrySet()) {
+            input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.")
+                    .replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
         }
 
-        private String populateTemplate(String input) {
-            
-            for (Map.Entry<String, String> entry : templateContext.entrySet()) {
-                input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.").replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
-            }
-
-            return input;
-        }
-
-        private String membersToInstructions(JsonJavaObject body){
-        List<JsonJavaObject> members = (List<JsonJavaObject>) body.get("apiMembers");
-        
-        StringBuilder instructions = new StringBuilder();
-        instructions.append("Folgende Personen sollen hinzugefügt werden:\n");
-        
-        for(JsonJavaObject member : members){
-            instructions.append(member.get("firstname")).append(" ").append(member.get("lastname")).append(" - ");
-            instructions.append(member.get("emailaddress"));
-            instructions.append("\n");
-        }
-
-        return instructions.toString();
+        return input;
     }
 
 	private String dateToIsoString(Date date) {
@@ -342,6 +323,7 @@ public class TrelloHandler implements ExecutableAdapter {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private String getLabel(String projecPNr) throws Exception{
 
         // check if label is already in cache
@@ -421,7 +403,7 @@ public class TrelloHandler implements ExecutableAdapter {
             // add checkitems to checklist
             List<Object> checkItems = checklistObj.getAsList("checkItems");
 
-            if(checkItems != null || !checkItems.isEmpty()){
+            if(checkItems != null && !checkItems.isEmpty()){
                 addCheckItemsToChecklist(checkItems, checklistId);
             }
         }
