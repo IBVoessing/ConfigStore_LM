@@ -233,9 +233,9 @@ public class TrelloHandler extends BaseHandler {
         card.put("idMembers", getTrelloAdminIds(tool));
 
         // build description
-        JsonJavaObject cardConfig = parseToJson(tool.getItemValueString("adminInstruction"));
+        JsonJavaObject cardConfig = parseToJson(tool.getItemValueString("adminConfig"));
         // get the exact entity config
-        JsonJavaObject entityConfig = cardConfig.getAsObject(httpMethod).getAsObject(crudEntity);
+        JsonJavaObject entityConfig = cardConfig.getAsObject(translateHttpMethodToCRUD(httpMethod)).getAsObject(crudEntity);
 
         card.put("name", fillTemplate(entityConfig.getAsString("cardName")));
         card.put("desc", fillTemplate(entityConfig.getAsString("cardDesc")));
@@ -259,6 +259,21 @@ public class TrelloHandler extends BaseHandler {
         task.put("card", card);
 
         return task;
+    }
+
+    private String translateHttpMethodToCRUD(String httpMethod){
+        switch(httpMethod){
+            case "GET":
+                return "READ";
+            case "POST":
+                return "CREATE";
+            case "PATCH":
+                return "UPDATE";
+            case "DELETE":
+                return "DELETE";
+            default:
+                return "READ";
+        }
     }
 
     private JsonJavaObject parseToJson(String input) throws JsonException {
