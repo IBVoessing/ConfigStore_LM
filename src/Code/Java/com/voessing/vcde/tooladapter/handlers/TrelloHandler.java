@@ -39,18 +39,21 @@ public class TrelloHandler extends BaseHandler {
 
     @Override
     public JsonJavaObject excecute() throws Exception {
+        // we only need it for the TI POST request as this is the only request where we use templating
+        if(this.crudEntity.equals("TI") && this.httpMethod.equals("POST")){
+            buildTemplateContext(request, tool);
+        }
+        
+		createAdminTask(createTask(), getProjectPNr(), false);
+        return new JsonJavaObject("success", "Weee Wooo Weee Wooo");
+    }
 
-        buildTemplateContext(request, tool);
-
+    private String getProjectPNr() throws NotesException{
         String projectPNr = request.getItemValueString("ProjectPNr");
         if(projectPNr == null || projectPNr.isEmpty()){
             projectPNr = "N/A";
         }
-
-        JsonJavaObject task = createTask(request, tool, body);
-
-		createAdminTask(task, projectPNr, false);
-        return task;
+        return projectPNr;
     }
 
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
@@ -223,26 +226,70 @@ public class TrelloHandler extends BaseHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private JsonJavaObject createTask(Document request, Document tool, JsonJavaObject body) throws JsonException, NotesException {
+    private JsonJavaObject createTask() throws JsonException, NotesException {
         JsonJavaObject card = new JsonJavaObject();
-        card.put("name", "Neue ToolInstanz für das Tool " + tool.getItemValueString("Title") + " erstellen");
-        card.put("desc", buildDescription(tool.getItemValueString("adminInstruction")));
 
+        // standard card properties
         card.put("start", dateToIsoString(new Date()));
         card.put("due", dateToIsoString(addWeekToDate(new Date())));
         card.put("idMembers", getTrelloAdminIds(tool));
 
-        Vector<String> checklists = tool.getItemValue("adminChecklist");
-        List<JsonJavaObject> checklistsList = new ArrayList<>();
-        for (String checklist : checklists) {
-            JsonJavaObject checkItem = new JsonJavaObject();
-            checkItem.put("name", checklist);
-            checklistsList.add(checkItem);
-        }
-
         JsonJavaObject checklist = new JsonJavaObject();
         checklist.put("name", "Do this or you will be replaced by a robot");
-        checklist.put("checkItems", checklistsList);
+
+        switch (httpMethod) {
+            case "POST":
+                switch (crudEntity) {
+                    case "TI":
+                        card.put("name", "Create new ToolInstance for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", buildDescription(tool.getItemValueString("adminInstruction")));
+
+                        Vector<String> adminChecklist = tool.getItemValue("adminChecklist");
+                        List<JsonJavaObject> checkItems = new ArrayList<>();
+                        for (String instruction : adminChecklist) {
+                            JsonJavaObject checkItem = new JsonJavaObject();
+                            checkItem.put("name", instruction);
+                            checkItems.add(checkItem);
+                        }
+                        checklist.put("checkItems", checkItems);
+
+                        break;
+                    case "TIM":
+                        card.put("name", "Create new ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", "TODO add description: Case TIM POST");
+                        addToChecklist(Arrays.asList("Add the user to the tool!", "Create the TIM Document for the user"), checklist);
+                        break;
+                }
+                break;
+            case "PATCH":
+                switch (crudEntity) {
+                    case "TI":
+                        card.put("name", "Update ToolInstance for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", "TODO add description: Case TI PATCH");
+                        addToChecklist(Arrays.asList("Update the tool!", "Update the TI Document!"), checklist);
+                        break;
+                    case "TIM":
+                        card.put("name", "Update ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", "TODO add description: Case TIM PATCH");
+                        addToChecklist(Arrays.asList("Update the user in the tool!", "Update the TIM Document!"), checklist);
+                        break;
+                }
+                break;
+            case "DELETE":
+                switch (crudEntity) {
+                    case "TI":
+                        card.put("name", "Delete ToolInstance for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", "TODO add description: Case TI DELETE");
+                        addToChecklist(Arrays.asList("Delete the user in the tool!", "Delete the TI Document!"), checklist);
+                        break;
+                        case "TIM":
+                        card.put("name", "Delete ToolInstanceMembership for the tool " + tool.getItemValueString("Title"));
+                        card.put("desc", "TODO add description: Case TIM DELETE");
+                        addToChecklist(Arrays.asList("Delete the user in the tool!", "Delete the TIM Document"), checklist);
+                        break;
+                }
+                break;
+        }
 
         card.put("checklists", Arrays.asList(checklist));
 
@@ -250,6 +297,16 @@ public class TrelloHandler extends BaseHandler {
         task.put("card", card);
 
         return task;
+    }
+
+    private void addToChecklist(List<String> checkItems, JsonJavaObject checklist) throws NotesException {
+        List<JsonJavaObject> checkItemsList = new ArrayList<>();
+        for (String checkItem : checkItems) {
+            JsonJavaObject checkItemObj = new JsonJavaObject();
+            checkItemObj.put("name", checkItem);
+            checkItemsList.add(checkItemObj);
+        }
+        checklist.put("checkItems", checkItemsList);
     }
 
     private String buildDescription(String input) {
