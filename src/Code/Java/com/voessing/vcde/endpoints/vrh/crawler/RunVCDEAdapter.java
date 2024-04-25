@@ -33,7 +33,7 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 
 	@Override
 	protected VrhResourceHandlerConfig provideConfig(VrhResourceHandlerConfig initialConfig, Map<String, String[]> parameterMap) throws Exception {
-		config.setAllowedMethods("POST, GET, DELETE, PATCH, PUT");
+		config.setAllowedMethods("POST, GET, DELETE, PATCH");
 		config.getAllowedOriginsForAccessControl().addAll(VCDEShared.allowedOriginsForAccessControl);
 		return initialConfig;
 	}
@@ -57,11 +57,6 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 
 	@Override
 	protected String doPatch(HttpServletRequest request) throws Exception {
-		return init(request);
-	}
-	
-	@Override
-	protected String doPut(HttpServletRequest request) throws Exception {
 		return init(request);
 	}
 	
