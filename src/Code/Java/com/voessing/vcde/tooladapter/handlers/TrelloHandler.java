@@ -10,8 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
@@ -24,7 +22,6 @@ import com.voessing.api.adapter.TrelloAPI;
 import com.voessing.common.TNotesUtil;
 
 import lotus.domino.Document;
-import lotus.domino.Item;
 import lotus.domino.NotesException;
 
 public class TrelloHandler extends BaseHandler {
@@ -63,52 +60,6 @@ public class TrelloHandler extends BaseHandler {
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
         templateContext.put("request", docToMap(request));
         templateContext.put("tool", docToMap(tool));
-        //generateComputedValues(request, tool);
-        TNotesUtil.logEvent(templateContext.toString());
-    }
-
-    private void generateComputedValues(Document request, Document tool) throws NotesException {
-        // Compute values based on the request and tool documents
-        // and add them to the templateContext with the "$computed." prefix
-
-        // Compute a member list from the request document
-        String memberList = computeMemberList(request);
-        templateContext.put("$computed.memberList", memberList);
-
-        // More computed values can be added here...
-    }
-
-    @SuppressWarnings("unchecked")
-    private String computeMemberList(Document request) throws NotesException {
-        StringBuilder memberList = new StringBuilder();
-
-        Vector<String> rawMembers = request.getItemValue("apiMembers");
-        List<JsonJavaObject> members = convertToMVStrToJson(rawMembers).stream().peek(member -> member.remove("id"))
-                .collect(Collectors.toList());
-
-        int counter = 1;
-        for (JsonJavaObject member : members) {
-            String memberLine = member.entrySet().stream()
-                    .map(entry -> entry.getKey() + ": " + entry.getValue())
-                    .collect(Collectors.joining(" | "));
-            memberList.append(counter + ". " + memberLine).append("\n");
-            counter++;
-        }
-
-        return memberList.toString();
-    }
-
-    private List<JsonJavaObject> convertToMVStrToJson(Vector<String> input) {
-        List<JsonJavaObject> result = new ArrayList<>();
-        for (String item : input) {
-            try {
-                result.add(parseToJson(item));
-            } catch (JsonException e) {
-                e.printStackTrace();
-                TNotesUtil.logEvent("Error converting item to Json: " + e.getMessage());
-            }
-        }
-        return result;
     }
 
     private Map<String, Object> docToMap(Document doc) throws NotesException {
