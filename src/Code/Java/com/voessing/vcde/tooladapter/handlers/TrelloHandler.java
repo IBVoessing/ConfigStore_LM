@@ -39,6 +39,7 @@ public class TrelloHandler extends BaseHandler {
         super(crudEntity, httpMethod, request, tool, body);
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
+        Velocity.init();
     }
 
     @Override
@@ -87,18 +88,30 @@ public class TrelloHandler extends BaseHandler {
         if ((value.startsWith("{") && value.endsWith("}")) || (value.startsWith("[") && value.endsWith("]"))) {
             try {
                 Object parsedValue = JsonParser.fromJson(JsonJavaFactory.instance, value);
-
-                if (mvFields.contains(key)) {
-                    map.put(key, Arrays.asList(parsedValue));
-                } else {
-                    map.put(key, parsedValue);
-                }
+                addToMap(key, parsedValue, map);
             } catch (Exception e) {
                 // guess it's a string ¯\_(ツ)_/¯
-                map.put(key, value);
+                addToMap(key, value, map);
             }
         } else {
-            map.put(key, value);
+            addToMap(key, value, map);
+        }
+    }
+
+    private void addToMap(String key, Object value, Map<String, Object> map) {
+        if (map.containsKey(key)) {
+            Object existingValue = map.get(key);
+            if (existingValue instanceof List) {
+                ((List<Object>) existingValue).add(value);
+            } else {
+                map.put(key, new ArrayList<>(Arrays.asList(existingValue, value)));
+            }
+        } else {
+            if (mvFields.contains(key)) {
+                map.put(key, new ArrayList<>(Arrays.asList(value)));
+            } else {
+                map.put(key, value);
+            }
         }
     }
 
