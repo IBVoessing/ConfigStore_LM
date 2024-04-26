@@ -1,5 +1,6 @@
 package com.voessing.vcde.tooladapter.handlers;
 
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +12,9 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.Velocity;
 
 import com.ibm.commons.util.io.json.JsonException;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
@@ -29,7 +33,9 @@ public class TrelloHandler extends BaseHandler {
     private TrelloAPI trelloAPI;
     private Map<String, String> labels;
 
-    private Map<String, String> templateContext = new HashMap<>();
+    private VelocityContext templateContext = new VelocityContext();
+    // define multi value fields in order to build the templateContext correctly
+    private final List<String> mvFields = Arrays.asList("apiMembers");
 
     public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body)
             throws NotesException {
@@ -55,9 +61,9 @@ public class TrelloHandler extends BaseHandler {
     }
 
     private void buildTemplateContext(Document request, Document tool) throws NotesException {
-        templateContext.putAll(docToMap(request, "request"));
-        templateContext.putAll(docToMap(tool, "tool"));
-        generateComputedValues(request, tool);
+        templateContext.put("request", docToMap(request));
+        templateContext.put("tool", docToMap(tool));
+        //generateComputedValues(request, tool);
         TNotesUtil.logEvent(templateContext.toString());
     }
 
@@ -105,110 +111,44 @@ public class TrelloHandler extends BaseHandler {
         return result;
     }
 
-    private Map<String, String> docToMap(Document doc, String keyPrefix) throws NotesException {
-        keyPrefix = "$" + keyPrefix + ".";
-        Map<String, String> map = new HashMap<>();
+    private Map<String, Object> docToMap(Document doc) throws NotesException {
+        Map<String, Object> map = new HashMap<>();
 
         for (Object itemKey : doc.getItems()) {
             String key = itemKey.toString();
 
             // map.put(keyPrefix + key, value);
             Vector<?> itemValue = doc.getItemValue(key);
-            if (itemValue.isEmpty()) {
-                // if the item has no value, we skip it
-                continue;
-            } else if (itemValue.size() == 1) {
-                String value = itemToString(doc, key);
-                processValue(keyPrefix, key, value, map);
-            } else {
-                // for multi value items, we need to use processValue for each value
-                for (int i = 0; i < itemValue.size(); i++) {
-                    // .toString() might not work for all domino item types
-                    processValue(keyPrefix, key + "[" + i + "].", itemValue.elementAt(i).toString(), map);
-                }
+
+            // for multi value items, we need to use processValue for each value
+            for (int i = 0; i < itemValue.size(); i++) {
+                // .toString() might not work for all domino item types
+                processValue(key, itemValue.elementAt(i).toString(), map);
             }
         }
 
         return map;
     }
 
-    private void processValue(String keyPrefix, String key, String value, Map<String, String> map) {
+    private void processValue(String key, String value, Map<String, Object> map) {
         value = value.trim();
         // check if the value is a JsonJavaArray or JsonJavaObject
-        if (value.startsWith("[") && value.endsWith("]")) {
+        if ((value.startsWith("{") && value.endsWith("}")) || (value.startsWith("[") && value.endsWith("]"))) {
             try {
-                Object parsedValue = JsonParser.fromJson(JsonJavaFactory.instanceEx, value);
-                resolveJsonToMap(keyPrefix + key, (List<?>) parsedValue, map);
+                Object parsedValue = JsonParser.fromJson(JsonJavaFactory.instance, value);
+
+                if (mvFields.contains(key)) {
+                    map.put(key, Arrays.asList(parsedValue));
+                } else {
+                    map.put(key, parsedValue);
+                }
             } catch (Exception e) {
-                TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
-            }
-        } else if (value.startsWith("{") && value.endsWith("}")) {
-            try {
-                JsonJavaObject json = parseToJson(value);
-                resolveJsonToMap(keyPrefix + key + ".", json, map);
-            } catch (Exception e) {
-                TNotesUtil.logEvent("Error parsing JSON in docToMap: " + e.getMessage() + " - " + value);
+                // guess it's a string ¯\_(ツ)_/¯
+                map.put(key, value);
             }
         } else {
-            map.put(keyPrefix + key, value);
+            map.put(key, value);
         }
-    }
-
-    private void resolveJsonToMap(String keyPrefix, JsonJavaObject json, Map<String, String> map) {
-        for (Map.Entry<String, Object> entry : json.entrySet()) {
-            String key = keyPrefix + entry.getKey();
-            Object value = entry.getValue();
-
-            if (value instanceof JsonJavaObject) {
-                // If the value is a JsonJavaObject, recursively resolve it
-                resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
-            } else if (value instanceof List) {
-                // If the value is a JsonJavaArray, handle it
-                List<?> array = (List<?>) value;
-                for (int i = 0; i < array.size(); i++) {
-                    Object arrayValue = array.get(i);
-                    if (arrayValue instanceof JsonJavaObject) {
-                        // If the array element is a JsonJavaObject, recursively resolve it
-                        resolveJsonToMap(key + "[" + i + "].", (JsonJavaObject) arrayValue, map);
-                    } else if (arrayValue instanceof List) {
-                        resolveJsonToMap(key + "[" + i + "].", (List<?>) arrayValue, map);
-                    } else {
-                        // Otherwise, just add it to the map
-                        map.put(key + "[" + i + "]", arrayValue.toString());
-                    }
-                }
-            } else {
-                // Otherwise, just add it to the map
-                map.put(key, value.toString());
-            }
-        }
-    }
-
-    private void resolveJsonToMap(String keyPrefix, List<?> array, Map<String, String> map) {
-        for (int i = 0; i < array.size(); i++) {
-            Object value = array.get(i);
-            String key = keyPrefix + "[" + i + "]";
-
-            if (value instanceof JsonJavaObject) {
-                resolveJsonToMap(key + ".", (JsonJavaObject) value, map);
-            } else if (value instanceof List) {
-                resolveJsonToMap(key + ".", (List<?>) value, map);
-            } else {
-                map.put(key, value.toString());
-            }
-        }
-    }
-
-    private String itemToString(Document doc, String key) {
-        try {
-            Item item = doc.getFirstItem(key);
-            String res = item.getText();
-            item.recycle();
-            return res;
-        } catch (NotesException e) {
-            TNotesUtil.logEvent("Error in itemToString: " + e.getMessage());
-        }
-        return null;
     }
 
     private List<String> getTrelloAdminIds(Document tool) throws NotesException {
@@ -281,13 +221,13 @@ public class TrelloHandler extends BaseHandler {
     }
 
     private String fillTemplate(String input) {
+         /* Create a writer to hold the processed template */
+        StringWriter writer = new StringWriter();
 
-        for (Map.Entry<String, String> entry : templateContext.entrySet()) {
-            input = input.replaceAll(entry.getKey().replaceAll("\\$", "\\\\\\$").replaceAll("\\.", "\\\\.")
-                    .replaceAll("\\[", "\\\\[").replaceAll("\\]", "\\\\]"), Matcher.quoteReplacement(entry.getValue()));
-        }
+        /* Process the template */
+        Velocity.evaluate(templateContext, writer, "", input);
 
-        return input;
+        return writer.toString();
     }
 
     private String dateToIsoString(Date date) {
