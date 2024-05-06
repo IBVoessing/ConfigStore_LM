@@ -1,0 +1,172 @@
+{
+    "status": "Status",
+    "bearbeitung": "RevisionStatus",
+    "auftragnehmer": "VI",
+  
+    "referenzDaten": {
+      "kurzname": "1600-ab",
+      "projektnummer": ["2574", "8349", "8891"],
+      "auftraggeber": {
+        "name": "DB Station & Service AG Regionalbereich Nord",
+        "strasse": "Hachmannplatz 16",
+        "plz": "20099",
+        "ort": "Hamburg",
+        "land": "Deutschland"
+      },
+      "auftragnehmer": "VI",
+      "in_arge": false,
+      "leistungsbeginn": "03.04.2013",
+      "leistungsende": "31.10.2023",
+      "inbetriebnahme": "",
+      "leistungsbereich": "Ausrüstung Bahn",
+      "honorarvolumen": {
+        "netto": "420.520",
+        "brutto": "500.419"
+      },
+      "projektland": "Deutschland",
+      "zustaendige_nl": "VI Hannover",
+      "projektleiter_intern": [
+        {
+          "name": "Schirmer, Tobias Dipl.-Ing",
+          "notes": "Tobias Schirmer/KIB/Hannover/IBV/DE"
+        },
+        {
+          "name": "Malkmus, Bernd Dipl.-Ing",
+          "notes": "Bernd Malkmus/BTA/IBV/DE"
+        }
+      ],
+      "pflegebeauftragter": [
+        "Tobias Schirmer/KIB/Hannover/IBV/DE",
+        "Evelin Kroeger/SKR/Hannover/IBV/DE"
+      ],
+      "antragsteller": "Evelin Kroeger/SKR/Hannover/IBV/DE",
+      "projektleiter_extern": {
+        "name": "Frau Ulrike Sommer",
+        "telefon": "(0 40) 39 18-29 32",
+        "mobil": "(01 60) 97 47 11 19",
+        "fax": "(0 40) 39 18-27 87",
+        "email": "ulrike.sommer@deutschebahn.com",
+        "dsgvo_status": "Einwilligung erteilt",
+        "dsgvo_historie": [
+          {
+            "datum": "12.06.2019",
+            "uhrzeit": "12:12",
+            "notiz": "Einwilligung angefragt (Lorenz Meiners)"
+          },
+          {
+            "datum": "17.16.2019",
+            "uhrzeit": "12:51",
+            "notiz": "Einwilligung erteilt (IBVDNO03)"
+          }
+        ]
+      },
+      "besonderheiten": ""
+    },
+  
+    "leistungen": [
+      {
+        "leistungsart": "Objektplanung Verkehranlagen Schiene",
+        "leistungskatalog": "HOAI",
+        "spezifikation": [
+          "Lph 1 Grundlagenvermittlung",
+          "Lph 2 Vorplanung",
+          "Lph 3 Entwurfsplanung",
+          "Lph 4 Genehmigungsplanung",
+          "Lph 5 Ausführungsplanung",
+          "Lph 6 Vorbereiten der Vergabe",
+          "Lph 7 Mitwirkung bei der Vergabe"
+        ]
+      },
+      {
+        "leistungsart": "Objektplanung Ingenieurbauwerke",
+        "leistungskatalog": "HOAI",
+        "spezifikation": [
+          "Lph 1 Grundlagenvermittlung",
+          "Lph 2 Vorplanung",
+          "Lph 3 Entwurfsplanung",
+          "Lph 4 Genehmigungsplanung",
+          "Lph 5 Ausführungsplanung",
+          "Lph 6 Vorbereiten der Vergabe",
+          "Lph 7 Mitwirkung bei der Vergabe"
+        ]
+      },
+      {
+        "leistungsart": "Fachplanung Tragwerksplanung",
+        "leistungskatalog": "HOAI",
+        "spezifikation": [
+          "Lph 2 Vorplanung",
+          "Lph 3 Entwurfsplanung",
+          "Lph 4 Genehmigungsplanung",
+          "Lph 5 Ausführungsplanung",
+          "Lph 6 Vorbereiten der Vergabe"
+        ]
+      },
+      {
+        "leistungsart": "Fachplanung Technische Ausrüstung",
+        "leistungskatalog": "HOAI",
+        "spezifikation": [
+          "Lph 2 Vorplanung",
+          "Lph 2 Vorplanung",
+          "Lph 3 Entwurfsplanung",
+          "Lph 4 Genehmigungsplanung"
+        ]
+      }
+    ],
+  
+    "attribute": {
+      "massnahme": "Neubau; Umbau; Modernisierung",
+      "tags": [],
+      "objekte": [
+        {
+          "name": "Tunnel",
+          "objekttyp": "Radfahrer-/Fußgängertunnel",
+          "kennzahlen": "",
+          "spezifikation": ""
+        },
+        {
+          "name": "Leit- und Sicherungstechnik Bahn",
+          "objekttyp": "noch keine Auswahl möglich",
+          "kennzahlen": "",
+          "spezifikation": ""
+        },
+        {
+          "name": "Telekommunikation Bahn",
+          "objekttyp": "noch keine Auswahl möglich",
+          "kennzahlen": "",
+          "spezifikation": ""
+        },
+        {
+          "name": "Bahnstrom-/Fahrleitungsanlagen Bahn",
+          "objekttyp": "noch keine Auswahl möglich",
+          "kennzahlen": "",
+          "spezifikation": ""
+        },
+        {
+          "name": "Elektrotechnische Anlagen 50 Hz",
+          "objekttyp": "noch keine Auswahl möglich",
+          "kennzahlen": "",
+          "spezifikation": ""
+        }
+      ]
+    },
+  
+    "referenzInhalte": {
+      "auftraggeber": "DB Station & Service AG",
+      "titel": "Modernisierung Bf Pinneberg",
+      "projektbeschreibung": "Zur Realisierung des barrierefreien Zugangs zum Mittelbahnsteig Gleis 4/5 sowie als Anbindung zur städtischen Seite wurde als Ersatz für die vorhandene Personenunterführung eine neue Personenunterführung am Bf Pinneberg nordwestlich des Bahnhofsgebäudes im Bereich der Gleise 3 - 6 geplant. Die PU wird von den einzelnen Bahnsteigen über jeweils eine Treppe und einen Aufzug erreicht.\nDie PU wurde mit einer lichten Weite von minimal 5,00 m geplant und architektonisch hochwertig gestaltet. Hierfür wurde weitestgehend auf Ecken verzichtet, stattdessen wurden ausgerundete Wand- und Deckenbereiche ausgeführt. Aus gestalterischen Gründen wurde eine abgehängte Decke und Vorsatzwände mit Fliesenbelag geplant. Das beidseitige Lichtband wurde hierin integriert.\nDie Planungen der Bahntechnischen Ausrüstung waren ebenfalls im Leistungsumfang enthalten.",
+      "kurzbeschreibung": "Zur Realisierung des barrierefreien Zugangs zum Mittelbahnsteig Gleis 4/5 sowie als Anbindung zur städtischen Seite wurde als Ersatz für die vorhandene Personenunterführung eine neue Personenunterführung am Bf Pinneberg nordwestlich des Bahnhofsgebäudes im Bereich der Gleise 3 - 6 geplant. Die PU wurde mit einer lichten Weite von minimal 5,00 m geplant und architektonisch hochwertig gestaltet. Die Planungen der Bahntechnischen Ausrüstung waren ebenfalls im Leistungsumfang enthalten.",
+      "leistungen": [
+        "Objektplanung Verkehrsanlagen Schiene, Lph 1 - 7",
+        "Objektplanung Ingenieurbauwerke, Lph 1 - 7",
+        "Tragwerksplanung, Lph 2 - 6",
+        "Technische Ausrüstung Bahn (ELT, OLA, LST, TK), Lph 1 - 4"
+      ]
+    },
+  
+    "optionen": [
+      "Bescheinigung nach § 5 VOF",
+      "Ref-Bild",
+      "Ref-Projektbeschreibung"
+    ]
+  }
+  
