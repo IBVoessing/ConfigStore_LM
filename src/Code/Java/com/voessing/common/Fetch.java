@@ -21,6 +21,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicHeader;
 
 import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
@@ -35,6 +36,9 @@ public class Fetch {
     private final CloseableHttpClient httpClient;
 
     private final HttpClientContext context;
+
+    private Header authHeader;
+    private List<Header> defaultHeaders;
 
     /**
      * Represents the response of an HTTP request.
@@ -230,6 +234,81 @@ public class Fetch {
         } else {
             this.context = null;
         }
+    }
+
+    /**
+     * Sets the Authorization header to use a Bearer token.
+     * Any existing Authorization header is replaced.
+     *
+     * @param token the Bearer token to be used for authorization
+     */
+    public void useBearerToken(String token) {
+        this.authHeader = new BasicHeader("Authorization", "Bearer " + token);
+    }
+
+    /**
+     * Sets the Authorization header to use Basic authentication.
+     * Any existing Authorization header is replaced.
+     *
+     * @param username the username for Basic authentication
+     * @param password the password for Basic authentication
+     */
+    public void useBasicAuth(String username, String password) {
+        this.authHeader = new BasicHeader("Authorization",
+                "Basic " + java.util.Base64.getEncoder().encodeToString((username + ":" + password).getBytes()));
+    }
+
+    /**
+     * Sets the Authorization header to use OAuth.
+     * Any existing Authorization header is replaced.
+     *
+     * @param consumerKey the consumer key for OAuth
+     * @param token       the token for OAuth
+     */
+    public void useOAuth(String consumerKey, String token) {
+        this.authHeader = new BasicHeader("Authorization",
+                "OAuth oauth_consumer_key=\"" + consumerKey + "\", oauth_token=\"" + token + "\"");
+    }
+
+    /**
+     * Removes the Authorization header.
+     */
+    public void removeAuthHeader() {
+        this.authHeader = null;
+    }
+
+    /**
+     * Adds a default header that will be included in all requests.
+     * If the default headers list is not initialized, it will be initialized.
+     *
+     * @param name  the name of the header
+     * @param value the value of the header
+     */
+    public void addDefaultHeader(String name, String value) {
+        if (this.defaultHeaders == null) {
+            this.defaultHeaders = new java.util.ArrayList<>();
+        }
+        this.defaultHeaders.add(new BasicHeader(name, value));
+    }
+
+    /**
+     * Removes a default header from the list of default headers.
+     * If the default headers list is not initialized, this method does nothing.
+     *
+     * @param name the name of the header to remove
+     */
+    public void removeDefaultHeader(String name) {
+        if (this.defaultHeaders != null) {
+            this.defaultHeaders.removeIf(header -> header.getName().equals(name));
+        }
+    }
+
+    /**
+     * Clears all default headers.
+     * After calling this method, the list of default headers will be null.
+     */
+    public void clearDefaultHeaders() {
+        this.defaultHeaders = null;
     }
 
     /**
@@ -489,6 +568,15 @@ public class Fetch {
     }
 
     private Response executeRequest(HttpUriRequestBase request, List<Header> headers) throws IOException {
+
+        if (authHeader != null) {
+            request.addHeader(authHeader);
+        }
+
+        if (defaultHeaders != null) {
+            defaultHeaders.forEach(request::addHeader);
+        }
+
         if (headers != null) {
             headers.forEach(request::addHeader);
         }
