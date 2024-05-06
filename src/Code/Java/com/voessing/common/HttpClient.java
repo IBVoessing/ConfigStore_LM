@@ -338,10 +338,17 @@ public class HttpClient {
         this.defaultHeaders = null;
     }
 
+    private void checkContext() {
+        if(this.context == null){
+            throw new IllegalStateException("Cannot clear cookies without a context! You need to create the HttpClient with a context to use cookies.");
+        }
+    }
+
     /**
      * Clears all cookies from the cookie store.
      */
     public void clearCookies() {
+        checkContext();
         this.context.getCookieStore().clear();
     }
 
@@ -353,6 +360,7 @@ public class HttpClient {
      * @param cookies the list of cookies to be added to the cookie store
      */
     public void setCookies(List<Cookie> cookies) {
+        checkContext();
         this.context.getCookieStore().clear();
         cookies.forEach(cookie -> this.context.getCookieStore().addCookie(cookie));
     }
@@ -363,6 +371,7 @@ public class HttpClient {
      * @param cookie the cookie to be added to the cookie store
      */
     public void addCookie(Cookie cookie) {
+        checkContext();
         this.context.getCookieStore().addCookie(cookie);
     }
 
@@ -372,6 +381,7 @@ public class HttpClient {
      * @return a list of all cookies in the cookie store
      */
     public List<Cookie> getCookies() {
+        checkContext();
         return this.context.getCookieStore().getCookies();
     }
 
