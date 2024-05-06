@@ -1,8 +1,9 @@
 package com.voessing.vcde.tooladapter.handlers;
 
+import org.openntf.domino.Document;
+
 import com.ibm.commons.util.io.json.JsonJavaObject;
 
-import lotus.domino.Document;
 
 public class ReqBundle {
 

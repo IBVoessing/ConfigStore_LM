@@ -19,10 +19,9 @@ import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
 import com.voessing.xapps.utils.vrh.handler.VrhHttpHandler;
 
-import lotus.domino.Database;
-import lotus.domino.Document;
-import lotus.domino.NotesException;
-import lotus.domino.Session;
+import org.openntf.domino.Database;
+import org.openntf.domino.Document;
+import org.openntf.domino.Session;
 
 public class RunVCDEAdapter extends VrhHttpHandler {
 
@@ -110,7 +109,7 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 		}
 	}
 
-	private void loadDocuments(JsonJavaObject body) throws NotesException{
+	private void loadDocuments(JsonJavaObject body) {
 		String requestUNID = body.getString("id");
 		String toolUNID = body.getString("ToolUNID");
 		
