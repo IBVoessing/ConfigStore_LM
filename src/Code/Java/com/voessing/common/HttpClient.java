@@ -24,9 +24,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
@@ -631,8 +629,6 @@ public class HttpClient {
         result.setContentType(entity.getContentType());
         result.setContentEncoding(entity.getContentEncoding());
         result.setContent(EntityUtils.toString(entity));
-
-        
 
         return result;
     }
