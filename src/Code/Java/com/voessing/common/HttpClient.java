@@ -23,6 +23,10 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
@@ -58,15 +62,40 @@ public class HttpClient {
          * 
          * @return The parsed JSON object, or null if the content is not valid JSON. Either a {@link JsonJavaObject} or a {@link JsonJavaArray}.
          */
-        public Object json() {
-            if (this.contentType.contains("application/json") && this.content != null) {
-                try {
-                    return JsonParser.fromJson(JsonJavaFactory.instanceEx, this.content);
-                } catch (Exception e) {
-                    return null;
-                }
+        public <T extends Object> T parseWithHCL() {
+            try {
+                return (T) JsonParser.fromJson(JsonJavaFactory.instanceEx, this.content);
+            } catch (Exception e) {
+                return null;
             }
-            return null;
+        }
+
+        /**
+         * Parses the content of the HTTP response using GSON and returns it as a
+         * JsonElement or its subclass.
+         * If the content cannot be parsed, this method returns null.
+         *
+         * @return the parsed content as a JsonElement or its subclass, or null if the
+         *         content cannot be parsed
+         */
+        public <T extends JsonElement> T parseWithGSON() {
+            try {
+                return (T) com.google.gson.JsonParser.parseString(this.content);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        /**
+         * Maps the content of the HTTP response to an object of the specified class
+         * using GSON.
+         *
+         * @param clazz the class of the object to return
+         * @return the content of the HTTP response mapped to an object of the specified
+         *         class
+         */
+        public <T> T mapJsonWithGSON(Class<T> clazz) {
+            return new Gson().fromJson(this.content, clazz);
         }
 
         /**
