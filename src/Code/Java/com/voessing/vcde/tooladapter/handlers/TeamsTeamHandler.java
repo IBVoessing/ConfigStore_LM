@@ -18,24 +18,24 @@ public final class TeamsTeamHandler extends BaseHandler{
 
     private GraphAPI api = new GraphAPI();
 
-    public TeamsTeamHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) {
-        super(crudEntity, httpMethod, request, tool, body);
+    public TeamsTeamHandler(ReqBundle reqBundle) {
+        super(reqBundle);
     }
     
     @Override
 	public JsonJavaObject excecute() throws Exception {
-        String teamId = createToolInstance(body.getAsObject("apiAttributes"));
+        String teamId = createToolInstance(reqBundle.body.getAsObject("apiAttributes"));
 
         // sleep for 2 seconds to give the API some time to create the team
         Thread.sleep(2000);
         
-        List<JsonJavaObject> members = getConversationMembers((List<JsonJavaObject>) body.get("apiMembers"));
+        List<JsonJavaObject> members = getConversationMembers((List<JsonJavaObject>) reqBundle.body.get("apiMembers"));
         for (JsonJavaObject member : members) {
             createUser(teamId, member);
         }
 
         //write back the team id into the TI
-        Document ti = tool.getParentDatabase().getDocumentByUNID(request.getItemValueString("ToolInstanceUNID"));
+        Document ti = reqBundle.tool.getParentDatabase().getDocumentByUNID(reqBundle.request.getItemValueString("ToolInstanceUNID"));
         ti.replaceItemValue("objectId", teamId);
         ti.save(); 
 

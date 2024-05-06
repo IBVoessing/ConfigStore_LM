@@ -12,6 +12,7 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.common.TGlobalConfig;
 import com.voessing.vcde.endpoints.vrh.resources.VCDEShared;
+import com.voessing.vcde.tooladapter.handlers.ReqBundle;
 import com.voessing.vcde.tooladapter.handlers.TeamsTeamHandler;
 import com.voessing.vcde.tooladapter.handlers.TrelloHandler;
 import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
@@ -96,12 +97,14 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 		}
 
 		System.out.println("DEBUG => Adapter: " + adapter);
+
+		ReqBundle reqBundle = new ReqBundle(crudEntity, httpMethod, requestDoc, toolDoc, body);
 		
 		switch (adapter) {
 			case "admin":
-				return new TrelloHandler(crudEntity, httpMethod, requestDoc, toolDoc, body).excecute().toString();
+				return new TrelloHandler(reqBundle).excecute().toString();
 			case "MST-TEAM":
-				return new TeamsTeamHandler(crudEntity, httpMethod, requestDoc, toolDoc, body).excecute().toString();
+				return new TeamsTeamHandler(reqBundle).excecute().toString();
 			default:
 				throw new VrhException(404, "Adapter not set in Tool Document!");
 		}

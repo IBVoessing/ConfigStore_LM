@@ -34,8 +34,8 @@ public class TrelloHandler extends BaseHandler {
     // define multi value fields in order to build the templateContext correctly
     private final List<String> mvFields = Arrays.asList("apiMembers");
 
-    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws NotesException {
-        super(crudEntity, httpMethod, request, tool, body);
+    public TrelloHandler(ReqBundle reqBundle) throws NotesException {
+        super(reqBundle);
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
         Velocity.init();
@@ -43,23 +43,23 @@ public class TrelloHandler extends BaseHandler {
 
     @Override
     public JsonJavaObject excecute() throws Exception {
-        buildTemplateContext(request, tool);
+        buildTemplateContext();
 
         createAdminTask(createTask(), getProjectPNr(), false);
         return new JsonJavaObject("success", "Weee Wooo Weee Wooo");
     }
 
     private String getProjectPNr() throws NotesException {
-        String projectPNr = request.getItemValueString("ProjectPNr");
+        String projectPNr = reqBundle.request.getItemValueString("ProjectPNr");
         if (projectPNr == null || projectPNr.isEmpty()) {
             projectPNr = "N/A";
         }
         return projectPNr;
     }
 
-    private void buildTemplateContext(Document request, Document tool) throws NotesException {
-        templateContext.put("request", docToMap(request));
-        templateContext.put("tool", docToMap(tool));
+    private void buildTemplateContext() throws NotesException {
+        templateContext.put("request", docToMap(reqBundle.request));
+        templateContext.put("tool", docToMap(reqBundle.tool));
     }
 
     private Map<String, Object> docToMap(Document doc) throws NotesException {
@@ -114,12 +114,12 @@ public class TrelloHandler extends BaseHandler {
         }
     }
 
-    private List<String> getTrelloAdminIds(Document tool) throws NotesException {
-        Vector<?> adminDocUNIDs = tool.getItemValue("adminUnids");
+    private List<String> getTrelloAdminIds() throws NotesException {
+        Vector<?> adminDocUNIDs = reqBundle.tool.getItemValue("adminUnids");
         List<String> adminIds = new ArrayList<>();
 
         for (Object unid : adminDocUNIDs) {
-            Document adminDoc = tool.getParentDatabase().getDocumentByUNID(unid.toString());
+            Document adminDoc = reqBundle.tool.getParentDatabase().getDocumentByUNID(unid.toString());
             adminIds.add(adminDoc.getItemValueString("trelloId"));
         }
 
@@ -133,12 +133,12 @@ public class TrelloHandler extends BaseHandler {
         // standard card properties
         card.put("start", dateToIsoString(new Date()));
         card.put("due", dateToIsoString(addWeekToDate(new Date())));
-        card.put("idMembers", getTrelloAdminIds(tool));
+        card.put("idMembers", getTrelloAdminIds());
 
         // build description
-        JsonJavaObject cardConfig = parseToJson(tool.getItemValueString("adminConfig"));
+        JsonJavaObject cardConfig = parseToJson(reqBundle.tool.getItemValueString("adminConfig"));
         // get the exact entity config
-        JsonJavaObject entityConfig = cardConfig.getAsObject(translateHttpMethodToCRUD(httpMethod)).getAsObject(crudEntity);
+        JsonJavaObject entityConfig = cardConfig.getAsObject(translateHttpMethodToCRUD(reqBundle.httpMethod)).getAsObject(reqBundle.crudEntity);
 
         card.put("name", fillTemplate(entityConfig.getAsString("cardName")));
         card.put("desc", fillTemplate(entityConfig.getAsString("cardDesc")));
@@ -241,8 +241,10 @@ public class TrelloHandler extends BaseHandler {
             createWebhook(cardId);
         }
 
+        doSpecialCases(cardId);
+
         // special case if the tool.name = BIM-COLLAB
-        if(tool.getItemValueString("name").equals("BIM-COLLAB") && httpMethod.equals("POST") && crudEntity.equals("TI")){
+        if(reqBundle.tool.getItemValueString("name").equals("BIM-COLLAB") && reqBundle.httpMethod.equals("POST") && reqBundle.crudEntity.equals("TI")){
             // csv for entraId
             StringBuilder entraIdCSV = new StringBuilder();
             entraIdCSV.append("id,firstname,lastname,email\n");
@@ -250,6 +252,10 @@ public class TrelloHandler extends BaseHandler {
             createCSV(cardId, "entraId.csv", entraIdCSV.toString());
             createCSV(cardId, "bimgollab.csv", entraIdCSV.toString());
         }
+    }
+
+    private void doSpecialCases(String cardId) {
+        
     }
 
     private void createCSV(String cardId, String fileName, String content) throws Exception {
