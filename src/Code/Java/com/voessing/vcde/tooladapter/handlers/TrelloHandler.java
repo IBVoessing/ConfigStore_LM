@@ -242,23 +242,73 @@ public class TrelloHandler extends BaseHandler {
         }
 
         doSpecialCases(cardId);
+    }
 
-        // special case if the tool.name = BIM-COLLAB
-        if(reqBundle.tool.getItemValueString("name").equals("BIM-COLLAB") && reqBundle.httpMethod.equals("POST") && reqBundle.crudEntity.equals("TI")){
-            // csv for entraId
-            StringBuilder entraIdCSV = new StringBuilder();
-            entraIdCSV.append("id,firstname,lastname,email\n");
-            entraIdCSV.append("1,Dieter,Menzel,dieter.menzel@galluga.gom\n");
-            createCSV(cardId, "entraId.csv", entraIdCSV.toString());
-            createCSV(cardId, "bimgollab.csv", entraIdCSV.toString());
+    private void doSpecialCases(String cardId) throws Exception {   
+        // special case for BIM-COLLAB
+        if(isToolName("BIM-COLLAB") && isHttpMethod("POST") && isCrudEntity("TI")){
+            attachFileToCard(cardId, "import-users.csv", generateBimCollabCSV());
+            attachFileToCard(cardId, "user-invite.csv", generateUserInvite());
         }
     }
 
-    private void doSpecialCases(String cardId) {
-        
+    private String generateUserInvite() throws Exception{
+        StringBuilder csv = new StringBuilder();
+        csv.append("version:v1.0\n");
+        csv.append("Email address to invite [inviteeEmail] Required,Redirection url [inviteRedirectURL] Required,Send invitation message (true or false) [sendEmail],Customized invitation message [customizedMessageBody]\n");
+        List<String> members = reqBundle.request.getItemValues("apiMembers", String.class);
+
+        for (String member : members) {
+            JsonJavaObject memberObj = parseToJson(member);
+            csv.append(memberObj.getAsString("mail"));
+            csv.append(",");
+            csv.append("https://myapplications.microsoft.com");
+            csv.append(",");
+            csv.append("true");
+            csv.append(",");
+            csv.append("Welcome to the team!");
+            csv.append("\n");
+        }
+
+        return csv.toString();
     }
 
-    private void createCSV(String cardId, String fileName, String content) throws Exception {
+    private String generateBimCollabCSV() throws JsonException {
+        StringBuilder csv = new StringBuilder();
+        csv.append("email address,last name,first name,initials,company name\n");
+
+        List<String> members = reqBundle.request.getItemValues("apiMembers", String.class);
+
+        for (String member : members) {
+            JsonJavaObject memberObj = parseToJson(member);
+            csv.append(memberObj.getAsString("mail"));
+            csv.append(",");
+            csv.append(memberObj.getAsString("lastname"));
+            csv.append(",");
+            csv.append(memberObj.getAsString("firstname"));
+            csv.append(",");
+            csv.append(memberObj.getAsString("initials"));
+            csv.append(",");
+            csv.append(memberObj.getAsString("company"));
+            csv.append("\n");
+        }
+
+        return csv.toString();
+    }
+
+    private boolean isToolName(String toolName) throws Exception {
+        return reqBundle.tool.getItemValueString("name").equals(toolName);
+    }
+
+    private boolean isHttpMethod(String httpMethod) throws Exception {
+        return reqBundle.httpMethod.equals(httpMethod);
+    }
+
+    private boolean isCrudEntity(String crudEntity) throws Exception {
+        return reqBundle.crudEntity.equals(crudEntity);
+    }
+
+    private void attachFileToCard(String cardId, String fileName, String content) throws Exception {
         JsonJavaObject createdCsv = trelloAPI.createAttachmentOnCard(cardId, fileName, content.getBytes()); 
 
         if (!isResponeValid(createdCsv)) {
