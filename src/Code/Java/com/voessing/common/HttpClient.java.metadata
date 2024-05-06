@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
-<noteinfo noteid="4ee" sequence="4" unid="8BB5245726575C22C1258B15003C76D9">
+<noteinfo noteid="4ee" sequence="13" unid="8BB5245726575C22C1258B15003C76D9">
 <created><datetime dst="true">20240506T130025,85+02</datetime></created>
-<modified><datetime dst="true">20240506T130043,12+02</datetime></modified>
-<revised><datetime dst="true">20240506T130043,10+02</datetime></revised>
-<lastaccessed><datetime dst="true">20240506T130043,10+02</datetime></lastaccessed>
+<modified><datetime dst="true">20240506T154732,14+02</datetime></modified>
+<revised><datetime dst="true">20240506T154732,13+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240506T154732,13+02</datetime></lastaccessed>
 <addedtofile><datetime dst="true">20240506T130025,86+02</datetime></addedtofile></noteinfo>
 <updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
 <wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
 <item name="$Flags"><text>34567Cg~[</text></item>
-<item name="$TITLE"><text>com/voessing/common/Fetch.java</text></item>
+
+
+
+
+
+<item name="$TITLE"><text>com/voessing/common/HttpClient.java</text></item>
 <item name="$DesignerVersion"><text>8.5.3</text></item>
 
 
-<item name="$FileNames" sign="true"><text>com/voessing/common/Fetch.java</text></item></note>
+<item name="$FileNames" sign="true"><text>com/voessing/common/HttpClient.java</text></item></note>

@@ -29,9 +29,9 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 
 /**
- * The Fetch class provides methods for making HTTP requests using Apache HttpClient.
+ * The HttpClient class provides methods for making HTTP requests using Apache HttpClient.
  */
-public class Fetch {
+public class HttpClient {
 
     private final CloseableHttpClient httpClient;
 
@@ -215,19 +215,19 @@ public class Fetch {
     }
 
     /**
-     * Constructs a new Fetch instance.
+     * Constructs a new HttpClient instance.
      */
-    public Fetch() {
+    public HttpClient() {
         this.httpClient = HttpClients.createDefault();
         this.context = null;
     }
 
     /**
-     * Constructs a new instance of the Fetch class.
+     * Constructs a new instance of the HttpClient class.
      *
      * @param useContext a boolean value indicating whether to use a context for the HttpClient
      */
-    public Fetch(boolean useContext){
+    public HttpClient(boolean useContext){
         this.httpClient = HttpClients.createDefault();
         if(useContext){
             this.context = HttpClientContext.create();
