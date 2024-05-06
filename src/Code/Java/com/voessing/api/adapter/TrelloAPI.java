@@ -1,22 +1,47 @@
 package com.voessing.api.adapter;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import com.ibm.commons.util.io.json.JsonJavaFactory;
 import com.ibm.commons.util.io.json.JsonJavaObject;
+import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.common.TRestConsumerEx;
 import com.voessing.common.TVAppCredStore2;
 
 import lotus.domino.NotesException;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
 public class TrelloAPI {
 
+    public static class Result{
+        public int httpStatus;
+        public String content; 
+        public String headers;
+
+        public Result(int httpStatus, String content, String headers){
+            this.httpStatus = httpStatus;
+            this.content = content;
+            this.headers = headers;
+        }
+    }
+    
     private static final String CREDSTORE_KEY = "trello_lm";
     private static final int logLevel = 1;
     private static TRestConsumerEx api;
     private static String baseUrl;
+    private static String authHeader;
 
     private static final int MAX_RETRIES = 3;
 
@@ -45,7 +70,7 @@ public class TrelloAPI {
         String apiKey = credStore.getValueByName(CREDSTORE_KEY, "apiKey");
         String apiToken = credStore.getValueByName(CREDSTORE_KEY, "apiToken");
 
-        String authHeader = "OAuth oauth_consumer_key=\"" + apiKey + "\", oauth_token=\"" + apiToken + "\"";
+        authHeader = "OAuth oauth_consumer_key=\"" + apiKey + "\", oauth_token=\"" + apiToken + "\"";
         api.addRequestHeader("Authorization", authHeader);
     }
 
@@ -89,6 +114,46 @@ public class TrelloAPI {
         }
     }
 
+    private JsonJavaObject doPostMultipart(String apiCommand, String fileName, byte[] fileContent) throws Exception {
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(baseUrl + apiCommand);
+			httpPost.addHeader("Authorization", authHeader);
+            
+			// Create MultipartEntityBuilder
+			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+			builder.setContentType(ContentType.MULTIPART_FORM_DATA);
+			builder.addBinaryBody("file", fileContent, ContentType.TEXT_PLAIN, fileName);
+			
+			// Set the HttpPost entity to the MultipartEntityBuilder
+			HttpEntity multipart = builder.build();
+			httpPost.setEntity(multipart);
+	
+			// Execute the HttpPost request and get the response
+			Result resp = httpclient.execute(httpPost, response -> {
+                final HttpEntity edidy = response.getEntity();
+                Result gumba = new Result(response.getCode(),
+                        IOUtils.toString(edidy.getContent(), "UTF-8"),
+                        response.getHeaders().toString());                
+                        EntityUtils.consume(edidy);
+                return gumba;
+            });
+
+        //     // Execute the HttpPost request and get the response
+        // String response = Request.Post("https://api.trello.com/1/cards/"+boardGumbaId+"/attachments")
+        // .addHeader("Authorization", authHeader)
+        // .body(multipart)
+        // .execute()
+        // .returnContent()
+        // .asString();
+            
+
+            JsonJavaObject gumba = new JsonJavaObject();
+            gumba.put("body", JsonParser.fromJson(JsonJavaFactory.instanceEx, resp.content));
+            gumba.put("httpStatus", resp.httpStatus);
+            return gumba;
+		} 
+    }
+
     public JsonJavaObject createCard(JsonJavaObject card) throws Exception {
         verfiyPostObject(card, Type.CARD);
         JsonJavaObject response = post("/cards", card);
@@ -118,6 +183,10 @@ public class TrelloAPI {
         verfiyPostObject(webhook, Type.WEBHOOK);
         return post("/webhooks", webhook);
     }   
+
+    public JsonJavaObject createAttachmentOnCard(String cardId, String fileName, byte[] fileContent) throws Exception {
+        return doPostMultipart("/cards/" + cardId + "/attachments", fileName, fileContent);
+    }
 
     private void verfiyPostObject(JsonJavaObject postObject, Type type) throws Exception {
         if (postObject == null) {
