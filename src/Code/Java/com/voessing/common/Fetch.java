@@ -12,15 +12,19 @@ import org.apache.hc.client5.http.classic.methods.HttpPatch;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.cookie.Cookie;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 
+import com.ibm.commons.util.io.json.JsonJavaArray;
 import com.ibm.commons.util.io.json.JsonJavaFactory;
+import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 
 /**
@@ -29,6 +33,8 @@ import com.ibm.commons.util.io.json.JsonParser;
 public class Fetch {
 
     private final CloseableHttpClient httpClient;
+
+    private final HttpClientContext context;
 
     /**
      * Represents the response of an HTTP request.
@@ -209,6 +215,58 @@ public class Fetch {
      */
     public Fetch() {
         this.httpClient = HttpClients.createDefault();
+        this.context = null;
+    }
+
+    /**
+     * Constructs a new instance of the Fetch class.
+     *
+     * @param useContext a boolean value indicating whether to use a context for the HttpClient
+     */
+    public Fetch(boolean useContext){
+        this.httpClient = HttpClients.createDefault();
+        if(useContext){
+            this.context = HttpClientContext.create();
+        } else {
+            this.context = null;
+        }
+    }
+
+    /**
+     * Clears all cookies from the cookie store.
+     */
+    public void clearCookies() {
+        this.context.getCookieStore().clear();
+    }
+
+    /**
+     * Sets the cookies in the cookie store.
+     * Any existing cookies in the cookie store are cleared before the new cookies
+     * are added.
+     *
+     * @param cookies the list of cookies to be added to the cookie store
+     */
+    public void setCookies(List<Cookie> cookies) {
+        this.context.getCookieStore().clear();
+        cookies.forEach(cookie -> this.context.getCookieStore().addCookie(cookie));
+    }
+
+    /**
+     * Adds a single cookie to the cookie store.
+     *
+     * @param cookie the cookie to be added to the cookie store
+     */
+    public void addCookie(Cookie cookie) {
+        this.context.getCookieStore().addCookie(cookie);
+    }
+
+    /**
+     * Retrieves all cookies from the cookie store.
+     *
+     * @return a list of all cookies in the cookie store
+     */
+    public List<Cookie> getCookies() {
+        return this.context.getCookieStore().getCookies();
     }
 
     /**
@@ -435,7 +493,7 @@ public class Fetch {
             headers.forEach(request::addHeader);
         }
 
-        return httpClient.execute(request, this::handleResponse);
+        return httpClient.execute(request, context, this::handleResponse);
     }
 
     private Response handleResponse(ClassicHttpResponse response) throws IOException, ParseException {
@@ -456,6 +514,8 @@ public class Fetch {
         result.setContentType(entity.getContentType());
         result.setContentEncoding(entity.getContentEncoding());
         result.setContent(EntityUtils.toString(entity));
+
+        
 
         return result;
     }
