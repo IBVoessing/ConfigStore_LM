@@ -34,8 +34,7 @@ public class TrelloHandler extends BaseHandler {
     // define multi value fields in order to build the templateContext correctly
     private final List<String> mvFields = Arrays.asList("apiMembers");
 
-    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body)
-            throws NotesException {
+    public TrelloHandler(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) throws NotesException {
         super(crudEntity, httpMethod, request, tool, body);
         trelloAPI = new TrelloAPI();
         labels = new HashMap<>();
@@ -240,6 +239,24 @@ public class TrelloHandler extends BaseHandler {
         // create webhook
         if (createWebhook) {
             createWebhook(cardId);
+        }
+
+        // special case if the tool.name = BIM-COLLAB
+        if(tool.getItemValueString("name").equals("BIM-COLLAB") && httpMethod.equals("POST") && crudEntity.equals("TI")){
+            // csv for entraId
+            StringBuilder entraIdCSV = new StringBuilder();
+            entraIdCSV.append("id,firstname,lastname,email\n");
+            entraIdCSV.append("1,Dieter,Menzel,dieter.menzel@galluga.gom\n");
+            createCSV(cardId, "entraId.csv", entraIdCSV.toString());
+            createCSV(cardId, "bimgollab.csv", entraIdCSV.toString());
+        }
+    }
+
+    private void createCSV(String cardId, String fileName, String content) throws Exception {
+        JsonJavaObject createdCsv = trelloAPI.createAttachmentOnCard(cardId, fileName, content.getBytes()); 
+
+        if (!isResponeValid(createdCsv)) {
+            throw new Exception("Error creating card: " + createdCsv);
         }
     }
 
