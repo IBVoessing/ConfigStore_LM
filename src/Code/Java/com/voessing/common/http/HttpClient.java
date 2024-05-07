@@ -1,6 +1,7 @@
 package com.voessing.common.http;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -23,13 +24,6 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.ibm.commons.util.io.json.JsonJavaArray;
-import com.ibm.commons.util.io.json.JsonJavaFactory;
-import com.ibm.commons.util.io.json.JsonJavaObject;
-import com.ibm.commons.util.io.json.JsonParser;
-
 /**
  * The HttpClient class provides methods for making HTTP requests using Apache HttpClient.
  */
@@ -37,6 +31,7 @@ public class HttpClient {
 
     private final CloseableHttpClient httpClient;
     private final HttpClientContext context;
+    private int logLevel;
 
     private Header authHeader;
     private List<Header> defaultHeaders;
@@ -61,6 +56,36 @@ public class HttpClient {
         } else {
             this.context = null;
         }
+    }
+
+    /**
+     * Retrieves the HttpClientContext associated with this HttpClient.
+     *
+     * @return the HttpClientContext
+     */
+    public HttpClientContext getContext() {
+        return context;
+    }
+
+    /**
+     * Retrieves the current log level of this HttpClient.
+     *
+     * @return the current log level
+     */
+    public int getLogLevel() {
+        return logLevel;
+    }
+
+    /**
+     * Sets the log level of this HttpClient. 
+     * 
+     * 1: Log only the request method and URL
+     * >1: Log the request method, URL, and headers
+     *
+     * @param logLevel the log level to set
+     */
+    public void setLogLevel(int logLevel) {
+        this.logLevel = logLevel;
     }
 
     /**
@@ -418,7 +443,24 @@ public class HttpClient {
             headers.forEach(request::addHeader);
         }
 
+        logRequest(request);
+
         return httpClient.execute(request, context, this::handleResponse);
+    }
+
+    private void logRequest(HttpUriRequestBase request) {
+        if(logLevel == 1){
+            String uri;
+            try {
+                uri = request.getUri().toString();
+            } catch (URISyntaxException e) {
+                uri = "parsing failed :(";
+            }
+            System.out.println("Request: " + request.getMethod() + " " + uri);
+        }
+        if(logLevel > 1){
+            Arrays.stream(request.getHeaders()).forEach(header -> System.out.println(header.getName() + ": " + header.getValue()));
+        }
     }
 
     private Response handleResponse(ClassicHttpResponse response) throws IOException, ParseException {
