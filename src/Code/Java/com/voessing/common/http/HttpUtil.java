@@ -1,5 +1,6 @@
 package com.voessing.common.http;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public class HttpUtil {
      * @return a map where the keys are the header names and the values are the
      *         header values
      */
-    public Map<String, String> headerListToMap(List<Header> headers) {
+    public static Map<String, String> headerListToMap(List<Header> headers) {
         return headers.stream().collect(Collectors.toMap(Header::getName, Header::getValue));
     }
 
@@ -74,7 +75,7 @@ public class HttpUtil {
      * @param headers the map of headers
      * @return a list of headers
      */
-    public List<Header> headerMapToList(Map<String, String> headers) {
+    public static List<Header> headerMapToList(Map<String, String> headers) {
         return headers.entrySet().stream().map(entry -> new BasicHeader(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
     }
@@ -85,7 +86,7 @@ public class HttpUtil {
      * @param json the JSON element
      * @return the HTTP entity
      */
-    public HttpEntity creaEntity(JsonElement json) {
+    public static HttpEntity createEntity(JsonElement json) {
         return createEntity(ContentType.APPLICATION_JSON, json.toString());
     }
 
@@ -95,7 +96,7 @@ public class HttpUtil {
      * @param json the JSON array
      * @return the HTTP entity
      */
-    public HttpEntity creaEntity(JsonJavaArray json) {
+    public static HttpEntity createEntity(JsonJavaArray json) {
         return createEntity(ContentType.APPLICATION_JSON, json.toString());
     }
 
@@ -105,7 +106,7 @@ public class HttpUtil {
      * @param json the JSON object
      * @return the HTTP entity
      */
-    public HttpEntity creaEntity(JsonJavaObject json) {
+    public static HttpEntity createEntity(JsonJavaObject json) {
         return createEntity(ContentType.APPLICATION_JSON, json.toString());
     }
 
@@ -116,12 +117,11 @@ public class HttpUtil {
      * @param content     the content
      * @return the HTTP entity
      */
-    public HttpEntity createEntity(ContentType contentType, String content) {
+    public static HttpEntity createEntity(ContentType contentType, String content) {
         return EntityBuilder
                 .create()
-                .setContentType(contentType)
                 .setText(content)
-                .setContentEncoding("UTF-8")
+                .setContentType(contentType.withCharset(StandardCharsets.UTF_8))
                 .build();
     }
 
@@ -132,7 +132,7 @@ public class HttpUtil {
      * @param files  the files
      * @return the multipart HTTP entity
      */
-    public HttpEntity createMultipartEntity(Map<String, String> fields, Map<String, FileData> files) {
+    public static HttpEntity createMultipartEntity(Map<String, String> fields, Map<String, FileData> files) {
         MultipartEntityBuilder builder = MultipartEntityBuilder.create()
                 .setContentType(ContentType.MULTIPART_FORM_DATA);
 
