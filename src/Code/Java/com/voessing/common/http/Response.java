@@ -22,6 +22,13 @@ public class Response {
     private long contentLength;
     private Map<String, String> headers;
 
+    @Override
+    public String toString() {
+        return "Response [ok=" + ok + ", status=" + status + ", statusText=" + statusText + ", content=" + content
+                + ", contentEncoding=" + contentEncoding + ", contentType=" + contentType + ", contentLength="
+                + contentLength + ", headers=" + headers + "]";
+    }
+
     /**
      * Parses the response content as JSON and returns the corresponding object.
      * 
