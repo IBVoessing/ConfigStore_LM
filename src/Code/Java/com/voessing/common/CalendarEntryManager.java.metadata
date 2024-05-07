@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
+<noteinfo noteid="506" sequence="3" unid="418EEF3A040AAE25C1258B16003EF2AE">
+<created><datetime dst="true">20240507T132733,58+02</datetime></created>
+<modified><datetime dst="true">20240507T132733,82+02</datetime></modified>
+<revised><datetime dst="true">20240507T132733,81+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240507T132733,81+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240507T132733,60+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
+<wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
+<item name="$Flags"><text>34567Cg~[</text></item>
+<item name="$TITLE"><text>com/voessing/common/CalendarEntryManager.java</text></item>
+<item name="$DesignerVersion"><text>8.5.3</text></item>
+
+
+<item name="$FileNames" sign="true"><text>com/voessing/common/CalendarEntryManager.java</text></item></note>
