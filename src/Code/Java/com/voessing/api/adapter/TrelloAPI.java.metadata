@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?><note xmlns="http://www.lotus.com/dxl" class="form" maintenanceversion="2.2" replicaid="C1258AFC00296AAF" version="12.0">
-<noteinfo noteid="4ba" sequence="2" unid="73CC61037ADCBACCC1258B0200231F56">
-<created><datetime dst="true">20240417T082337,82+02</datetime></created>
-<modified><datetime dst="true">20240417T082338,31+02</datetime></modified>
-<revised><datetime dst="true">20240417T082338,30+02</datetime></revised>
-<lastaccessed><datetime dst="true">20240417T082338,30+02</datetime></lastaccessed>
-<addedtofile><datetime dst="true">20240417T082337,86+02</datetime></addedtofile></noteinfo>
+<noteinfo noteid="502" sequence="4" unid="A59EB60CADC52709C1258B1600306762">
+<created><datetime dst="true">20240507T104841,94+02</datetime></created>
+<modified><datetime dst="true">20240507T104847,00+02</datetime></modified>
+<revised><datetime dst="true">20240507T104846,99+02</datetime></revised>
+<lastaccessed><datetime dst="true">20240507T104846,99+02</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20240507T104841,97+02</datetime></addedtofile></noteinfo>
 <updatedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></updatedby>
 <wassignedby><name>CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE</name></wassignedby>
 <item name="$Flags"><text>34567Cg~[</text></item>
 <item name="$TITLE"><text>com/voessing/api/adapter/TrelloAPI.java</text></item>
-
-
-
-
-
 <item name="$DesignerVersion"><text>8.5.3</text></item>
 
 
