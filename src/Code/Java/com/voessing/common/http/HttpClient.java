@@ -460,6 +460,15 @@ public class HttpClient {
         }
         if(logLevel > 1){
             Arrays.stream(request.getHeaders()).forEach(header -> System.out.println(header.getName() + ": " + header.getValue()));
+            HttpEntity entity = request.getEntity();
+            if(entity != null){
+                try {
+                    System.out.println(EntityUtils.toString(entity));
+                    System.out.println("ContentType: " + entity.getContentType());
+                } catch (Exception e) {
+                    System.out.println("Failed to log request body");
+                }
+            }
         }
     }
 
