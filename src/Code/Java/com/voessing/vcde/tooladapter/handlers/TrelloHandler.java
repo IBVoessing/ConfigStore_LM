@@ -20,6 +20,7 @@ import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.ibm.commons.util.io.json.JsonParser;
 import com.voessing.api.adapter.TrelloAPI;
 import com.voessing.common.TNotesUtil;
+import com.voessing.common.http.Response;
 
 import lotus.domino.Document;
 import lotus.domino.NotesException;
@@ -218,16 +219,14 @@ public class TrelloHandler extends BaseHandler {
         // add the label to the card
         card.put("idLabels", Arrays.asList(getLabel(projectPNr)));
         // try to create the card
-        JsonJavaObject createdCard = trelloAPI.createCard(card);
+        Response createdCard = trelloAPI.createCard(card);
         // check if card was created successfully
-        if (!isResponeValid(createdCard)) {
+        if (!createdCard.isOk()) {
             throw new Exception("Error creating card: " + createdCard);
         }
 
-        createdCard = (JsonJavaObject) createdCard.get("body");
-
         // do checklist stuff
-        final String cardId = ((JsonJavaObject) createdCard).getAsString("id");
+        final String cardId = ((JsonJavaObject) createdCard.parseWithHCL()).getAsString("id");
 
         List<Object> checklists = getChecklistsFromTask(task);
 
@@ -309,9 +308,9 @@ public class TrelloHandler extends BaseHandler {
     }
 
     private void attachFileToCard(String cardId, String fileName, String content) throws Exception {
-        JsonJavaObject createdCsv = trelloAPI.createAttachmentOnCard(cardId, fileName, content.getBytes()); 
+        Response createdCsv = trelloAPI.createAttachmentOnCard(cardId, fileName, content.getBytes()); 
 
-        if (!isResponeValid(createdCsv)) {
+        if (!createdCsv.isOk()) {
             throw new Exception("Error creating card: " + createdCsv);
         }
     }
@@ -320,10 +319,10 @@ public class TrelloHandler extends BaseHandler {
         JsonJavaObject webhook = new JsonJavaObject();
         webhook.put("callbackURL", "https://xapps.voessing.de/VCDE-Config_LM.nsf/crawler.xsp/trello/webhook");
         webhook.put("idModel", cardId);
-        JsonJavaObject webhookResp = trelloAPI.createWebhook(webhook);
+        Response webhookResp = trelloAPI.createWebhook(webhook);
 
         // check if webhook was created successfully
-        if (!isResponeValid(webhookResp)) {
+        if (!webhookResp.isOk()) {
             throw new Exception("Error creating webhook: " + webhookResp);
         }
     }
@@ -337,13 +336,13 @@ public class TrelloHandler extends BaseHandler {
         }
 
         // update labels cache
-        JsonJavaObject labelsResp = trelloAPI.getLabels(VCDE_ADMIN_TASKS_BOARD_ID);
+        Response labelsResp = trelloAPI.getLabels(VCDE_ADMIN_TASKS_BOARD_ID);
 
-        if (!isResponeValid(labelsResp)) {
+        if (!labelsResp.isOk()) {
             throw new Exception("Error getting labels: " + labelsResp);
         }
 
-        List<JsonJavaObject> labelsList = (List<JsonJavaObject>) labelsResp.get("body");
+        List<JsonJavaObject> labelsList = (List<JsonJavaObject>) labelsResp.parseWithHCL();
 
         for (JsonJavaObject label : labelsList) {
             labels.put(label.getAsString("name"), label.getAsString("id"));
@@ -358,15 +357,13 @@ public class TrelloHandler extends BaseHandler {
         JsonJavaObject label = new JsonJavaObject();
         label.put("name", projecPNr);
         label.put("color", "green");
-        JsonJavaObject newLabel = trelloAPI.createLabel(VCDE_ADMIN_TASKS_BOARD_ID, label);
+        Response newLabel = trelloAPI.createLabel(VCDE_ADMIN_TASKS_BOARD_ID, label);
 
-        if (!isResponeValid(newLabel)) {
+        if (!newLabel.isOk()) {
             throw new Exception("Error creating label: " + newLabel);
         }
 
-        newLabel = (JsonJavaObject) newLabel.get("body");
-
-        String newLabelId = ((JsonJavaObject) newLabel).getAsString("id");
+        String newLabelId = ((JsonJavaObject) newLabel.parseWithHCL()).getAsString("id");
 
         // add label to cache
         labels.put(projecPNr, newLabelId);
@@ -394,16 +391,14 @@ public class TrelloHandler extends BaseHandler {
     private void addChecklistsToCard(List<Object> checklists, String cardId) throws Exception {
         for (Object checklist : checklists) {
             JsonJavaObject checklistObj = (JsonJavaObject) checklist;
-            JsonJavaObject createdChecklist = trelloAPI.createChecklist(cardId, checklistObj);
+            Response createdChecklist = trelloAPI.createChecklist(cardId, checklistObj);
 
             // check if checklist was created successfully
-            if (!isResponeValid(createdChecklist)) {
+            if (!createdChecklist.isOk()) {
                 throw new Exception("Error creating checklist: " + createdChecklist);
             }
 
-            createdChecklist = (JsonJavaObject) createdChecklist.get("body");
-
-            final String checklistId = ((JsonJavaObject) createdChecklist).getAsString("id");
+            final String checklistId = ((JsonJavaObject) createdChecklist.parseWithHCL()).getAsString("id");
 
             // add checkitems to checklist
             List<Object> checkItems = checklistObj.getAsList("checkItems");
@@ -417,10 +412,10 @@ public class TrelloHandler extends BaseHandler {
     private void addCheckItemsToChecklist(List<Object> checkItems, String checklistId) throws Exception {
         for (Object checkItem : checkItems) {
             JsonJavaObject checkItemObj = (JsonJavaObject) checkItem;
-            JsonJavaObject createdCheckItem = trelloAPI.createCheckItem(checklistId, checkItemObj);
+            Response createdCheckItem = trelloAPI.createCheckItem(checklistId, checkItemObj);
 
             // check if checkitem was created successfully
-            if (!isResponeValid(createdCheckItem)) {
+            if (!createdCheckItem.isOk()) {
                 throw new Exception("Error creating checkitem: " + createdCheckItem);
             }
         }
