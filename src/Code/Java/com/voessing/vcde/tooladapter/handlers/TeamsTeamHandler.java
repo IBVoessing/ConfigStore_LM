@@ -1,13 +1,17 @@
 package com.voessing.vcde.tooladapter.handlers;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.ibm.commons.util.io.json.JsonJavaObject;
 import com.voessing.api.adapter.GraphAPI;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
@@ -17,6 +21,7 @@ import lotus.domino.Document;
 public final class TeamsTeamHandler extends BaseHandler{
 
     private GraphAPI api = new GraphAPI();
+    private Gson gson = new Gson();
 
     public TeamsTeamHandler(ReqBundle reqBundle) {
         super(reqBundle);
@@ -24,7 +29,12 @@ public final class TeamsTeamHandler extends BaseHandler{
     
     @Override
 	public JsonJavaObject excecute() throws Exception {
-        String teamId = createToolInstance(reqBundle.body.getAsObject("apiAttributes"));
+    	
+//    	JsonObject apiAttributesObj = reqBundle.body.get("apiAttributes").getAsJsonObject();
+//    	Type type = new TypeToken<Map<String, Object>>(){}.getType();
+//    	Map<String, Object> map = gson.fromJson(apiAttributesObj, type);
+    	
+        String teamId = createToolInstance(new HashMap<>());
 
         // sleep for 2 seconds to give the API some time to create the team
         Thread.sleep(2000);

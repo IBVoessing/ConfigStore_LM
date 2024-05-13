@@ -4,12 +4,13 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.openntf.domino.Database;
+import org.openntf.domino.Document;
+import org.openntf.domino.Session;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
-import com.ibm.commons.util.io.json.JsonJavaFactory;
-import com.ibm.commons.util.io.json.JsonJavaObject;
-import com.ibm.commons.util.io.json.JsonParser;
+import com.google.gson.JsonObject;
 import com.voessing.common.TGlobalConfig;
 import com.voessing.vcde.endpoints.vrh.resources.VCDEShared;
 import com.voessing.vcde.tooladapter.handlers.ReqBundle;
@@ -18,10 +19,6 @@ import com.voessing.vcde.tooladapter.handlers.TrelloHandler;
 import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.exceptions.VrhException;
 import com.voessing.xapps.utils.vrh.handler.VrhHttpHandler;
-
-import org.openntf.domino.Database;
-import org.openntf.domino.Document;
-import org.openntf.domino.Session;
 
 public class RunVCDEAdapter extends VrhHttpHandler {
 
@@ -81,7 +78,8 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 
 		// trigger capturedPayloadRaw to be available
 		getRequestPayload(request);
-		JsonJavaObject body = (JsonJavaObject) JsonParser.fromJson(JsonJavaFactory.instanceEx, capturedPayloadRaw);
+		JsonObject body = (JsonObject) com.google.gson.JsonParser.parseString(capturedPayloadRaw);
+
 		loadDocuments(body);
 
 		String adapter = toolDoc.getItemValueString("provisioningType");
@@ -109,9 +107,9 @@ public class RunVCDEAdapter extends VrhHttpHandler {
 		}
 	}
 
-	private void loadDocuments(JsonJavaObject body) {
-		String requestUNID = body.getString("id");
-		String toolUNID = body.getString("ToolUNID");
+	private void loadDocuments(JsonObject body) {
+		String requestUNID = body.get("id").getAsString();
+		String toolUNID = body.get("ToolUNID").getAsString();
 		
 		requestDoc = db.getDocumentByUNID(requestUNID);
 		toolDoc = db.getDocumentByUNID(toolUNID);

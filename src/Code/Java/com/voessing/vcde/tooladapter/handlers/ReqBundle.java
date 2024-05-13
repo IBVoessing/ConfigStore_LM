@@ -1,17 +1,15 @@
 package com.voessing.vcde.tooladapter.handlers;
 
 import org.openntf.domino.Document;
-
-import com.ibm.commons.util.io.json.JsonJavaObject;
-
+import com.google.gson.JsonObject;
 
 public class ReqBundle {
 
     public final String crudEntity, httpMethod;
     public final Document request, tool;
-    public final JsonJavaObject body;
+    public final JsonObject body;
     
-    public ReqBundle(String crudEntity, String httpMethod, Document request, Document tool, JsonJavaObject body) {
+    public ReqBundle(String crudEntity, String httpMethod, Document request, Document tool, JsonObject body) {
         this.crudEntity = crudEntity;
         this.httpMethod = httpMethod;
         this.request = request;
