@@ -19,6 +19,14 @@ public class CalendarTicket {
 
     private int duration;
 
+    public static enum State {
+        APPROVED, CREATED, CANCELLED, DENIED;
+    }
+
+    public static enum Type {
+        MOBILE_WORK, VACATION, SEPECIAL_VACATION, FLEX_DAY;
+    }
+
     public CalendarTicket(Document ticket){
         setTicketDocumentUnid(ticket.getUniversalID());
         setTicketUid(ticket.getItemValueString("Uid"));
@@ -109,6 +117,9 @@ public class CalendarTicket {
             case "S":
                 this.state = State.CANCELLED;
                 break;
+            case "A":
+                this.state = State.DENIED;
+                break;
             default:
                 throw new IllegalArgumentException("Unknown state: " + stateStr);
         }
@@ -186,12 +197,9 @@ public class CalendarTicket {
         this.duration = duration;
     }
 
-    public static enum State {
-        APPROVED, CREATED, CANCELLED;
-    }
-
-    public static enum Type {
-        MOBILE_WORK, VACATION, SEPECIAL_VACATION, FLEX_DAY;
+    @Override 
+    public String toString(){
+        return "CalendarTicket [ticketDocumentUnid=" + ticketDocumentUnid + ", ticketUid=" + ticketUid + ", title=" + title + ", type=" + type + ", state=" + state + ", requester=" + requester + ", startDate=" + startDate + ", endDate=" + endDate + ", startPhase=" + startPhase + ", endPhase=" + endPhase + ", duration=" + duration + "]";
     }
 
 }
