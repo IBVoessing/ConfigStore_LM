@@ -24,17 +24,55 @@ public class GraphAPINew {
 	private String MS_API_VERSION;
 	public HttpClient client;
 
+	/**
+	 * Enum representing the API versions for Microsoft Graph API.
+	 *
+	 * This enum contains two versions: Stable and Beta. Each version has a
+	 * corresponding
+	 * string value that is used in the base URI for Microsoft Graph API requests.
+	 */
 	public static enum API_VERSION {
-		Stable("v1.0"), Beta("beta");
+		/**
+		 * Represents the stable version of the Microsoft Graph API.
+		 */
+		Stable("v1.0"),
 
+		/**
+		 * Represents the beta version of the Microsoft Graph API.
+		 */
+		Beta("beta");
+
+		/**
+		 * The string value of the API version.
+		 */
 		public final String apiVersion;
 
+		/**
+		 * Constructs a new API_VERSION instance with the specified string value.
+		 *
+		 * @param apiVersion the string value of the API version
+		 */
 		private API_VERSION(String apiVersion) {
 			this.apiVersion = apiVersion;
 		}
 	}
 
+	/**
+	 * Utility class for handling operations related to Microsoft Graph API.
+	 */
 	public static class GraphUtil {
+
+		/**
+		 * Converts a list of responses into a JsonArray.
+		 *
+		 * This method iterates over a list of responses, parses each response into a
+		 * JsonObject,
+		 * and if the JsonObject has a "value" field, adds its value (which is a
+		 * JsonArray) to the result.
+		 *
+		 * @param responses a list of responses to convert
+		 * @return a JsonArray containing the values from the responses
+		 */
 		public static JsonArray getJSONFromListResponse(List<Response> responses) {
 			JsonArray result = new JsonArray();
 
@@ -56,21 +94,25 @@ public class GraphAPINew {
 	}
 
 	public GraphAPINew(API_VERSION version) {
-
+		// Load credentials from TVAppCredStore
 		String tokenUrl = TVAppCredStore.getValueByName(CREDSTORE_KEY, "authTokenUrl");
 		String clientId = TVAppCredStore.getValueByName(CREDSTORE_KEY, "client_id");
 		String clientSecret = TVAppCredStore.getValueByName(CREDSTORE_KEY, "client_secret");
 		String scope = TVAppCredStore.getValueByName(CREDSTORE_KEY, "scope");
-
+		
+		// Create authentication handler
 		AuthenticationHandler authHandler = new GraphOAuthAuthenticationHandler(clientId, clientSecret, tokenUrl, scope);
 		authHandler.setMaxRetries(1);
 
+		// Create the Options object setting default options and enabling the authentication handler 
 		Options options = new Options().defaultOptions()
 				.useAuthHandler(authHandler);
 
+		// Create the HttpClient with the options
 		client = new HttpClient(options);
 		client.setLogLevel(LOGLEVEL);
 
+		// BaseURI is set to the Microsoft Graph API base URI with the specified API version
 		setApiVersion(version);
 	}
 
