@@ -1,6 +1,6 @@
-package com.voessing.common;
+package com.voessing.calendar;
 
-import org.apache.poi.hslf.record.Notes;
+
 
 // import org.openntf.domino.Database;
 // import org.openntf.domino.NotesCalendar;
@@ -33,7 +33,6 @@ public class CalendarEntryManager {
     }
 
     public CalendarEntryManager() {
-        //session = Factory.getSession(SessionType.NATIVE);
         session = NotesContext.getCurrent().getCurrentSession();
     }
 
@@ -68,7 +67,7 @@ public class CalendarEntryManager {
         }
 
         NotesCalendar userCalendar = session.getCalendar(userMailDB);
-        
+
         System.out.println(userMailDB);
         System.out.println(userCalendar);
         NotesCalendarEntry entry = userCalendar.createEntry(generateICal());
