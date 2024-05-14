@@ -61,8 +61,7 @@ public class GraphAPINew {
 		String clientSecret = TVAppCredStore.getValueByName(CREDSTORE_KEY, "client_secret");
 		String scope = TVAppCredStore.getValueByName(CREDSTORE_KEY, "scope");
 
-		AuthenticationHandler authHandler = new GraphOAuthAuthenticationHandler(clientId, clientSecret, tokenUrl,
-				scope);
+		AuthenticationHandler authHandler = new GraphOAuthAuthenticationHandler(clientId, clientSecret, tokenUrl, scope);
 		authHandler.setMaxRetries(1);
 
 		Options options = new Options().defaultOptions()
