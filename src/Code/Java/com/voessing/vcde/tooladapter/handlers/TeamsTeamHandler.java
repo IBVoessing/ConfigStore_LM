@@ -85,7 +85,6 @@ public final class TeamsTeamHandler extends BaseHandler {
 	private String createToolInstance(Object input) throws Exception {
 
         Map<String, Object> params = (Map<String, Object>) input;
-        TNotesUtil.logEvent(input.toString());
 
         String email = params.get("email").toString();
         String displayName = params.getOrDefault("displayName", "").toString();
