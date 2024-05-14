@@ -18,12 +18,10 @@
     <import optional="true" plugin="com.ibm.notes.java.api"/>
     <import optional="true" plugin="com.ibm.xsp.rcp"/>
     <import optional="true" plugin="org.openntf.domino.xsp"/>
-    <import optional="true" plugin="com.voessing.ext.com.google.gson"/>
     <import optional="true" plugin="com.ibm.xsp.extlib"/>
     <import optional="true" plugin="com.voessing.ext.apache.velocity.plugin"/>
-    <import optional="true" plugin="com.voessing.ext.apache.httpclient5.plugin"/>
     <import optional="true" plugin="com.voessing.ext.apache_commons_io.plugin"/>
-    <import optional="true" plugin="com.voessing.ext.apache.httpclient_fluent.plugin"/>
+    <import optional="true" plugin="com.voessing.ext.httpclient.plugin"/>
     <!--AUTOGEN-END-BUILDER: End of automatically generated section-->
   </requires>
 </plugin>
