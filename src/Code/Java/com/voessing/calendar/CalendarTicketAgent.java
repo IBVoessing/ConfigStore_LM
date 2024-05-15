@@ -1,7 +1,6 @@
 package com.voessing.calendar;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,15 +8,16 @@ import java.util.stream.Collectors;
 import org.openntf.domino.Database;
 import org.openntf.domino.Document;
 import org.openntf.domino.DocumentCollection;
-import org.openntf.domino.Session;
-import org.openntf.domino.utils.Factory;
-import org.openntf.domino.utils.Factory.SessionType;
-
 import org.openntf.domino.NotesCalendar;
 import org.openntf.domino.NotesCalendarEntry;
+import org.openntf.domino.Session;
 import org.openntf.domino.View;
 import org.openntf.domino.ViewEntry;
 import org.openntf.domino.ViewEntryCollection;
+import org.openntf.domino.utils.Factory;
+import org.openntf.domino.utils.Factory.SessionType;
+
+import com.voessing.common.TNotesUtil;
 
 public class CalendarTicketAgent {
     
@@ -50,7 +50,7 @@ public class CalendarTicketAgent {
     public CalendarTicketAgent() {
         // SessionType.CURRENT = Current User Session
         // SessionType.NATIVE = Server Session 
-        serverAgentSession = Factory.getSession_unchecked(SessionType.CURRENT);
+        serverAgentSession = Factory.getSession(SessionType.CURRENT);
         //TODO: change hardcoded server name to session.getServerName()
         azeDb = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "AZEApp.nsf");
     } 
@@ -58,6 +58,7 @@ public class CalendarTicketAgent {
     public void processTickets() {
         List<CalendarTicket> openTickets = loadOpenTickets();
         System.out.println(openTickets.size() + " tickets loaded");
+        TNotesUtil.logEvent(generateICal(openTickets.get(0)));
         // for(CalendarTicket ticket : openTickets) {
         //     processTicket(ticket);
         //     System.out.println(ticket);
