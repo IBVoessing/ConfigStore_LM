@@ -1,5 +1,6 @@
 package com.voessing.calendar;
 
+import java.util.Calendar;
 import java.util.Date;
 import org.openntf.domino.Document;
 import org.openntf.domino.Item;
@@ -43,6 +44,24 @@ public class CalendarTicket {
         setDuration(ticket.getItemValueInteger("anzahlTage"));
     }
 
+    public boolean toBeDeleted(){
+        return state == State.CANCELLED || state == State.DENIED;
+    }
+
+    public boolean isBlocking() {
+        // If the state is created or the ticket is a half day event (not full day) or the type is MOBILE_WORK, it's not blocking
+        if (state == State.CREATED || (duration == 1 && !(startPhase == 0 && endPhase == 0)) || type == Type.MOBILE_WORK) {
+            return false;
+        }
+    
+        // If the type is VACATION, SPECIAL_VACATION, or FLEX_DAY, it's blocking
+        if (type == Type.VACATION || type == Type.SEPECIAL_VACATION || type == Type.FLEX_DAY) {
+            return true;
+        }
+    
+        throw new IllegalArgumentException("Unknown type: " + type);
+    }
+
     public String getTicketDocumentUnid() {
         return ticketDocumentUnid;
     }
@@ -56,7 +75,8 @@ public class CalendarTicket {
     }
 
     public String getTicketUid() {
-        return ticketUid;
+        // we need to remove : as this breaks the iCal format
+        return ticketUid.replace(":", "");
     }
 
     public void setTicketUid(String ticketUid) {
@@ -150,7 +170,12 @@ public class CalendarTicket {
     }
 
     public Date getEndDate() {
-        return endDate;
+        // Add one day to the end date as the end date is exclusive in iCal
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(endDate);
+        calendar.add(Calendar.DAY_OF_MONTH, 1);
+
+        return calendar.getTime();
     }
 
     public void setEndDate(Item endDate) {
