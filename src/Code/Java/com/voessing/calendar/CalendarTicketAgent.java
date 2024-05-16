@@ -129,7 +129,7 @@ public class CalendarTicketAgent {
     private List<CalendarTicket> loadOpenTickets() {
         // load all tickets from the database
         DocumentCollection tickets = azeDb.search(
-                "Form = \"CalendarTicket\" & AgentStatus != \"processed\" & Owner=\"CN=Reiner Hintzen/OU=GF/O=IBV/C=DE\"");
+                "Form = \"CalendarTicket\" & AgentStatus != \"processed\"");
         return tickets.stream().map(CalendarTicket::new).collect(Collectors.toList());
     }
 
