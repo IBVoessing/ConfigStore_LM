@@ -4,9 +4,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.openntf.domino.Database;
 import org.openntf.domino.Document;
+import org.openntf.domino.DocumentCollection;
 import org.openntf.domino.NotesCalendar;
 import org.openntf.domino.NotesCalendarEntry;
 import org.openntf.domino.Session;
@@ -18,7 +20,6 @@ import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
 import com.google.gson.JsonObject;
-import com.voessing.common.TNotesUtil;
 
 /**
  * The `CalendarTicketAgent` class represents an agent that processes calendar tickets.
@@ -127,16 +128,9 @@ public class CalendarTicketAgent {
      */
     private List<CalendarTicket> loadOpenTickets() {
         // load all tickets from the database
-//        DocumentCollection tickets = azeDb.search("Form = \"CalendarTicket\" & AgentStatus != \"processed\" & Owner=\"CN=Reiner Hintzen/OU=GF/O=IBV/C=DE\"");
-//        return tickets.stream().map(CalendarTicket::new).collect(Collectors.toList());
-    
-    	List<CalendarTicket> tickets = new ArrayList<>();
-    	Document test = azeDb.getDocumentByUNID("D93FF2C786B7D389C1258B1E0035E1B0");
-    	test.replaceItemValue("AgentStatus", "ahhh");
-        test.replaceItemValue("status", "G");
-    	test.save();
-    	tickets.add(new CalendarTicket(test));
-    	return tickets;
+        DocumentCollection tickets = azeDb.search(
+                "Form = \"CalendarTicket\" & AgentStatus != \"processed\" & Owner=\"CN=Reiner Hintzen/OU=GF/O=IBV/C=DE\"");
+        return tickets.stream().map(CalendarTicket::new).collect(Collectors.toList());
     }
 
     /**
@@ -245,13 +239,14 @@ public class CalendarTicketAgent {
             updateOrCreateCalendarEntry(userCalendar, entry, ticket);
         }
     }
+
     /**
- * Retrieves the user's mail database.
- * 
- * @param mailEntry the mail database entry of the user
- * @return the user's mail database
- * @throws IllegalArgumentException if the database could not be found
- */
+     * Retrieves the user's mail database.
+     * 
+     * @param mailEntry the mail database entry of the user
+     * @return the user's mail database
+     * @throws IllegalArgumentException if the database could not be found
+     */
     private Database getUserMailDatabase(MailDatabaseEntry mailEntry) {
         Database userMailDB = serverAgentSession.getDatabase(mailEntry.getMailServer(), mailEntry.getMailFile());
         if (userMailDB == null) {
