@@ -28,7 +28,7 @@ import com.google.gson.JsonObject;
  */
 public class CalendarTicketAgent {
     
-    private static final int MAX_RETRIES = 3; // maximum number of retries for a failed ticket
+    private static final int MAX_RETRIES = 1; // maximum number of retries for a failed ticket
     private static final String SUCCESS_STATUS = "processed";
     private static final String ERROR_STATUS = "error";
     private static final String MAX_RETRY_STATUS = "max_retries";
@@ -155,7 +155,7 @@ public class CalendarTicketAgent {
      */
     private void processTicket(CalendarTicket ticket) {
 
-        if (ticket.getRetries() >= MAX_RETRIES) {
+        if (ticket.getRetries() > MAX_RETRIES) {
             logFailedTicket(ticket, "Max retries reached");
             updateTicketStatus(ticket, MAX_RETRY_STATUS, "Maximum number of retries reached");
             return;
