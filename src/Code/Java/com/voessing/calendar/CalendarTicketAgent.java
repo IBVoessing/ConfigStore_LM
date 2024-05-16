@@ -28,6 +28,11 @@ import com.google.gson.JsonObject;
  */
 public class CalendarTicketAgent {
     
+    private static final int MAX_RETRIES = 3; // maximum number of retries for a failed ticket
+    private static final String SUCCESS_STATUS = "processed";
+    private static final String ERROR_STATUS = "error";
+    private static final String MAX_RETRY_STATUS = "max_retries";
+
     Session serverAgentSession;
     Database azeDb;
 
@@ -121,15 +126,15 @@ public class CalendarTicketAgent {
      * 
      * <p>
      * This method performs a search in the database for documents that have the
-     * form 'CalendarTicket', have not been processed. Each document is
-     * then converted into a {@link CalendarTicket} object.
+     * form 'CalendarTicket', have not been successfully processed. Each document is
+     * then converted into a {@link CalendarTicket} object. 
      * 
      * @return a list of open {@link CalendarTicket} objects
      */
     private List<CalendarTicket> loadOpenTickets() {
-        // load all tickets from the database
+        // load all tickets from the database that have not been successfully processed
         DocumentCollection tickets = azeDb.search(
-                "Form = \"CalendarTicket\" & AgentStatus != \"processed\"");
+                "Form = \"CalendarTicket\" & AgentStatus != \"" + SUCCESS_STATUS + "\" & AgentStatus != \"" + MAX_RETRY_STATUS + "\"");
         return tickets.stream().map(CalendarTicket::new).collect(Collectors.toList());
     }
 
@@ -149,11 +154,18 @@ public class CalendarTicketAgent {
      * @param ticket the calendar ticket to be processed
      */
     private void processTicket(CalendarTicket ticket) {
+
+        if (ticket.getRetries() >= MAX_RETRIES) {
+            logFailedTicket(ticket, "Max retries reached");
+            updateTicketStatus(ticket, MAX_RETRY_STATUS, "Maximum number of retries reached");
+            return;
+        }
+        
         try {
             MailDatabaseEntry mailEntry = getUserMailEntry(ticket.getRequester());
             manageCalendarEntry(mailEntry, ticket);
 
-            updateTicketStatus(ticket, true, null);
+            updateTicketStatus(ticket, SUCCESS_STATUS, null);
             logProcessedTicket(ticket);
         } catch (Exception e) {
             handleTicketError(e, ticket);
@@ -207,9 +219,9 @@ public class CalendarTicketAgent {
      * @param errorMsg a string containing any error message associated with the
      *                 ticket processing
      */
-    private void updateTicketStatus(CalendarTicket ticket, boolean success, String errorMsg) {
+    private void updateTicketStatus(CalendarTicket ticket, String status, String errorMsg) {
         Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
-        ticketDoc.replaceItemValue("AgentStatus", success ? "processed" : "error");
+        ticketDoc.replaceItemValue("AgentStatus", status);
         ticketDoc.replaceItemValue("AgentError", errorMsg);
         ticketDoc.save();
     }
@@ -466,7 +478,7 @@ public class CalendarTicketAgent {
 
         if (ticketDoc != null) {
             // try to update the ticket document with the error message
-            updateTicketStatus(ticket, false, logErrMsg);
+            updateTicketStatus(ticket, ERROR_STATUS, logErrMsg);
         } else {
             // if the ticket document is not available, escalate the error
             throw new RuntimeException(e);

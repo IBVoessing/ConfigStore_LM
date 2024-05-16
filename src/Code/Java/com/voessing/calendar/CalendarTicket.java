@@ -20,6 +20,8 @@ public class CalendarTicket {
 
     private int duration;
 
+    private int retries;
+
     public static enum State {
         APPROVED, CREATED, CANCELLED, DENIED;
     }
@@ -42,6 +44,7 @@ public class CalendarTicket {
         setEndPhase(ticket.getItemValueInteger("endlage"));
 
         setDuration(ticket.getItemValueInteger("anzahlTage"));
+        setRetries(ticket.getItemValueInteger("AgentRetryCount"));
     }
 
     public boolean toBeDeleted(){
@@ -220,6 +223,14 @@ public class CalendarTicket {
         }
         
         this.duration = duration;
+    }
+
+    public int getRetries() {
+        return retries;
+    }
+
+    public void setRetries(int retries) {
+        this.retries = retries;
     }
 
     @Override 
