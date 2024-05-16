@@ -223,6 +223,11 @@ public class CalendarTicketAgent {
         Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
         ticketDoc.replaceItemValue("AgentStatus", status);
         ticketDoc.replaceItemValue("AgentError", errorMsg);
+
+        if(status.equals(ERROR_STATUS)){
+            ticketDoc.replaceItemValue("AgentRetryCount", ticket.getRetries() + 1);
+        }
+
         ticketDoc.save();
     }
 
