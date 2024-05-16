@@ -404,6 +404,7 @@ public class CalendarTicketAgent {
      *                          opened
      */
     private Database getNamesDatabase() {
+        //TODO: change hardcoded server name to session.getServerName()
         Database namesDB = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "names.nsf");
         if (namesDB == null) {
             throw new RuntimeException("Could not find or open the names.nsf database");
