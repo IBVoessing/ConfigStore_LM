@@ -133,7 +133,7 @@ public class CalendarTicketAgent {
     	List<CalendarTicket> tickets = new ArrayList<>();
     	Document test = azeDb.getDocumentByUNID("D93FF2C786B7D389C1258B1E0035E1B0");
     	test.replaceItemValue("AgentStatus", "ahhh");
-        test.replaceItemValue("status", "G");
+        test.replaceItemValue("status", "E");
     	test.save();
     	tickets.add(new CalendarTicket(test));
     	return tickets;
@@ -163,7 +163,6 @@ public class CalendarTicketAgent {
             logProcessedTicket(ticket);
         } catch (Exception e) {
             handleTicketError(e, ticket);
-            logFailedTicket(ticket, e.getMessage());
         }
     }
 
@@ -240,19 +239,38 @@ public class CalendarTicketAgent {
         NotesCalendar userCalendar = getUserCalendar(userMailDB);
         NotesCalendarEntry entry = getCalendarEntry(userCalendar, ticket);
 
-        if (ticket.toBeDeleted()) {
-            deleteCalendarEntry(entry);
-        } else {
-            updateOrCreateCalendarEntry(userCalendar, entry, ticket);
+        // due to rights issues we can not determine if the entry is valid or not
+        // so we just try to remove it and create a new one (if the ticket should create or update an entry)
+        safeRemove(entry);
+
+        if(!ticket.toBeDeleted()) {
+            userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
+        } 
+    }
+
+/**
+ * Safely removes a calendar entry.
+ * 
+ * <p>
+ * This method attempts to remove a calendar entry. If an exception occurs
+ * during the removal, nothing happens. (Part of the dirty workaround)
+ * 
+ * @param entry the calendar entry to be removed
+ */
+private void safeRemove(NotesCalendarEntry entry) {
+    try {
+        entry.remove();
+    } catch (Exception e) {
         }
     }
+
     /**
- * Retrieves the user's mail database.
- * 
- * @param mailEntry the mail database entry of the user
- * @return the user's mail database
- * @throws IllegalArgumentException if the database could not be found
- */
+     * Retrieves the user's mail database.
+     * 
+     * @param mailEntry the mail database entry of the user
+     * @return the user's mail database
+     * @throws IllegalArgumentException if the database could not be found
+     */
     private Database getUserMailDatabase(MailDatabaseEntry mailEntry) {
         Database userMailDB = serverAgentSession.getDatabase(mailEntry.getMailServer(), mailEntry.getMailFile());
         if (userMailDB == null) {
@@ -280,73 +298,6 @@ public class CalendarTicketAgent {
      */
     private NotesCalendarEntry getCalendarEntry(NotesCalendar userCalendar, CalendarTicket ticket) {
         return userCalendar.getEntry(ticket.getTicketUid());
-    }
-
-    /**
-     * Deletes a calendar entry.
-     * 
-     * @param entry the calendar entry to be deleted
-     * @throws IllegalArgumentException if the entry to be deleted could not be
-     *                                  found
-     */
-    private void deleteCalendarEntry(NotesCalendarEntry entry) {
-        if (!isEntryValid(entry)) {
-            throw new IllegalArgumentException("Entry to be deleted not found");
-        }
-
-        entry.remove();
-    }
-
-    /**
-     * Updates an existing calendar entry or creates a new one based on the provided
-     * ticket.
-     * 
-     * @param userCalendar the user's calendar
-     * @param entry        the calendar entry to be updated, or null if a new entry
-     *                     should be created
-     * @param ticket       the calendar ticket that dictates how the calendar entry
-     *                     should be updated or created
-     */
-    private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry, CalendarTicket ticket) {
-        if (isEntryValid(entry)) {
-            entry.update(generateICal(ticket), "Anfrag wurde aktualisiert",
-                    NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING +
-                            NotesCalendar.CS_WRITE_MODIFY_LITERAL);
-        } else {
-            userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
-        }
-    }
-
-    /**
-     * Checks if a calendar entry is valid.
-     * 
-     * <p>
-     * This method attempts to read the provided calendar entry. If the read
-     * operation throws an exception,
-     * the method returns false, indicating that the entry is not valid. If the read
-     * operation is successful,
-     * the method returns true, indicating that the entry is valid.
-     * <p>
-     * 
-     * <p>
-     * (YES this is the way to check if an entry is valid or not! ASK HCL!!!)
-     * <p>
-     * Note: BubbleExceptions must be turned on! Otherwise, you only get a warning
-     * in the console.
-     * 
-     * @param entry the calendar entry to be checked
-     * @return true if the entry can be successfully read, false otherwise
-     */
-    private boolean isEntryValid(NotesCalendarEntry entry) {
-        try {
-            // use the entry to determine if it is valid
-            // BubbleExceptions must be turned on! otherwise you only get an warning in the
-            // console
-            entry.read();
-        } catch (Exception e) {
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -457,13 +408,17 @@ public class CalendarTicketAgent {
      */
     private void handleTicketError(Exception e, CalendarTicket ticket) {
 
-        consoleLog("Error processing ticket " + ticket.getTicketDocumentUnid() + ": " + e.getMessage());
+        String errorLogMsg = "Error type:" + e.getClass() + "Error msg:" + e.getMessage();
+
+        logFailedTicket(ticket, errorLogMsg);
+
+        consoleLog("Error processing ticket " + ticket.getTicketDocumentUnid() + ": " + errorLogMsg);
 
         Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
 
         if (ticketDoc != null) {
             // try to update the ticket document with the error message
-            updateTicketStatus(ticket, false, e.getMessage());
+            updateTicketStatus(ticket, false, errorLogMsg);
         } else {
             // if the ticket document is not available, escalate the error
             throw new RuntimeException(e);
