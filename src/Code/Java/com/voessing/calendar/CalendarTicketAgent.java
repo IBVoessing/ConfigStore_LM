@@ -163,7 +163,6 @@ public class CalendarTicketAgent {
             logProcessedTicket(ticket);
         } catch (Exception e) {
             handleTicketError(e, ticket);
-            logFailedTicket(ticket, e.getMessage());
         }
     }
 
@@ -290,10 +289,8 @@ public class CalendarTicketAgent {
      *                                  found
      */
     private void deleteCalendarEntry(NotesCalendarEntry entry) {
-        if (!isEntryValid(entry)) {
-            throw new IllegalArgumentException("Entry to be deleted not found");
-        }
-
+        // as can check if entry is valid just delete it
+        // if entry is not valid, an exception is thrown and written back to the ticket doc
         entry.remove();
     }
 
@@ -308,16 +305,21 @@ public class CalendarTicketAgent {
      *                     should be updated or created
      */
     private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry, CalendarTicket ticket) {
-        if (isEntryValid(entry)) {
+        // we can´t check if an entry is valid or not, so we just try to update it
+        try {
             entry.update(generateICal(ticket), "Anfrag wurde aktualisiert",
                     NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING +
                             NotesCalendar.CS_WRITE_MODIFY_LITERAL);
-        } else {
+        } catch (Exception e) {
+            // if the entry does not exist, create a new one
             userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
         }
     }
 
-    /**
+    /**<p>
+     * (CURRENTLY NOT WORKING! WHY MISTA VISTALLI????)
+     * <p>
+     * 
      * Checks if a calendar entry is valid.
      * 
      * <p>
@@ -337,6 +339,7 @@ public class CalendarTicketAgent {
      * @param entry the calendar entry to be checked
      * @return true if the entry can be successfully read, false otherwise
      */
+    @Deprecated
     private boolean isEntryValid(NotesCalendarEntry entry) {
         try {
             // use the entry to determine if it is valid
@@ -457,13 +460,17 @@ public class CalendarTicketAgent {
      */
     private void handleTicketError(Exception e, CalendarTicket ticket) {
 
-        consoleLog("Error processing ticket " + ticket.getTicketDocumentUnid() + ": " + e.getMessage());
+        String logErrMsg = "Exception Class: " + e.getClass().getName() + " Cause: " + e.getCause() + " Message: " + e.getMessage();
+
+        logFailedTicket(ticket, logErrMsg);
+
+        consoleLog("Error processing ticket " + ticket.getTicketDocumentUnid() + ": " + logErrMsg);
 
         Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
 
         if (ticketDoc != null) {
             // try to update the ticket document with the error message
-            updateTicketStatus(ticket, false, e.getMessage());
+            updateTicketStatus(ticket, false, logErrMsg);
         } else {
             // if the ticket document is not available, escalate the error
             throw new RuntimeException(e);
