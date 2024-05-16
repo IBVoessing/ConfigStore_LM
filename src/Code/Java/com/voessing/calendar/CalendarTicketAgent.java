@@ -4,20 +4,20 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.openntf.domino.Database;
 import org.openntf.domino.Document;
-import org.openntf.domino.DocumentCollection;
 import org.openntf.domino.NotesCalendar;
 import org.openntf.domino.NotesCalendarEntry;
 import org.openntf.domino.Session;
 import org.openntf.domino.View;
 import org.openntf.domino.ViewEntry;
 import org.openntf.domino.ViewEntryCollection;
+import org.openntf.domino.utils.DominoUtils;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
+import com.google.gson.JsonObject;
 import com.voessing.common.TNotesUtil;
 
 /**
@@ -29,6 +29,11 @@ public class CalendarTicketAgent {
     
     Session serverAgentSession;
     Database azeDb;
+
+    // report variables
+    private int processedTickets, failedTickets;
+    private List<String> failedTicketsList = new ArrayList<>();
+
 
     private static final String logPrefix = "CalendarTicketAgent:";
 
@@ -61,7 +66,30 @@ public class CalendarTicketAgent {
         serverAgentSession = Factory.getSession(SessionType.CURRENT);
         //TODO: change hardcoded server name to session.getServerName()
         azeDb = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "AZEApp.nsf");
-    } 
+        // important as otherwise we don´t get the error when checking if a NotesCalendarEntry is valid or not
+        DominoUtils.setBubbleExceptions(true);
+    }
+    
+    /**
+     * Generates a report of the processed and failed tickets.
+     * 
+     * <p>
+     * This method creates a JSON object that contains the number of processed
+     * tickets, the number of failed tickets,
+     * and a list of failed tickets. The JSON object is then converted into a string
+     * and returned.
+     * 
+     * @return a string representation of a JSON object containing the report
+     */
+    public String getReport() {
+        JsonObject report = new JsonObject();
+
+        report.addProperty("processedTickets", processedTickets);
+        report.addProperty("failedTickets", failedTickets);
+        report.addProperty("failedTicketsList", failedTicketsList.toString());
+
+        return report.toString();
+    }
 
     /**
      * This is the core method that initiates the entire process of processing
@@ -82,6 +110,9 @@ public class CalendarTicketAgent {
         for(CalendarTicket ticket : openTickets) {
             processTicket(ticket);
         }
+
+        consoleLog("Processing complete");
+        consoleLog(getReport());
     }
 
     /**
@@ -127,10 +158,44 @@ public class CalendarTicketAgent {
         try {
             MailDatabaseEntry mailEntry = getUserMailEntry(ticket.getRequester());
             manageCalendarEntry(mailEntry, ticket);
+
             updateTicketStatus(ticket, true, null);
+            logProcessedTicket(ticket);
         } catch (Exception e) {
             handleTicketError(e, ticket);
+            logFailedTicket(ticket, e.getMessage());
         }
+    }
+
+    /**
+     * Logs the successful processing of a calendar ticket.
+     * 
+     * <p>
+     * This method increments the count of processed tickets, and logs a success
+     * message to the console.
+     * 
+     * @param ticket the calendar ticket that was successfully processed
+     */
+    private void logProcessedTicket(CalendarTicket ticket) {
+        processedTickets++;
+        consoleLog("Ticket " + ticket.getTicketDocumentUnid() + " processed successfully");
+    }
+
+    /**
+     * Logs the failure of processing a calendar ticket.
+     * 
+     * <p>
+     * This method increments the count of failed tickets, logs an error message to
+     * the console, and adds the error message to a list of failed tickets.
+     * 
+     * @param ticket   the calendar ticket that failed to be processed
+     * @param errorMsg the error message associated with the failure
+     */
+    private void logFailedTicket(CalendarTicket ticket, String errorMsg) {
+        failedTickets++;
+        String msg = "Ticket " + ticket.getTicketDocumentUnid() + " failed: " + errorMsg;
+        consoleLog(msg);
+        failedTicketsList.add(msg);
     }
 
     /**
@@ -225,9 +290,10 @@ public class CalendarTicketAgent {
      *                                  found
      */
     private void deleteCalendarEntry(NotesCalendarEntry entry) {
-        if (entry == null) {
+        if (!isEntryValid(entry)) {
             throw new IllegalArgumentException("Entry to be deleted not found");
         }
+
         entry.remove();
     }
 
@@ -241,16 +307,46 @@ public class CalendarTicketAgent {
      * @param ticket       the calendar ticket that dictates how the calendar entry
      *                     should be updated or created
      */
-    private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry,
-            CalendarTicket ticket) {
-        if (entry != null) {
-
+    private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry, CalendarTicket ticket) {
+        if (isEntryValid(entry)) {
             entry.update(generateICal(ticket), "Anfrag wurde aktualisiert",
                     NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING +
                             NotesCalendar.CS_WRITE_MODIFY_LITERAL);
         } else {
             userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
         }
+    }
+
+    /**
+     * Checks if a calendar entry is valid.
+     * 
+     * <p>
+     * This method attempts to read the provided calendar entry. If the read
+     * operation throws an exception,
+     * the method returns false, indicating that the entry is not valid. If the read
+     * operation is successful,
+     * the method returns true, indicating that the entry is valid.
+     * <p>
+     * 
+     * <p>
+     * (YES this is the way to check if an entry is valid or not! ASK HCL!!!)
+     * <p>
+     * Note: BubbleExceptions must be turned on! Otherwise, you only get a warning
+     * in the console.
+     * 
+     * @param entry the calendar entry to be checked
+     * @return true if the entry can be successfully read, false otherwise
+     */
+    private boolean isEntryValid(NotesCalendarEntry entry) {
+        try {
+            // use the entry to determine if it is valid
+            // BubbleExceptions must be turned on! otherwise you only get an warning in the
+            // console
+            entry.read();
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -278,7 +374,6 @@ public class CalendarTicketAgent {
         iCal.append("DESCRIPTION:").append(ticket.getTitle()).append("\n");
         iCal.append("END:VEVENT\n");
         iCal.append("END:VCALENDAR\n");
-        TNotesUtil.logEvent(iCal.toString());
         return iCal.toString();
     }
 
