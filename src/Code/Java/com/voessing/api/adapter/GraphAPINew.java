@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.voessing.api.adapter.auth.GraphOAuthAuthenticationHandler;
+import com.voessing.common.TNotesUtil;
 import com.voessing.common.TVAppCredStore;
 import com.voessing.common.http.HttpClient;
 import com.voessing.common.http.Options;
@@ -148,15 +149,14 @@ public class GraphAPINew {
 	 *                                 fetch
 	 */
 	public List<Response> getEntirePagedResource(String url) throws IOException, AuthenticationException {
-		int maxPages = 100;
 		List<Response> responses = new ArrayList<>();
 
 		while (true) {
-			Response response = client.fetch(url);
+			Response response = client.fetch(url.replace("https://graph.microsoft.com/beta", ""));
 			responses.add(response);
 
 			JsonObject content = response.parseWithGSON().getAsJsonObject();
-			if (!content.has(NEXT_PAGE_URL_FIELD) || maxPages-- <= 0) {
+			if (!content.has(NEXT_PAGE_URL_FIELD)) {
 				break;
 			}
 
