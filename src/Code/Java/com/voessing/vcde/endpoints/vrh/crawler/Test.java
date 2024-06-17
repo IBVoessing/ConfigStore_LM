@@ -1,37 +1,77 @@
 package com.voessing.vcde.endpoints.vrh.crawler;
 
-import java.util.List;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.openntf.domino.utils.Factory;
-import org.openntf.domino.utils.Factory.SessionType;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.jose4j.lang.JoseException;
 
-import com.google.gson.JsonArray;
-import com.ibm.domino.xsp.module.nsf.NotesContext;
-import com.voessing.api.adapter.GraphAPINew;
-import com.voessing.api.adapter.GraphAPINew.GraphUtil;
-import com.voessing.calendar.CalendarTicketAgent;
-import com.voessing.common.TNotesUtil;
-import com.voessing.common.http.Response;
 import com.voessing.xapps.utils.vrh.configs.VrhResourceHandlerConfig;
 import com.voessing.xapps.utils.vrh.handler.VrhHttpHandler;
 
-import lotus.domino.Database;
-import lotus.domino.NotesCalendar;
-import lotus.domino.NotesCalendarEntry;
-import lotus.domino.NotesException;
-import lotus.domino.Session;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import nl.martijndwars.webpush.Encoding;
+import nl.martijndwars.webpush.Notification;
+import nl.martijndwars.webpush.PushService;
+import nl.martijndwars.webpush.Subscription;
+import nl.martijndwars.webpush.Subscription.Keys;
 
 
 
 public class Test extends VrhHttpHandler {
+	
+    private static final String publicKey = "BOa7SIqFD8eLsxmSTpe1xebkai_TNYYXvXJxO_Q3jLpe38Q8gJVLgUHF0dP1gxzAK5IuQpDJs6gp2EYC-z5KX_0";
+    private static final String privateKey = "AIm9uJh2mDwpsoaKxj3AmTwSTDRSQmRpr_OjM--VMbc";
+    private static final String notificationSubject = "mailto:leonardo.malzacher@voessing.de";
+
+    
+    public static void sendPushMessage(Subscription sub, String payload)
+            throws GeneralSecurityException, IOException, JoseException, ExecutionException, InterruptedException {
+
+        Notification notification;
+        PushService pushService = pushService();
+
+        // Create a notification with the endpoint, userPublicKey from the subscription
+        // and a custom payload
+        notification = new Notification(sub, payload);
+
+        // Send the notification
+        
+        HttpPost post = pushService.preparePost(notification, Encoding.AES128GCM);
+        
+        CloseableHttpClient client = HttpClientBuilder.create().build();
+        client.execute(post);
+        
+        //pushService.send(notification);
+    }
+    
+    public static PushService pushService() throws GeneralSecurityException {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            System.out.println("Security provider:" + Security.getProvider(BouncyCastleProvider.PROVIDER_NAME));
+        	Security.addProvider(new BouncyCastleProvider());
+        }
+        System.out.println("Security provider:" + Security.getProvider(BouncyCastleProvider.PROVIDER_NAME));
+        PushService ps = new PushService();
+
+        ps.setSubject(notificationSubject);
+        ps.setPrivateKey(privateKey);
+        ps.setPublicKey(publicKey);
+        
+        return ps;
+        //return new PushService(publicKey, privateKey, notificationSubject);
+    }
 
 	@Override
 	protected VrhResourceHandlerConfig provideConfig(VrhResourceHandlerConfig initialConfig,
@@ -42,77 +82,29 @@ public class Test extends VrhHttpHandler {
 
 	@Override
 	protected String doGet(HttpServletRequest request) throws Exception {
-
-		CalendarTicketAgent cta = new CalendarTicketAgent();
-		cta.processTickets();
-		// testCalendarCreation();
-
-		return "";
+		return "bob";		
 	}
-
-	private void testCalendarCreation() {
-		try {
-			//Session session = Factory.getSession(SessionType.NATIVE);
-			Session session = NotesContext.getCurrent().getCurrentSession();
-			//Database db = session.getDatabase("CN=mail1-voessing.dom001-ce.cloud-y.com/OU=SCY/O=IBV/C=DE","mail0/2000004851.nsf");
-			Database db = session.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "mail/tentwic.nsf");
-					
-			System.out.println("User => " + session.getEffectiveUserName());
-			System.out.println("DB => " + db);
-			System.out.println("DB Open? => " + db.isOpen());
-			System.out.println("DB.getCurretnAccessLevel: " + db.getCurrentAccessLevel());
-			
-			
-			NotesCalendar nc = session.getCalendar(db);
-
-			//try to create a new entry
-			//NotesCalendarEntry nceNew = nc.createEntry(generateICal());
-//			NotesCalendarEntry nceNew = nc.getEntryByUNID("FC4FDBB8B81DD84A731B6FDFC809D9FD");
-//			nceNew.update(generateICal());
-//			System.out.println("Entry => " + nceNew);
-//			System.out.println("Entry UID => " + nceNew.getUID());
-//			System.out.println("Entry READ => " + nceNew.read());
-//			System.out.println("Entry AS DOCUMENT => " + nceNew.getAsDocument());
-
-			// // this uid does not exist ffs
-			// NotesCalendarEntry nce = nc.getEntryByUNID("985F6C908E726BDB96650EAD67684CDE");
-
-			// System.out.println("Entry => " + nce);
-			// System.out.println(db.getDocumentByUNID("985F6C908E726BDB96650EAD67684CDE"));
-			// //nce.remove();
-			// //System.out.println("did remove work??");
-			// //nce.update(generateICal());
-			// //System.out.println("did updating a not existing entry work=?=?");
-			// // das schmeißt exception
-			// System.out.println(nce.getAsDocument());
-			// // das auch 
-			// System.out.println(nce.read());
-		} catch (Exception e) {
-			System.out.println("Error => " + e.getMessage());
-			throw new RuntimeException(e);
-		}
-
-	}
-	
-    private String generateICal() {
-        StringBuilder iCal = new StringBuilder();
-        iCal.append("BEGIN:VCALENDAR\n");
-        iCal.append("PRODID:AZE Import\n");
-        iCal.append("BEGIN:VEVENT\n");
-        iCal.append("UID:testUID123").append("\n");
-        iCal.append("DTSTART:20240509").append("\n");
-        iCal.append("DTEND:20240528").append("\n");
-        iCal.append("SUMMARY:WeeWuu").append("\n");
-        iCal.append("DESCRIPTION:WeeWuu").append("\n");
-        iCal.append("END:VEVENT\n");
-        iCal.append("END:VCALENDAR\n");
-        TNotesUtil.logEvent(iCal.toString());
-        return iCal.toString();
-    }
 
 	@Override
 	protected String doPost(HttpServletRequest request) throws Exception {
+//		Session session = Factory.getSession(SessionType.NATIVE);
+//		session.boogie();
+//		getRequestPayload(request);
+//		TNotesUtil.logEvent(capturedPayloadRaw);
+		System.out.println("Hello world!");
 
+		Subscription sub = new Subscription();
+        Keys keys = new Keys("BGiAF0Y6fOhlhUfWC5Mk_iHdxZdQImwrMnSeAmJBeBf7k-OmLpWtuujNzOrIpPP2B-eebYQT1o6ijPvWGUY-cyU",
+                "qT4CmPEisLw573fsz2LF3g");
+        sub.endpoint = "https://updates.push.services.mozilla.com/wpush/v2/gAAAAABmUF9hcHlI_iMCR_7NKlXLkB_kKQ0mW3eaU7RV3kr4dvTH3EGMav918H5hf8V42BwZWgztHJxzeEuxi_48NnfHbbzdccBO7M7-v1cKZjn2OSFfkcG6OgQZPZVzpwaomOY3WGxzlmsNprvp92-aFqY1i4bZ6WrBuqTZl0vF9beOvWgkQvg";
+        sub.keys = keys;
+
+        String jsonString = "{"
+                + "\"title\" : \"New Teams Team\","
+                + "\"message\": \"A Microsoft Teams Team has been added to your Project \\\"Informationstechnik\\\" 0063\""
+                + "}";
+
+        sendPushMessage(sub, jsonString);
 		return "skfjaskjfklsajfljasdf";
 	}
 
