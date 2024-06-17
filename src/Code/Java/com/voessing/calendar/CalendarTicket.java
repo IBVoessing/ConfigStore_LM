@@ -6,6 +6,7 @@ import org.openntf.domino.Document;
 import org.openntf.domino.Item;
 
 public class CalendarTicket {
+
     private String ticketDocumentUnid;
     private String ticketUid;
     private String title;
@@ -237,5 +238,5 @@ public class CalendarTicket {
     public String toString(){
         return "CalendarTicket [ticketDocumentUnid=" + ticketDocumentUnid + ", ticketUid=" + ticketUid + ", title=" + title + ", type=" + type + ", state=" + state + ", requester=" + requester + ", startDate=" + startDate + ", endDate=" + endDate + ", startPhase=" + startPhase + ", endPhase=" + endPhase + ", duration=" + duration + "]";
     }
-
+	
 }

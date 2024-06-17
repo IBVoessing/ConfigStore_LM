@@ -4,38 +4,37 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.openntf.domino.Database;
 import org.openntf.domino.Document;
-import org.openntf.domino.DocumentCollection;
 import org.openntf.domino.NotesCalendar;
 import org.openntf.domino.NotesCalendarEntry;
 import org.openntf.domino.Session;
 import org.openntf.domino.View;
 import org.openntf.domino.ViewEntry;
 import org.openntf.domino.ViewEntryCollection;
+import org.openntf.domino.ext.Session.Fixes;
 import org.openntf.domino.utils.DominoUtils;
 import org.openntf.domino.utils.Factory;
 import org.openntf.domino.utils.Factory.SessionType;
 
 import com.google.gson.JsonObject;
+import com.voessing.common.TNotesUtil;
 
-/**
- * The `CalendarTicketAgent` class represents an agent that processes calendar tickets.
- * It provides methods to load open tickets, process each ticket individually, and manage calendar entries associated with the tickets.
- * This class interacts with a database to retrieve and update ticket information.
- */
 public class CalendarTicketAgent {
-    
+
     private static final int MAX_RETRIES = 1; // maximum number of retries for a failed ticket
     private static final String SUCCESS_STATUS = "processed";
     private static final String ERROR_STATUS = "error";
     private static final String MAX_RETRY_STATUS = "max_retries";
 
-    Session serverAgentSession;
-    Database azeDb;
+    private Session serverAgentSession;
+    private Database azeDb, namesDB;
+    private View userView;
 
+    //temp
+    private ArrayList<String> allowed = new ArrayList<>();
+    
     // report variables
     private int processedTickets, failedTickets;
     private List<String> failedTicketsList = new ArrayList<>();
@@ -70,10 +69,32 @@ public class CalendarTicketAgent {
         // SessionType.CURRENT = Current User Session
         // SessionType.NATIVE = Server Session 
         serverAgentSession = Factory.getSession(SessionType.CURRENT);
-        //TODO: change hardcoded server name to session.getServerName()
-        azeDb = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "AZEApp.nsf");
+        serverAgentSession.setFixEnable(Fixes.PEDANTIC_GC_TRACKING, true);
+
+        //TEST:  hardcoded server name
+        //azeDb = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "AZEApp.nsf");
+        azeDb = serverAgentSession.getCurrentDatabase();
+        
         // important as otherwise we don´t get the error when checking if a NotesCalendarEntry is valid or not
         DominoUtils.setBubbleExceptions(true);
+        
+        
+        //bis zur VÖ zulassen für bestimmte Namen
+        allowed.add("CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE");
+        allowed.add("CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Reiner Hintzen/OU=GF/O=IBV/C=DE");
+        allowed.add("CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Erik Lukas Der/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Niklas Der/OU=GF/O=IBV/C=DE");
+        
+        allowed.add("CN=Stefan Iven/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Klaus Gross/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Torsten Hering/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Farid Rafii/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        
+        allowed.add("CN=Bernd Gewehr/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
+        allowed.add("CN=Andrea Brueggemann/OU=IT/OU=GF/O=IBV/C=DE");
+        
     }
     
     /**
@@ -112,8 +133,8 @@ public class CalendarTicketAgent {
     public void processTickets() {
         List<CalendarTicket> openTickets = loadOpenTickets();
         consoleLog(openTickets.size() + " tickets loaded");
-        
-        for(CalendarTicket ticket : openTickets) {
+
+        for (CalendarTicket ticket : openTickets) {
             processTicket(ticket);
         }
 
@@ -125,7 +146,7 @@ public class CalendarTicketAgent {
      * Loads all open calendar tickets from the database.
      * 
      * <p>
-     * This method performs a search in the database for documents that have the
+     * This method uses a view that performs a search in the database for documents that have the
      * form 'CalendarTicket', have not been successfully processed. Each document is
      * then converted into a {@link CalendarTicket} object. 
      * 
@@ -133,9 +154,17 @@ public class CalendarTicketAgent {
      */
     private List<CalendarTicket> loadOpenTickets() {
         // load all tickets from the database that have not been successfully processed
-        DocumentCollection tickets = azeDb.search(
-                "Form = \"CalendarTicket\" & AgentStatus != \"" + SUCCESS_STATUS + "\" & AgentStatus != \"" + MAX_RETRY_STATUS + "\"");
-        return tickets.stream().map(CalendarTicket::new).collect(Collectors.toList());
+    	// we use a view to ensure to process the tickets in creation order (asc)
+        View sortedTicketsAsc = azeDb.getView("(LookupAZETicketsAsc)");
+        ViewEntryCollection vec = sortedTicketsAsc.getAllEntries();
+
+        List<CalendarTicket> result = new ArrayList<>();
+
+        for (ViewEntry ve : vec) {
+            result.add(new CalendarTicket(ve.getDocument()));
+        }
+
+        return result;
     }
 
     /**
@@ -160,7 +189,7 @@ public class CalendarTicketAgent {
             updateTicketStatus(ticket, MAX_RETRY_STATUS, "Maximum number of retries reached");
             return;
         }
-        
+
         try {
             MailDatabaseEntry mailEntry = getUserMailEntry(ticket.getRequester());
             manageCalendarEntry(mailEntry, ticket);
@@ -246,8 +275,13 @@ public class CalendarTicketAgent {
      *                  should be managed
      */
     private void manageCalendarEntry(MailDatabaseEntry mailEntry, CalendarTicket ticket) {
+
         Database userMailDB = getUserMailDatabase(mailEntry);
         NotesCalendar userCalendar = getUserCalendar(userMailDB);
+
+        // TODO: Aktivieren für echte Verarbeitung
+        // if (allowed.contains(ticket.getRequester())) {
+
         NotesCalendarEntry entry = getCalendarEntry(userCalendar, ticket);
 
         if (ticket.toBeDeleted()) {
@@ -255,6 +289,9 @@ public class CalendarTicketAgent {
         } else {
             updateOrCreateCalendarEntry(userCalendar, entry, ticket);
         }
+
+        //}
+        
     }
 
     /**
@@ -351,7 +388,8 @@ public class CalendarTicketAgent {
      * @param entry the calendar entry to be checked
      * @return true if the entry can be successfully read, false otherwise
      */
-    @Deprecated
+    @SuppressWarnings("unused")
+	@Deprecated
     private boolean isEntryValid(NotesCalendarEntry entry) {
         try {
             // use the entry to determine if it is valid
@@ -387,10 +425,32 @@ public class CalendarTicketAgent {
         iCal.append("DTEND:").append(formatDate(ticket.getEndDate())).append("\n");
         iCal.append("SUMMARY:").append(ticket.getTitle()).append("\n");
         iCal.append("DESCRIPTION:").append(ticket.getTitle()).append("\n");
+        iCal.append("CATEGORIES:").append(getICalCategory(ticket)).append("\n");
         iCal.append("END:VEVENT\n");
         iCal.append("END:VCALENDAR\n");
         return iCal.toString();
     }
+    
+    /**
+     * Returns the iCalendar category based on the type of the given CalendarTicket.
+     *
+     * @param ticket The CalendarTicket for which the category is to be determined.
+     * @return The category as a String. Possible values are "Mobile Arbeit", "Gleittag", and "Urlaub".
+     * @throws RuntimeException if the CalendarTicket type is not one of MOBILE_WORK, FLEX_DAY, VACATION, or SPECIAL_VACATION.
+     */
+	private String getICalCategory(CalendarTicket ticket) {
+		switch (ticket.getType()) {
+		case MOBILE_WORK:
+			return "Mobile Arbeit";
+		case FLEX_DAY:
+			return "Gleittag";
+		case VACATION:
+		case SEPECIAL_VACATION:
+			return "Urlaub";
+		default:
+			throw new RuntimeException("Invalid Type");
+		}
+	}
 
     /**
      * Retrieves the user's mail database entry.
@@ -403,8 +463,9 @@ public class CalendarTicketAgent {
      *                                  names.nsf database
      */
     private MailDatabaseEntry getUserMailEntry(String cnName) {
-        Database namesDB = getNamesDatabase();
-        View userView = getUserView(namesDB);
+
+        initNamesDatabase();
+
         ViewEntry user = getUserEntry(cnName, userView);
 
         String mailServer = user.getColumnValues().get(5).toString();
@@ -420,29 +481,29 @@ public class CalendarTicketAgent {
      * @throws RuntimeException if the names.nsf database could not be found or
      *                          opened
      */
-    private Database getNamesDatabase() {
-        //TODO: change hardcoded server name to session.getServerName()
-        Database namesDB = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "names.nsf");
-        if (namesDB == null) {
-            throw new RuntimeException("Could not find or open the names.nsf database");
-        }
-        return namesDB;
-    }
+    private void initNamesDatabase() {
 
-    /**
-     * Retrieves the ($Users) view from the names.nsf database.
-     * 
-     * @param namesDB the names.nsf database
-     * @return the ($Users) view
-     * @throws RuntimeException if the ($Users) view could not be found in the
-     *                          names.nsf database
-     */
-    private View getUserView(Database namesDB) {
-        View userView = namesDB.getView("($Users)");
-        if (userView == null) {
-            throw new RuntimeException("Could not find the view ($Users) in the names.nsf database");
+        // only open once
+        if (namesDB == null) {
+
+            // TEST: hardcoded server name
+            // Database namesDB = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE",
+            // "names.nsf");
+            namesDB = serverAgentSession.getDatabase(null, "names.nsf", false);
+
+            if (namesDB == null) {
+                throw new RuntimeException("Could not find or open the names.nsf database");
+            } else {
+
+                userView = namesDB.getView("($Users)");
+                if (userView == null) {
+                    throw new RuntimeException("Could not find the view ($Users) in the names.nsf database");
+                }
+
+            }
+
         }
-        return userView;
+
     }
 
     /**
@@ -472,6 +533,20 @@ public class CalendarTicketAgent {
      *                          database
      */
     private void handleTicketError(Exception e, CalendarTicket ticket) {
+
+        // dko: Log to openLog
+        TNotesUtil.stdErrorHandler(e);
+
+        /*
+         * später: z.B. bei Storno nicht auffindbare Einträge müssen nicht als Fehler
+         * behandelt werden
+         * boolean handleAsSuccess = false;
+         * 
+         * if (e instanceof NotesException) {
+         * NotesException ne = (NotesException) e;
+         * handleAsSuccess = ne.id == NotesError.NOTES_ERR_INVALIDID;
+         * }
+         */
 
         String logErrMsg = "Exception Class: " + e.getClass().getName() + " Cause: " + e.getCause() + " Message: " + e.getMessage();
 
@@ -510,4 +585,5 @@ public class CalendarTicketAgent {
         System.out.println(logPrefix + message);
     }
 
+	
 }
