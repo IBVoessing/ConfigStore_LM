@@ -2,8 +2,10 @@ package com.voessing.calendar;
 
 import java.util.Calendar;
 import java.util.Date;
-import org.openntf.domino.Document;
-import org.openntf.domino.Item;
+
+import lotus.domino.Document;
+import lotus.domino.Item;
+import lotus.domino.NotesException;
 
 public class CalendarTicket {
 
@@ -31,7 +33,7 @@ public class CalendarTicket {
         MOBILE_WORK, VACATION, SEPECIAL_VACATION, FLEX_DAY;
     }
 
-    public CalendarTicket(Document ticket){
+    public CalendarTicket(Document ticket) throws NotesException{
         setTicketDocumentUnid(ticket.getUniversalID());
         setTicketUid(ticket.getItemValueString("Uid"));
         setTitle(ticket.getItemValueString("title"));
@@ -39,8 +41,15 @@ public class CalendarTicket {
         setState(ticket.getItemValueString("status"));
         setRequester(ticket.getItemValueString("owner"));
 
-        setStartDate(ticket.getFirstItem("anfangsdatum"));
-        setEndDate(ticket.getFirstItem("enddatum"));
+        Item startDateItem = ticket.getFirstItem("anfangsdatum");
+        Item endDateItem = ticket.getFirstItem("enddatum");
+
+        setStartDate(startDateItem);
+        setEndDate(endDateItem);
+
+        startDateItem.recycle();
+        endDateItem.recycle();
+
         setStartPhase(ticket.getItemValueInteger("anfangslage"));
         setEndPhase(ticket.getItemValueInteger("endlage"));
 
@@ -165,7 +174,7 @@ public class CalendarTicket {
         return startDate;
     }
 
-    public void setStartDate(Item startDate) {
+    public void setStartDate(Item startDate) throws NotesException {
         if(requester == null || requester.isEmpty()){
             throw new IllegalArgumentException("requester must not be null or empty");
         }
@@ -182,7 +191,7 @@ public class CalendarTicket {
         return calendar.getTime();
     }
 
-    public void setEndDate(Item endDate) {
+    public void setEndDate(Item endDate) throws NotesException {
         if(requester == null || requester.isEmpty()){
             throw new IllegalArgumentException("requester must not be null or empty");
         }

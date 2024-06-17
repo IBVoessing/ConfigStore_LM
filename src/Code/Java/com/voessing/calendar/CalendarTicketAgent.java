@@ -5,20 +5,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.openntf.domino.Database;
-import org.openntf.domino.Document;
-import org.openntf.domino.NotesCalendar;
-import org.openntf.domino.NotesCalendarEntry;
-import org.openntf.domino.Session;
-import org.openntf.domino.View;
-import org.openntf.domino.ViewEntry;
-import org.openntf.domino.ViewEntryCollection;
-import org.openntf.domino.ext.Session.Fixes;
-import org.openntf.domino.utils.DominoUtils;
-import org.openntf.domino.utils.Factory;
-import org.openntf.domino.utils.Factory.SessionType;
+import lotus.domino.Database;
+import lotus.domino.Document;
+import lotus.domino.NotesCalendar;
+import lotus.domino.NotesCalendarEntry;
+import lotus.domino.NotesException;
+import lotus.domino.Session;
+import lotus.domino.View;
+import lotus.domino.ViewEntry;
+import lotus.domino.ViewEntryCollection;
 
 import com.google.gson.JsonObject;
+import com.ibm.domino.xsp.module.nsf.NotesContext;
 import com.voessing.common.TNotesUtil;
 
 public class CalendarTicketAgent {
@@ -31,9 +29,6 @@ public class CalendarTicketAgent {
     private Session serverAgentSession;
     private Database azeDb, namesDB;
     private View userView;
-
-    //temp
-    private ArrayList<String> allowed = new ArrayList<>();
     
     // report variables
     private int processedTickets, failedTickets;
@@ -65,36 +60,12 @@ public class CalendarTicketAgent {
         }
     }
     
-    public CalendarTicketAgent() {
-        // SessionType.CURRENT = Current User Session
-        // SessionType.NATIVE = Server Session 
-        serverAgentSession = Factory.getSession(SessionType.CURRENT);
-        serverAgentSession.setFixEnable(Fixes.PEDANTIC_GC_TRACKING, true);
+    public CalendarTicketAgent() throws NotesException {
+        serverAgentSession = NotesContext.getCurrent().getCurrentSession();
 
         //TEST:  hardcoded server name
         //azeDb = serverAgentSession.getDatabase("CN=IBVDNO03/O=IBV/C=DE", "AZEApp.nsf");
-        azeDb = serverAgentSession.getCurrentDatabase();
-        
-        // important as otherwise we don´t get the error when checking if a NotesCalendarEntry is valid or not
-        DominoUtils.setBubbleExceptions(true);
-        
-        
-        //bis zur VÖ zulassen für bestimmte Namen
-        allowed.add("CN=Leonardo Malzacher/OU=GF/O=IBV/C=DE");
-        allowed.add("CN=Denis Kopprasch/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Reiner Hintzen/OU=GF/O=IBV/C=DE");
-        allowed.add("CN=Markus Peters/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Erik Lukas Der/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Niklas Der/OU=GF/O=IBV/C=DE");
-        
-        allowed.add("CN=Stefan Iven/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Klaus Gross/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Torsten Hering/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Farid Rafii/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        
-        allowed.add("CN=Bernd Gewehr/OU=IT/OU=Duesseldorf/O=IBV/C=DE");
-        allowed.add("CN=Andrea Brueggemann/OU=IT/OU=GF/O=IBV/C=DE");
-        
+        azeDb = serverAgentSession.getCurrentDatabase();        
     }
     
     /**
@@ -129,17 +100,22 @@ public class CalendarTicketAgent {
      * 
      * <p>
      * This method should be called to start the ticket processing workflow.
+     * @throws NotesException 
      */
-    public void processTickets() {
-        List<CalendarTicket> openTickets = loadOpenTickets();
-        consoleLog(openTickets.size() + " tickets loaded");
-
-        for (CalendarTicket ticket : openTickets) {
-            processTicket(ticket);
+    public void processTickets() throws NotesException {
+        try{
+            List<CalendarTicket> openTickets = loadOpenTickets();
+            consoleLog(openTickets.size() + " tickets loaded");
+    
+            for (CalendarTicket ticket : openTickets) {
+                processTicket(ticket);
+            }
+    
+            consoleLog("Processing complete");
+            consoleLog(getReport());
+        }finally{
+            TNotesUtil.recycleNotesObject(namesDB, userView);
         }
-
-        consoleLog("Processing complete");
-        consoleLog(getReport());
     }
 
     /**
@@ -151,17 +127,37 @@ public class CalendarTicketAgent {
      * then converted into a {@link CalendarTicket} object. 
      * 
      * @return a list of open {@link CalendarTicket} objects
+     * @throws NotesException 
      */
-    private List<CalendarTicket> loadOpenTickets() {
-        // load all tickets from the database that have not been successfully processed
-    	// we use a view to ensure to process the tickets in creation order (asc)
-        View sortedTicketsAsc = azeDb.getView("(LookupAZETicketsAsc)");
-        ViewEntryCollection vec = sortedTicketsAsc.getAllEntries();
+    private List<CalendarTicket> loadOpenTickets() throws NotesException {
+        View sortedTicketsAsc = null;
+        ViewEntryCollection vec = null;
+        ViewEntry entry = null;
+        ViewEntry tmpEntry = null;
 
         List<CalendarTicket> result = new ArrayList<>();
+        
+        try {
+            // load all tickets from the database that have not been successfully processed
+            // we use a view to ensure to process the tickets in creation order (asc)
+            sortedTicketsAsc = azeDb.getView("(LookupAZETicketsAsc)");
+            vec = sortedTicketsAsc.getAllEntries();
 
-        for (ViewEntry ve : vec) {
-            result.add(new CalendarTicket(ve.getDocument()));
+
+            entry = vec.getFirstEntry();
+
+            while (entry != null) {
+
+                Document entryDoc = entry.getDocument();
+                result.add(new CalendarTicket(entryDoc));
+                entryDoc.recycle();
+
+                tmpEntry = entry;
+                entry = vec.getNextEntry();
+                tmpEntry.recycle();
+            }
+        } finally {
+            TNotesUtil.recycleNotesObject(sortedTicketsAsc, vec, entry, tmpEntry);
         }
 
         return result;
@@ -181,8 +177,9 @@ public class CalendarTicketAgent {
      * {@link #handleTicketError(Exception, CalendarTicket)} method.
      * 
      * @param ticket the calendar ticket to be processed
+     * @throws NotesException 
      */
-    private void processTicket(CalendarTicket ticket) {
+    private void processTicket(CalendarTicket ticket) throws NotesException {
 
         if (ticket.getRetries() > MAX_RETRIES) {
             logFailedTicket(ticket, "Max retries reached");
@@ -247,17 +244,25 @@ public class CalendarTicketAgent {
      *                 successfully
      * @param errorMsg a string containing any error message associated with the
      *                 ticket processing
+     * @throws NotesException 
      */
-    private void updateTicketStatus(CalendarTicket ticket, String status, String errorMsg) {
-        Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
-        ticketDoc.replaceItemValue("AgentStatus", status);
-        ticketDoc.replaceItemValue("AgentError", errorMsg);
+    private void updateTicketStatus(CalendarTicket ticket, String status, String errorMsg) throws NotesException {
 
-        if(status.equals(ERROR_STATUS)){
-            ticketDoc.replaceItemValue("AgentRetryCount", ticket.getRetries() + 1);
+        Document ticketDoc = null;
+
+        try {
+            ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
+            ticketDoc.replaceItemValue("AgentStatus", status);
+            ticketDoc.replaceItemValue("AgentError", errorMsg);
+
+            if (status.equals(ERROR_STATUS)) {
+                ticketDoc.replaceItemValue("AgentRetryCount", ticket.getRetries() + 1);
+            }
+
+            ticketDoc.save();
+        } finally {
+            TNotesUtil.recycleNotesObject(ticketDoc);
         }
-
-        ticketDoc.save();
     }
 
     /**
@@ -273,25 +278,29 @@ public class CalendarTicketAgent {
      * @param mailEntry the mail database entry of the user
      * @param ticket    the calendar ticket that dictates how the calendar entry
      *                  should be managed
+     * @throws NotesException
      */
-    private void manageCalendarEntry(MailDatabaseEntry mailEntry, CalendarTicket ticket) {
+    private void manageCalendarEntry(MailDatabaseEntry mailEntry, CalendarTicket ticket) throws NotesException {
 
-        Database userMailDB = getUserMailDatabase(mailEntry);
-        NotesCalendar userCalendar = getUserCalendar(userMailDB);
+        Database userMailDB = null;
+        NotesCalendar userCalendar = null;
+        NotesCalendarEntry entry = null;
 
-        // TODO: Aktivieren für echte Verarbeitung
-        // if (allowed.contains(ticket.getRequester())) {
+        try {
+            userMailDB = getUserMailDatabase(mailEntry);
+            userCalendar = getUserCalendar(userMailDB);
 
-        NotesCalendarEntry entry = getCalendarEntry(userCalendar, ticket);
+            entry = getCalendarEntry(userCalendar, ticket);
 
-        if (ticket.toBeDeleted()) {
-            deleteCalendarEntry(entry);
-        } else {
-            updateOrCreateCalendarEntry(userCalendar, entry, ticket);
+            if (ticket.toBeDeleted()) {
+                deleteCalendarEntry(entry);
+            } else {
+                updateOrCreateCalendarEntry(userCalendar, entry, ticket);
+            }
+
+        } finally {
+            TNotesUtil.recycleNotesObject(userMailDB, userCalendar, entry);
         }
-
-        //}
-        
     }
 
     /**
@@ -299,9 +308,10 @@ public class CalendarTicketAgent {
      * 
      * @param mailEntry the mail database entry of the user
      * @return the user's mail database
+     * @throws NotesException 
      * @throws IllegalArgumentException if the database could not be found
      */
-    private Database getUserMailDatabase(MailDatabaseEntry mailEntry) {
+    private Database getUserMailDatabase(MailDatabaseEntry mailEntry) throws NotesException {
         Database userMailDB = serverAgentSession.getDatabase(mailEntry.getMailServer(), mailEntry.getMailFile());
         if (userMailDB == null) {
             throw new IllegalArgumentException("Database not found");
@@ -314,8 +324,9 @@ public class CalendarTicketAgent {
      * 
      * @param userMailDB the user's mail database
      * @return the user's calendar
+     * @throws NotesException 
      */
-    private NotesCalendar getUserCalendar(Database userMailDB) {
+    private NotesCalendar getUserCalendar(Database userMailDB) throws NotesException {
         return serverAgentSession.getCalendar(userMailDB);
     }
 
@@ -325,8 +336,9 @@ public class CalendarTicketAgent {
      * @param userCalendar the user's calendar
      * @param ticket       the calendar ticket
      * @return the calendar entry associated with the ticket
+     * @throws NotesException 
      */
-    private NotesCalendarEntry getCalendarEntry(NotesCalendar userCalendar, CalendarTicket ticket) {
+    private NotesCalendarEntry getCalendarEntry(NotesCalendar userCalendar, CalendarTicket ticket) throws NotesException {
         return userCalendar.getEntry(ticket.getTicketUid());
     }
 
@@ -334,10 +346,11 @@ public class CalendarTicketAgent {
      * Deletes a calendar entry.
      * 
      * @param entry the calendar entry to be deleted
+     * @throws NotesException 
      * @throws IllegalArgumentException if the entry to be deleted could not be
      *                                  found
      */
-    private void deleteCalendarEntry(NotesCalendarEntry entry) {
+    private void deleteCalendarEntry(NotesCalendarEntry entry) throws NotesException {
         // as can check if entry is valid just delete it
         // if entry is not valid, an exception is thrown and written back to the ticket doc
         entry.remove();
@@ -352,8 +365,9 @@ public class CalendarTicketAgent {
      *                     should be created
      * @param ticket       the calendar ticket that dictates how the calendar entry
      *                     should be updated or created
+     * @throws NotesException 
      */
-    private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry, CalendarTicket ticket) {
+    private void updateOrCreateCalendarEntry(NotesCalendar userCalendar, NotesCalendarEntry entry, CalendarTicket ticket) throws NotesException {
         // we can´t check if an entry is valid or not, so we just try to update it
         try {
             entry.update(generateICal(ticket), "Anfrag wurde aktualisiert",
@@ -361,8 +375,10 @@ public class CalendarTicketAgent {
                             NotesCalendar.CS_WRITE_MODIFY_LITERAL);
         } catch (Exception e) {
             // if the entry does not exist, create a new one
-            userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
+            NotesCalendarEntry newEntry = userCalendar.createEntry(generateICal(ticket), NotesCalendar.CS_WRITE_DISABLE_IMPLICIT_SCHEDULING);
+            newEntry.recycle();
         }
+
     }
 
     /**<p>
@@ -457,20 +473,21 @@ public class CalendarTicketAgent {
      * 
      * @param cnName the common name of the user
      * @return the mail database entry of the user
+     * @throws NotesException 
      * @throws RuntimeException         if the names.nsf database or the ($Users)
      *                                  view could not be found
      * @throws IllegalArgumentException if the user could not be found in the
      *                                  names.nsf database
      */
-    private MailDatabaseEntry getUserMailEntry(String cnName) {
+    private MailDatabaseEntry getUserMailEntry(String cnName) throws NotesException {
 
         initNamesDatabase();
 
-        ViewEntry user = getUserEntry(cnName, userView);
+        List<String> user = getUserEntry(cnName, userView);
 
-        String mailServer = user.getColumnValues().get(5).toString();
-        String mailFile = user.getColumnValues().get(6).toString();
-
+        String mailServer = user.get(0);
+        String mailFile = user.get(1);
+        
         return new MailDatabaseEntry(mailServer, mailFile);
     }
 
@@ -478,10 +495,11 @@ public class CalendarTicketAgent {
      * Retrieves the names.nsf database.
      * 
      * @return the names.nsf database
+     * @throws NotesException 
      * @throws RuntimeException if the names.nsf database could not be found or
      *                          opened
      */
-    private void initNamesDatabase() {
+    private void initNamesDatabase() throws NotesException {
 
         // only open once
         if (namesDB == null) {
@@ -496,14 +514,12 @@ public class CalendarTicketAgent {
             } else {
 
                 userView = namesDB.getView("($Users)");
+
                 if (userView == null) {
                     throw new RuntimeException("Could not find the view ($Users) in the names.nsf database");
                 }
-
             }
-
         }
-
     }
 
     /**
@@ -512,15 +528,38 @@ public class CalendarTicketAgent {
      * @param cnName   the common name of the user
      * @param userView the ($Users) view
      * @return the user entry
+     * @throws NotesException 
      * @throws IllegalArgumentException if the user could not be found in the
      *                                  names.nsf database
      */
-    private ViewEntry getUserEntry(String cnName, View userView) {
-        ViewEntryCollection users = userView.getAllEntriesByKey(cnName);
-        if (users.getCount() != 1) {
-            throw new IllegalArgumentException("Could not find the user" + cnName + " in the names.nsf database");
+    private List<String> getUserEntry(String cnName, View userView) throws NotesException {
+
+        ViewEntryCollection users = null;
+        ViewEntry user = null;
+
+        List<String> result = new ArrayList<>();
+
+        try {
+
+            users = userView.getAllEntriesByKey(cnName);
+
+            if (users.getCount() != 1) {
+                throw new IllegalArgumentException("Could not find the user" + cnName + " in the names.nsf database");
+            }
+
+            user = users.getFirstEntry();
+
+            String mailServer = user.getColumnValues().get(5).toString();
+            String mailFile = user.getColumnValues().get(6).toString();
+
+            result.add(mailServer);
+            result.add(mailFile);
+
+        } finally {
+            TNotesUtil.recycleNotesObject(users, user);
         }
-        return users.getFirstEntry();
+
+        return result;
     }
 
     /**
@@ -529,10 +568,11 @@ public class CalendarTicketAgent {
      * @param e      the exception that occurred
      * @param ticket the calendar ticket that was being processed when the exception
      *               occurred
+     * @throws NotesException 
      * @throws RuntimeException if the ticket document could not be found in the
      *                          database
      */
-    private void handleTicketError(Exception e, CalendarTicket ticket) {
+    private void handleTicketError(Exception e, CalendarTicket ticket) throws NotesException {
 
         // dko: Log to openLog
         TNotesUtil.stdErrorHandler(e);
@@ -554,15 +594,8 @@ public class CalendarTicketAgent {
 
         consoleLog("Error processing ticket " + ticket.getTicketDocumentUnid() + ": " + logErrMsg);
 
-        Document ticketDoc = azeDb.getDocumentByUNID(ticket.getTicketDocumentUnid());
-
-        if (ticketDoc != null) {
-            // try to update the ticket document with the error message
-            updateTicketStatus(ticket, ERROR_STATUS, logErrMsg);
-        } else {
-            // if the ticket document is not available, escalate the error
-            throw new RuntimeException(e);
-        }
+        // try to update the ticket document with the error message
+        updateTicketStatus(ticket, ERROR_STATUS, logErrMsg);
     }
 
     /**
@@ -584,6 +617,4 @@ public class CalendarTicketAgent {
     private void consoleLog(String message) {
         System.out.println(logPrefix + message);
     }
-
-	
 }
