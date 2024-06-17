@@ -23,7 +23,6 @@ public class CalendarTicketAgent {
 
     private static final int MAX_RETRIES = 1; // maximum number of retries for a failed ticket
     private static final String SUCCESS_STATUS = "processed";
-    private static final String IDENT_NOT_FOUND = "processed - identifier not found";
     private static final String ERROR_STATUS = "error";
     private static final String MAX_RETRY_STATUS = "max_retries";
 
@@ -582,7 +581,7 @@ public class CalendarTicketAgent {
         if (e instanceof NotesException) {
             // 4814 = "Identifier not found"
             if (((NotesException) e).id == 4814) {
-                updateTicketStatus(ticket, IDENT_NOT_FOUND, null);
+                updateTicketStatus(ticket, SUCCESS_STATUS, null);
                 logProcessedTicket(ticket);
                 return;
             }
