@@ -23,6 +23,7 @@ public class CalendarTicketAgent {
 
     private static final int MAX_RETRIES = 1; // maximum number of retries for a failed ticket
     private static final String SUCCESS_STATUS = "processed";
+    private static final String IDENT_NOT_FOUND = "processed - identifier not found";
     private static final String ERROR_STATUS = "error";
     private static final String MAX_RETRY_STATUS = "max_retries";
 
@@ -573,22 +574,22 @@ public class CalendarTicketAgent {
      *                          database
      */
     private void handleTicketError(Exception e, CalendarTicket ticket) throws NotesException {
-
         // dko: Log to openLog
         TNotesUtil.stdErrorHandler(e);
 
-        /*
-         * später: z.B. bei Storno nicht auffindbare Einträge müssen nicht als Fehler
-         * behandelt werden
-         * boolean handleAsSuccess = false;
-         * 
-         * if (e instanceof NotesException) {
-         * NotesException ne = (NotesException) e;
-         * handleAsSuccess = ne.id == NotesError.NOTES_ERR_INVALIDID;
-         * }
-         */
+        // bei Storno nicht auffindbare Einträge müssen nicht als Fehler behandelt
+        // werden
+        if (e instanceof NotesException) {
+            // 4814 = "Identifier not found"
+            if (((NotesException) e).id == 4814) {
+                updateTicketStatus(ticket, IDENT_NOT_FOUND, null);
+                logProcessedTicket(ticket);
+                return;
+            }
+        }
 
-        String logErrMsg = "Exception Class: " + e.getClass().getName() + " Cause: " + e.getCause() + " Message: " + e.getMessage();
+        String logErrMsg = "Exception Class: " + e.getClass().getName() + " Cause: " + e.getCause() + " Message: "
+                + e.getMessage();
 
         logFailedTicket(ticket, logErrMsg);
 
